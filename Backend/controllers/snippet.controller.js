@@ -134,6 +134,13 @@ export const getAllSnippets = async (req, res) => {
             query.visibility = visibility;
         }
 
+        // Add Cache-Control headers
+        res.set({
+            'Cache-Control': 'no-cache, must-revalidate',
+            'Expires': '0',
+            'ETag': false
+        });
+
         const snippets = await Snippet.find(query)
             .populate('createdBy', 'username email')
             .limit(parseInt(limit))
@@ -218,7 +225,9 @@ export const searchSnippets = async (req, res) => {
 // Export snippet
 export const exportSnippet = async (req, res) => {
     try {
-        const snippet = await Snippet.findById(req.params.id);
+        const { format, includeMetadata, includeTags } = req.query;
+        const snippet = await Snippet.findById(req.params.id)
+            .populate('createdBy', 'username email');
         
         if (!snippet) {
             return res.status(404).json({ error: "Snippet not found" });
@@ -226,21 +235,101 @@ export const exportSnippet = async (req, res) => {
 
         // Check access permissions
         if (snippet.visibility === 'private' && 
-            snippet.createdBy.toString() !== req.user._id.toString()) {
+            snippet.createdBy._id.toString() !== req.user._id.toString()) {
             return res.status(403).json({ error: "Access denied" });
+        }
+
+        let exportContent = '';
+        const metadata = {
+            title: snippet.title,
+            author: snippet.createdBy.username,
+            created: snippet.createdAt,
+            language: snippet.programmingLanguage,
+            tags: snippet.tags
+        };
+
+        switch (format) {
+            case 'txt':
+                exportContent = formatAsTxt(snippet, metadata, includeMetadata === 'true', includeTags === 'true');
+                res.setHeader('Content-Type', 'text/plain');
+                break;
+            case 'json':
+                exportContent = formatAsJson(snippet, metadata, includeMetadata === 'true', includeTags === 'true');
+                res.setHeader('Content-Type', 'application/json');
+                break;
+            case 'md':
+                exportContent = formatAsMarkdown(snippet, metadata, includeMetadata === 'true', includeTags === 'true');
+                res.setHeader('Content-Type', 'text/markdown');
+                break;
+            default:
+                return res.status(400).json({ error: "Unsupported format" });
         }
 
         // Increment export counter
         snippet.stats.copies += 1;
         await snippet.save();
 
-        res.json({
-            content: snippet.content,
-            filename: `${snippet.title}.${snippet.language.toLowerCase()}`
-        });
+        res.setHeader('Content-Disposition', `attachment; filename=${snippet.title}.${format}`);
+        return res.send(exportContent);
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Export error:', error);
+        return res.status(500).json({ error: "Failed to export snippet" });
     }
+};
+
+// Helper functions for formatting
+const formatAsTxt = (snippet, metadata, includeMetadata, includeTags) => {
+    let content = '';
+    
+    if (includeMetadata) {
+        content += `Title: ${metadata.title}\n`;
+        content += `Author: ${metadata.author}\n`;
+        content += `Created: ${metadata.created}\n`;
+        content += `Language: ${metadata.language}\n`;
+        if (includeTags && metadata.tags.length > 0) {
+            content += `Tags: ${metadata.tags.join(', ')}\n`;
+        }
+        content += '\n---\n\n';
+    }
+    
+    content += snippet.content;
+    return content;
+};
+
+const formatAsJson = (snippet, metadata, includeMetadata, includeTags) => {
+    const exportData = {
+        content: snippet.content
+    };
+
+    if (includeMetadata) {
+        exportData.metadata = {
+            ...metadata,
+            tags: includeTags ? metadata.tags : undefined
+        };
+    }
+
+    return JSON.stringify(exportData, null, 2);
+};
+
+const formatAsMarkdown = (snippet, metadata, includeMetadata, includeTags) => {
+    let content = '';
+    
+    if (includeMetadata) {
+        content += `# ${metadata.title}\n\n`;
+        content += `- **Author:** ${metadata.author}\n`;
+        content += `- **Created:** ${metadata.created}\n`;
+        content += `- **Language:** ${metadata.language}\n`;
+        if (includeTags && metadata.tags.length > 0) {
+            content += `- **Tags:** ${metadata.tags.join(', ')}\n`;
+        }
+        content += '\n---\n\n';
+    }
+    
+    content += '```' + metadata.language.toLowerCase() + '\n';
+    content += snippet.content + '\n';
+    content += '```\n';
+    return content;
 };
 
 // Toggle comments
@@ -350,5 +439,39 @@ export const getSnippet = async (req, res) => {
         res.status(200).json(snippet);
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+// Generate share link
+export const generateShareLink = async (req, res) => {
+    try {
+        const snippet = await Snippet.findOne({
+            _id: req.params.id,
+            createdBy: req.user._id
+        });
+
+        if (!snippet) {
+            return res.status(404).json({ error: "Snippet not found" });
+        }
+
+        // Update share settings
+        snippet.shareLink = {
+            isEnabled: true,
+            settings: {
+                visibility: req.body.visibility || 'private',
+                allowComments: req.body.allowComments || false,
+                requireLogin: req.body.requireLogin || false
+            }
+        };
+
+        await snippet.save();
+
+        // Return the snippet ID which will be used to construct the share URL
+        res.json({
+            success: true,
+            snippetId: snippet._id
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

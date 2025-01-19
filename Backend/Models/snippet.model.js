@@ -16,9 +16,12 @@ const snippetSchema = new mongoose.Schema({
         sharedAt: { type: Date, default: Date.now }
     }],
     shareLink: {
-        token: String,
-        expiresAt: Date,
-        isEnabled: { type: Boolean, default: false }
+        isEnabled: { type: Boolean, default: false },
+        settings: {
+            visibility: { type: String, enum: ['private', 'public', 'restricted'], default: 'private' },
+            allowComments: { type: Boolean, default: false },
+            requireLogin: { type: Boolean, default: false }
+        }
     },
     versionHistory: [{
         version: { type: Number, required: true },

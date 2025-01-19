@@ -11,6 +11,7 @@ import SnippetLayout from '../components/Layouts/SnippetLayout';
 import GroupLayout from '../components/Layouts/GroupLayout';
 import DirectoryLayout from '../components/Layouts/DirectoryLayout';
 import PublicData from '../components/Layouts/PublicData';
+import SharedSnippet from '../components/SharedSnippet/SharedSnippet';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
@@ -33,6 +34,7 @@ const AppRoutes = () => {
 
         {/* Snippet Routes */}
         <Route path="/snippets" element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />} />
+        <Route path="/shared-snippet/:snippetId" element={<SharedSnippet />} />
 
         {/* Group Routes */}
         <Route path="/groups" element={isAuthenticated ? <GroupLayout /> : <Navigate to="/login" />}>

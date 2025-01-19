@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 import {
@@ -16,6 +16,7 @@ import {
     bulkCreateSnippets,
     getSnippetStats,
     getSnippet, // Add this line
+    generateShareLink, // Add this line
 } from "../controllers/snippet.controller.js";
 
 const snippetRouter = Router();
@@ -69,11 +70,30 @@ snippetRouter.post("/:id/share",
     shareSnippet
 );
 
+// Generate share link
+snippetRouter.post("/:id/share-link",
+    [
+        body("expiryDuration").optional(),
+        body("visibility").isIn(['private', 'public', 'restricted']).optional(),
+        body("allowComments").isBoolean().optional(),
+        body("requireLogin").isBoolean().optional()
+    ],
+    generateShareLink
+);
+
 // Search snippets
 snippetRouter.get("/search", searchSnippets);
 
 // Export snippet
-snippetRouter.get("/:id/export", exportSnippet);
+snippetRouter.get("/:id/export",
+    authMiddleware,
+    [
+        query('format').isIn(['txt', 'json', 'md']).withMessage('Invalid format'),
+        query('includeMetadata').optional().isBoolean(),
+        query('includeTags').optional().isBoolean()
+    ],
+    exportSnippet
+);
 
 // Toggle comments
 snippetRouter.patch("/:id/comments",
@@ -96,11 +116,15 @@ snippetRouter.post("/bulk",
         body("snippets").isArray(),
         body("snippets.*.title").trim().isLength({ min: 1 }),
         body("snippets.*.content").exists(),
-        body("snippets.*.language")
+        body("snippets.*.programmingLanguage")  // Changed from language
             .trim()
-            .notEmpty(), // Updated language validation
+            .notEmpty()
+            .withMessage('Programming language is required'),
         body("snippets.*.tags").isArray().optional(),
-        body("snippets.*.visibility").isIn(['public', 'private', 'shared']).optional()
+        body("snippets.*.visibility")
+            .isIn(['public', 'private', 'shared'])
+            .optional()
+            .default('private')
     ],
     bulkCreateSnippets
 );

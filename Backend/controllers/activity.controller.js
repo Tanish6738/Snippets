@@ -24,8 +24,24 @@ export const logActivity = async (req, res) => {
 // Get activities by user
 export const getActivitiesByUser = async (req, res) => {
     try {
-        const activities = await Activity.find({ userId: req.user._id }).sort({ createdAt: -1 });
-        res.json(activities);
+        // Add Cache-Control headers
+        res.set({
+            'Cache-Control': 'no-cache, must-revalidate',
+            'Expires': '0',
+            'ETag': false
+        });
+
+        const activities = await Activity.find({ userId: req.user._id })
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        // Add timestamp to force client update
+        const response = {
+            activities,
+            timestamp: new Date().toISOString()
+        };
+
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

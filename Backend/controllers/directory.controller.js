@@ -37,14 +37,37 @@ export const createDirectory = async (req, res) => {
 // Get all directories
 export const getAllDirectories = async (req, res) => {
     try {
-        const directories = await Directory.find({
+        const { featured, limit = 10 } = req.query;
+        const query = {
             $or: [
                 { createdBy: req.user._id },
                 { visibility: 'public' },
                 { 'sharedWith.entity': req.user._id }
             ]
-        }).populate('parentId');
-        res.json(directories);
+        };
+
+        if (featured === 'true') {
+            query.featured = true;
+        }
+
+        // Add Cache-Control headers
+        res.set({
+            'Cache-Control': 'no-cache, must-revalidate',
+            'Expires': '0',
+            'ETag': false
+        });
+
+        const directories = await Directory.find(query)
+            .populate('parentId')
+            .limit(parseInt(limit));
+
+        // Add timestamp to force client update
+        const response = {
+            directories,
+            timestamp: new Date().toISOString()
+        };
+
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
