@@ -9,30 +9,34 @@ export const createSnippet = async (req, res) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
+        // Ensure all required fields are present
+        const { title, content, programmingLanguage } = req.body;
+        
+        if (!title || !content || !programmingLanguage) {
+            return res.status(400).json({
+                errors: [{ msg: 'Title, content, and programming language are required' }]
+            });
+        }
+
         const snippetData = {
-            ...req.body,
-            programmingLanguage: req.body.language || req.body.programmingLanguage,
+            title: title.trim(),
+            content: content.trim(),
+            programmingLanguage: programmingLanguage.trim(),
+            tags: (req.body.tags || []).filter(Boolean).map(tag => tag.trim()),
+            visibility: req.body.visibility || 'private',
+            description: req.body.description?.trim() || '',
             createdBy: req.user._id
         };
-        delete snippetData.language;
 
         const snippet = new Snippet(snippetData);
         await snippet.save();
 
-        await Activity.logActivity({
-            userId: req.user._id,
-            action: 'create',
-            targetType: 'snippet',
-            targetId: snippet._id,
-            metadata: { 
-                visibility: snippet.visibility,
-                programmingLanguage: snippet.programmingLanguage
-            }
-        });
-
         res.status(201).json(snippet);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Snippet creation error:', error);
+        res.status(400).json({ 
+            errors: [{ msg: error.message }]
+        });
     }
 };
 

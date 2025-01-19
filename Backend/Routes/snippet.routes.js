@@ -27,11 +27,12 @@ snippetRouter.use(authMiddleware);
 // Create snippet
 snippetRouter.post("/",
     [
-        body("title").trim().isLength({ min: 1 }),
-        body("content").exists(),
-        body("language").exists().withMessage('Programming language is required'),
+        body("title").trim().isLength({ min: 1 }).withMessage('Title is required'),
+        body("content").notEmpty().withMessage('Content is required'),
+        body("programmingLanguage").trim().notEmpty().withMessage('Programming language is required'), // Changed from language
         body("tags").isArray().optional(),
-        body("visibility").isIn(['public', 'private', 'shared']).optional()
+        body("visibility").isIn(['public', 'private', 'shared']).optional(),
+        body("description").optional()
     ],
     createSnippet
 );

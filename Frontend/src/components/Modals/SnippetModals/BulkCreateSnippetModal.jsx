@@ -5,7 +5,7 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
   const [snippets, setSnippets] = useState([{
     title: '',
     content: '',
-    programmingLanguage: '', // Changed from 'language'
+    programmingLanguage: '',
     tags: [],
     visibility: 'private',
     description: ''
@@ -15,11 +15,10 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
 
   const handleChange = (index, field, value) => {
     const newSnippets = [...snippets];
-    // Special handling for programming language
     if (field === 'language') {
       newSnippets[index] = { 
         ...newSnippets[index], 
-        programmingLanguage: value  // Store as programmingLanguage
+        programmingLanguage: value 
       };
     } else {
       newSnippets[index] = { 
@@ -54,7 +53,7 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
     setSnippets([...snippets, {
       title: '',
       content: '',
-      programmingLanguage: '', // Changed from 'language'
+      programmingLanguage: '',
       tags: [],
       visibility: 'private',
       description: ''
@@ -72,7 +71,6 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Format snippets before sending
       const formattedSnippets = snippets.map(snippet => ({
         title: snippet.title,
         content: snippet.content,
@@ -95,151 +93,171 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Bulk Create Snippets</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ×
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm"></div>
+      
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative max-w-2xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden transition-all transform duration-300 ease-in-out hover:border-indigo-400/50 hover:shadow-indigo-500/10">
+          <div className="px-6 py-4 border-b border-indigo-500/20">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                Bulk Create Snippets
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 text-2xl font-semibold"
+              >
+                ×
+              </button>
+            </div>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {snippets.map((snippet, index) => (
-            <div key={index} className="border p-4 rounded-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Snippet {index + 1}</h3>
-                {snippets.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSnippet(index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
+          {error && (
+            <div className="mx-6 mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300 text-sm">
+              {error}
+            </div>
+          )}
 
-              <div className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Title"
-                    className="w-full border rounded p-2"
-                    value={snippet.title}
-                    onChange={(e) => handleChange(index, 'title', e.target.value)}
-                  />
-                </div>
+          <div className="px-6 py-4 max-h-[70vh] overflow-y-auto 
+            scrollbar-thin scrollbar-track-indigo-500/10 
+            scrollbar-thumb-indigo-500/40 
+            hover:scrollbar-thumb-indigo-500/60
+            scrollbar-thumb-rounded-full
+            scrollbar-track-rounded-full">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {snippets.map((snippet, index) => (
+                <div key={index} className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 hover:border-indigo-400/30 transition-all duration-300">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-indigo-200">Snippet {index + 1}</h3>
+                    {snippets.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSnippet(index)}
+                        className="text-red-400 hover:text-red-300 transition-colors duration-200"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
 
-                <div>
-                  <textarea
-                    required
-                    rows="4"
-                    placeholder="Content"
-                    className="w-full border rounded p-2 font-mono"
-                    value={snippet.content}
-                    onChange={(e) => handleChange(index, 'content', e.target.value)}
-                  />
-                </div>
+                  <div className="space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Title"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                        value={snippet.title}
+                        onChange={(e) => handleChange(index, 'title', e.target.value)}
+                      />
+                    </div>
 
-                <div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Programming Language"
-                    className="w-full border rounded p-2"
-                    value={snippet.programmingLanguage} // Changed from snippet.language
-                    onChange={(e) => handleChange(index, 'language', e.target.value)}
-                  />
-                </div>
+                    <div>
+                      <textarea
+                        required
+                        rows="4"
+                        placeholder="Content"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200 font-mono"
+                        value={snippet.content}
+                        onChange={(e) => handleChange(index, 'content', e.target.value)}
+                      />
+                    </div>
 
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Add tags (press Enter)"
-                    className="w-full border rounded p-2"
-                    value={tagInputs[index]}
-                    onChange={(e) => {
-                      const newTagInputs = [...tagInputs];
-                      newTagInputs[index] = e.target.value;
-                      setTagInputs(newTagInputs);
-                    }}
-                    onKeyPress={(e) => handleTagInput(index, e)}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {snippet.tags.map(tag => (
-                      <span key={tag} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center">
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(index, tag)}
-                          className="ml-1 text-blue-600 hover:text-blue-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Programming Language"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                        value={snippet.programmingLanguage}
+                        onChange={(e) => handleChange(index, 'language', e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Add tags (press Enter)"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                        value={tagInputs[index]}
+                        onChange={(e) => {
+                          const newTagInputs = [...tagInputs];
+                          newTagInputs[index] = e.target.value;
+                          setTagInputs(newTagInputs);
+                        }}
+                        onKeyPress={(e) => handleTagInput(index, e)}
+                      />
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {snippet.tags.map(tag => (
+                          <span key={tag} className="px-3 py-1 rounded-full text-sm bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(index, tag)}
+                              className="ml-2 text-indigo-400 hover:text-indigo-300"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <select
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                        value={snippet.visibility}
+                        onChange={(e) => handleChange(index, 'visibility', e.target.value)}
+                      >
+                        <option value="private">Private</option>
+                        <option value="public">Public</option>
+                        <option value="shared">Shared</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        placeholder="Description"
+                        rows="2"
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                        value={snippet.description}
+                        onChange={(e) => handleChange(index, 'description', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
+              ))}
 
-                <div>
-                  <select
-                    className="w-full border rounded p-2"
-                    value={snippet.visibility}
-                    onChange={(e) => handleChange(index, 'visibility', e.target.value)}
-                  >
-                    <option value="private">Private</option>
-                    <option value="public">Public</option>
-                    <option value="shared">Shared</option>
-                  </select>
-                </div>
-
-                <div>
-                  <textarea
-                    placeholder="Description"
-                    rows="2"
-                    className="w-full border rounded p-2"
-                    value={snippet.description}
-                    onChange={(e) => handleChange(index, 'description', e.target.value)}
-                  />
-                </div>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={addSnippet}
+                  className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+                >
+                  + Add Another Snippet
+                </button>
               </div>
+            </form>
+          </div>
+
+          <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)]"
+              >
+                Create Snippets
+              </button>
             </div>
-          ))}
-
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={addSnippet}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              + Add Another Snippet
-            </button>
           </div>
-
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Create Snippets
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -15,6 +15,7 @@ const Snippets = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   
   // Modal states
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -55,6 +56,12 @@ const Snippets = () => {
     setViewModalOpen(true);
   };
 
+  const handleEditSnippet = (snippetId) => {
+    setViewModalOpen(false);
+    setSelectedSnippetId(snippetId);
+    setEditModalOpen(true);
+  };
+
   const handleDelete = async (snippetId) => {
     if (!isAuthenticated) return;
     try {
@@ -70,20 +77,22 @@ const Snippets = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Code Snippets</h1>
+    <div className="container mx-auto p-6 text-white">
+      <div className="mb-8 flex justify-between items-center">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+          Code Snippets
+        </h1>
         {isAuthenticated && (
           <div className="space-x-3">
             <button
               onClick={() => setCreateModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)]"
             >
               Create Snippet
             </button>
             <button
               onClick={() => setBulkCreateModalOpen(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-6 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
             >
               Bulk Create
             </button>
@@ -91,12 +100,12 @@ const Snippets = () => {
         )}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mb-8 flex flex-wrap gap-4">
         <div className="flex-1">
           <input
             type="text"
             placeholder="Search snippets..."
-            className="w-full p-2 border rounded"
+            className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -125,19 +134,19 @@ const Snippets = () => {
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
         </div>
       ) : (
         <div className="grid gap-6">
           {snippets.map(snippet => (
-            <div key={snippet._id} className="border rounded-lg p-4 bg-white shadow">
+            <div key={snippet._id} className="backdrop-blur-lg bg-white/5 p-6 rounded-2xl border border-indigo-500/30 hover:border-indigo-400/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.15)]">
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-xl font-semibold mb-2">{snippet.title}</h3>
@@ -202,6 +211,7 @@ const Snippets = () => {
           isOpen={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
           snippetId={selectedSnippetId}
+          onEdit={handleEditSnippet}
         />
       )}
 
@@ -218,6 +228,18 @@ const Snippets = () => {
           isOpen={bulkCreateModalOpen}
           onClose={() => setBulkCreateModalOpen(false)}
           onSnippetsCreated={handleSnippetCreated}
+        />
+      )}
+
+      {editModalOpen && (
+        <EditSnippetDetailsModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          snippetId={selectedSnippetId}
+          onSnippetUpdated={() => {
+            setEditModalOpen(false);
+            fetchSnippets();
+          }}
         />
       )}
     </div>

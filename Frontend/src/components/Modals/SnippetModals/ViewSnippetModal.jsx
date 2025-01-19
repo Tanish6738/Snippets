@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useUser } from '../../../Context/UserContext';
 import axios from '../../../Config/Axios';
+import EditSnippetDetailsModal from './EditSnippetDetailsModal';
 
-const ViewSnippetModal = ({ isOpen, onClose, snippetId }) => {
+const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [snippet, setSnippet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useUser(); // Add this line to get current user
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     const fetchSnippet = async () => {
@@ -13,6 +17,14 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId }) => {
         setLoading(true);
         const { data } = await axios.get(`/api/snippets/${snippetId}`);
         setSnippet(data);
+        
+        // Add more detailed debug logging
+        console.log('Debug Info:', {
+          userID: user?._id,
+          creatorID: data.createdBy?._id || data.createdBy,
+          hasOnEdit: !!onEdit,
+          isMatch: user?._id === (data.createdBy?._id || data.createdBy)
+        });
       } catch (err) {
         setError(err.message || 'Failed to fetch snippet');
       } finally {
@@ -23,70 +35,127 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId }) => {
     if (isOpen) {
       fetchSnippet();
     }
-  }, [snippetId, isOpen]);
+  }, [snippetId, isOpen, user]); // Add user to dependencies
+
+  const handleEditClick = () => {
+    console.log('Edit button clicked', {
+      snippet,
+      userId: user?._id,
+      creatorId: snippet?.createdBy?._id || snippet?.createdBy,
+      onEdit
+    });
+    if (onEdit) {
+      onEdit(snippet._id); // Call the parent's edit handler
+    }
+    onClose(); // Close the view modal
+  };
+
+  const handleEditComplete = (updatedSnippet) => {
+    setShowEditModal(false);
+    setSnippet(updatedSnippet);
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">{snippet?.title || 'Loading...'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ×
-          </button>
+    <>
+      <div className="fixed inset-0 z-[60] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm"></div>
+        
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative max-w-4xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden transition-all transform duration-300 ease-in-out hover:border-indigo-400/50 hover:shadow-indigo-500/10">
+            <div className="px-6 py-4 border-b border-indigo-500/20">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                  {snippet?.title || 'Loading...'}
+                </h2>
+                <button onClick={onClose} className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 text-2xl font-semibold">
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-indigo-500/10 scrollbar-thumb-indigo-500/40">
+              {loading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                </div>
+              ) : error ? (
+                <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl">
+                  {error}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-indigo-300 mb-2">Description</h3>
+                    <p className="text-indigo-200/80">{snippet.description || 'No description provided'}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium text-indigo-300 mb-2">Code</h3>
+                    <pre className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
+                      <code className="font-mono text-sm text-white">{snippet.content}</code>
+                    </pre>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {snippet.tags.map(tag => (
+                      <span key={tag} className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 text-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm text-indigo-300">
+                    <div>
+                      <p>Language: {snippet.programmingLanguage}</p>
+                      <p>Visibility: {snippet.visibility}</p>
+                    </div>
+                    <div>
+                      <p>Created: {new Date(snippet.createdAt).toLocaleDateString()}</p>
+                      <p>Last Updated: {new Date(snippet.updatedAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-indigo-300 space-y-1">
+                    <p>Views: {snippet.stats?.views || 0}</p>
+                    <p>Copies: {snippet.stats?.copies || 0}</p>
+                    <p>Favorites: {snippet.stats?.favorites || 0}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+                >
+                  Close
+                </button>
+                {/* Simplified condition and added debug element */}
+                {user && snippet && user._id === (snippet.createdBy?._id || snippet.createdBy) && (
+                  <button
+                    onClick={handleEditClick}
+                    className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)]"
+                  >
+                    Edit Snippet
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600">{snippet.description || 'No description provided'}</p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Code</h3>
-              <pre className="bg-gray-50 p-4 rounded-md overflow-x-auto">
-                <code className="font-mono text-sm">{snippet.content}</code>
-              </pre>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {snippet.tags.map(tag => (
-                <span key={tag} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-              <div>
-                <p>Language: {snippet.programmingLanguage}</p>
-                <p>Visibility: {snippet.visibility}</p>
-              </div>
-              <div>
-                <p>Created: {new Date(snippet.createdAt).toLocaleDateString()}</p>
-                <p>Last Updated: {new Date(snippet.updatedAt).toLocaleDateString()}</p>
-              </div>
-            </div>
-
-            <div className="text-sm text-gray-600">
-              <p>Views: {snippet.stats?.views || 0}</p>
-              <p>Copies: {snippet.stats?.copies || 0}</p>
-              <p>Favorites: {snippet.stats?.favorites || 0}</p>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+
+      <EditSnippetDetailsModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        snippet={snippet}
+        onSnippetUpdated={handleEditComplete}
+      />
+    </>
   );
 };
 
