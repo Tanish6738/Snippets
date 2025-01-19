@@ -290,3 +290,51 @@ export const getDirectoryTree = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Export directory
+export const exportDirectory = async (req, res) => {
+    try {
+        const { format, includeMetadata, includeSnippets, includeSubdirectories, flattenStructure } = req.query;
+        const directory = await Directory.findOne({
+            _id: req.params.id,
+            $or: [
+                { createdBy: req.user._id },
+                { visibility: 'public' },
+                { 'sharedWith.entity': req.user._id }
+            ]
+        }).populate('snippets');
+
+        if (!directory) {
+            return res.status(404).json({ error: "Directory not found" });
+        }
+
+        let exportData = {
+            directory: includeMetadata ? directory : { name: directory.name, path: directory.path },
+            snippets: includeSnippets ? directory.snippets : [],
+            subdirectories: []
+        };
+
+        if (includeSubdirectories) {
+            const subdirectories = await Directory.find({
+                ancestors: directory._id
+            }).populate('snippets');
+            exportData.subdirectories = subdirectories;
+        }
+
+        // Set response headers
+        res.setHeader('Content-Disposition', `attachment; filename=${directory.name}.${format}`);
+        
+        if (format === 'json') {
+            res.setHeader('Content-Type', 'application/json');
+            return res.json(exportData);
+        } else if (format === 'zip') {
+            // Implement ZIP file creation logic here
+            // You'll need to use a library like 'archiver' to create ZIP files
+            res.setHeader('Content-Type', 'application/zip');
+            // Return ZIP file
+        }
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

@@ -12,6 +12,10 @@ import ExportSnippetModal from '../Modals/SnippetModals/ExportSnippetModal';
 import ShareLinkModal from '../Modals/ShareLinkModal';
 import ViewGroupDetailsModal from '../Modals/GroupModals/ViewGroupDetailsModal';
 import CreateGroupModal from '../Modals/GroupModals/CreateGroupModal';
+import ViewDirectoryDetailsModal from '../Modals/DirectoryModals/ViewDirectoryDetailsModal';
+import CreateDirectoryModal from '../Modals/DirectoryModals/CreateDirectoryModal';
+import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails';
+import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 
 const StatCard = ({ title, value, icon }) => (
   <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -38,6 +42,14 @@ const Home = () => {
   const [featuredGroups, setFeaturedGroups] = useState([]);
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [createdGroups, setCreatedGroups] = useState([]);
+  const [userDirectories, setUserDirectories] = useState([]);
+  const [directoryModalStates, setDirectoryModalStates] = useState({
+    view: false,
+    create: false,
+    edit: false,
+    export: false
+  });
+  const [selectedDirectoryId, setSelectedDirectoryId] = useState(null);
 
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -63,7 +75,7 @@ const Home = () => {
       const params = { _t: timestamp };
 
       // Fetch all data in parallel
-      const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes] = await Promise.all([
+      const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes, userDirectoriesRes] = await Promise.all([
         axios.get('/api/snippets', {
           params: { ...params, limit: 5, sort: '-createdAt' },
           headers
@@ -83,6 +95,10 @@ const Home = () => {
         isAuthenticated ? axios.get('/api/groups/joined', {
           params: { ...params, limit: 3 },
           headers
+        }) : Promise.resolve({ data: [] }),
+        isAuthenticated ? axios.get('/api/directories', {
+          params: { ...params, userId: user._id, limit: 3 },
+          headers
         }) : Promise.resolve({ data: [] })
       ]);
 
@@ -90,6 +106,7 @@ const Home = () => {
       setFeaturedDirectories(directoriesRes.data.directories || []);
       setCreatedGroups(groupsRes.data.groups || []);
       setJoinedGroups(joinedGroupsRes.data || []); // Handle the array response directly
+      setUserDirectories(userDirectoriesRes.data.directories || []);
 
       if (isAuthenticated) {
         const stats = {
@@ -136,6 +153,14 @@ const Home = () => {
   };
 
   const handleGroupCreated = () => {
+    fetchHomeData();
+  };
+
+  const handleDirectoryCreated = () => {
+    fetchHomeData();
+  };
+
+  const handleDirectoryUpdated = () => {
     fetchHomeData();
   };
 
@@ -420,6 +445,88 @@ const Home = () => {
                 ))}
               </div>
             </div>
+
+            {/* Featured Directories */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Featured Directories</h2>
+                <Link to="/directories" className="text-blue-600 hover:text-blue-800 font-medium">
+                  View All →
+                </Link>
+              </div>
+              <div className="space-y-4">
+                {featuredDirectories.map(directory => (
+                  <div key={directory._id} 
+                       className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold">{directory.name}</h3>
+                        <p className="text-sm text-gray-600">{directory.path}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedDirectoryId(directory._id);
+                          setDirectoryModalStates(prev => ({ ...prev, view: true }));
+                        }}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      <span className="mr-4">Snippets: {directory.metadata?.snippetCount || 0}</span>
+                      <span>Subdirectories: {directory.metadata?.subDirectoryCount || 0}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* My Directories */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">My Directories</h2>
+                <button
+                  onClick={() => setDirectoryModalStates(prev => ({ ...prev, create: true }))}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Create New +
+                </button>
+              </div>
+              <div className="space-y-4">
+                {userDirectories.map(directory => (
+                  <div key={directory._id} 
+                       className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold">{directory.name}</h3>
+                        <p className="text-sm text-gray-600">{directory.path}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDirectoryId(directory._id);
+                            setDirectoryModalStates(prev => ({ ...prev, view: true }));
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedDirectoryId(directory._id);
+                            setDirectoryModalStates(prev => ({ ...prev, edit: true }));
+                          }}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -475,6 +582,40 @@ const Home = () => {
           groupId={selectedGroupId}
         />
       )}
+
+      <ViewDirectoryDetailsModal
+        isOpen={directoryModalStates.view}
+        onClose={() => {
+          setDirectoryModalStates(prev => ({ ...prev, view: false }));
+          setSelectedDirectoryId(null);
+        }}
+        directoryId={selectedDirectoryId}
+      />
+
+      <CreateDirectoryModal
+        isOpen={directoryModalStates.create}
+        onClose={() => setDirectoryModalStates(prev => ({ ...prev, create: false }))}
+        onDirectoryCreated={handleDirectoryCreated}
+      />
+
+      <EditDirectoryDetails
+        isOpen={directoryModalStates.edit}
+        onClose={() => {
+          setDirectoryModalStates(prev => ({ ...prev, edit: false }));
+          setSelectedDirectoryId(null);
+        }}
+        directoryId={selectedDirectoryId}
+        onDirectoryUpdated={handleDirectoryUpdated}
+      />
+
+      <ExportDirectoryModal
+        isOpen={directoryModalStates.export}
+        onClose={() => {
+          setDirectoryModalStates(prev => ({ ...prev, export: false }));
+          setSelectedDirectoryId(null);
+        }}
+        directoryId={selectedDirectoryId}
+      />
 
       {error && (
         <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
