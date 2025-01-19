@@ -13,10 +13,14 @@ import {
     addSnippet,
     removeSnippet,
     addDirectory,
-    removeDirectory
+    removeDirectory,
+    getJoinedGroups // Add this import
 } from '../controllers/group.controller.js';
 
 const groupRouter = express.Router();
+
+// Add this route before the /:id routes to prevent conflict
+groupRouter.get('/joined', authMiddleware, getJoinedGroups);
 
 // Base group routes
 groupRouter.post('/', authMiddleware, createGroup);

@@ -25,13 +25,34 @@ export const createGroup = async (req, res) => {
 // Get all groups
 export const getAllGroups = async (req, res) => {
     try {
-        const groups = await Group.find({
+        const { limit = 10, sort = '-createdAt', featured } = req.query;
+        const query = {
             $or: [
                 { 'settings.visibility': 'public' },
                 { 'members.userId': req.user._id }
             ]
-        }).populate('members.userId', 'username email');
-        res.json(groups);
+        };
+
+        if (featured === 'true') {
+            query.featured = true;
+        }
+
+        const groups = await Group.find(query)
+            .populate('members.userId', 'username email')
+            .sort(sort)
+            .lean();
+
+        const response = {
+            groups: groups,
+            total: groups.length,
+            hasMore: groups.length === parseInt(limit)
+        };
+
+        // Set cache control headers
+        res.set('Cache-Control', 'no-cache');
+        res.set('Pragma', 'no-cache');
+        
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -247,5 +268,26 @@ export const removeDirectory = async (req, res) => {
         res.json(group);
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+// Add this function with the other exports
+export const getJoinedGroups = async (req, res) => {
+    try {
+        const groups = await Group.find({
+            'members.userId': req.user._id
+        })
+        .populate('members.userId', 'username email')
+        .sort('-createdAt')
+        .limit(parseInt(req.query.limit) || 10)
+        .lean();
+
+        // Set cache control headers
+        res.set('Cache-Control', 'no-cache');
+        res.set('Pragma', 'no-cache');
+        
+        res.json(groups);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

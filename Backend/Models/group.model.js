@@ -11,6 +11,7 @@ const groupSchema = new mongoose.Schema({
     }],
     snippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
     directories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Directory' }],
+    featured: { type: Boolean, default: false },
     settings: {
         joinPolicy: { type: String, enum: ['open', 'invite', 'closed'], default: 'invite' },
         visibility: { type: String, enum: ['public', 'private'], default: 'private' }
