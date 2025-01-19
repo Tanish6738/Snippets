@@ -27,13 +27,16 @@ const Navbar = () => {
           {/* Desktop Menu */}
           <div className="hidden md:block">
             <div className="flex items-center space-x-4">
+              <Link to="/public" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+                Public Data
+              </Link>
               {isAuthenticated ? (
                 <>
-                  <Link to="/snippets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                    My Snippets
+                  <Link to="/directories" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+                    Directories
                   </Link>
-                  <Link to="/snippets/new" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                    Create Snippet
+                  <Link to="/snippets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+                    Snippets
                   </Link>
                   <Link to="/groups" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
                     Groups
@@ -86,13 +89,16 @@ const Navbar = () => {
       {/* Mobile menu */}
       <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden`}>
         <div className="px-2 pt-2 pb-3 space-y-1">
+          <Link to="/public" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+            Public Data
+          </Link>
           {isAuthenticated ? (
             <>
-              <Link to="/snippets" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                My Snippets
+              <Link to="/directories" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                Directories
               </Link>
-              <Link to="/snippets/new" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                Create Snippet
+              <Link to="/snippets" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                Snippets
               </Link>
               <Link to="/groups" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
                 Groups
