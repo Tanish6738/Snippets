@@ -1,11 +1,14 @@
 import React from 'react'
+import { UserProvider } from './Context/UserContext'
+import { GroupProvider } from './Context/GroupContext'
 import AppRoutes from './Routes/AppRoutes'
-import { UserProvider } from './context/UserContext'
 
 const App = () => {
   return (
     <UserProvider>
+      <GroupProvider>
         <AppRoutes />
+      </GroupProvider>
     </UserProvider>
   )
 }
