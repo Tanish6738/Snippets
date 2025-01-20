@@ -29,69 +29,102 @@ const ViewGroupDetailsModal = ({ isOpen, onClose, groupId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">{group?.name || 'Loading...'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ×
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600">{group.description || 'No description provided'}</p>
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"></div>
+      
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative max-w-3xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl 
+                       shadow-lg border border-indigo-500/30 overflow-hidden">
+          
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-indigo-500/20">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 
+                           bg-clip-text text-transparent">
+                {group?.name || 'Loading...'}
+              </h2>
+              <button onClick={onClose} className="text-2xl text-indigo-400 
+                                                hover:text-indigo-300 transition-colors">×</button>
             </div>
+          </div>
 
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Settings</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Join Policy</p>
-                  <p className="font-medium capitalize">{group.settings.joinPolicy}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Visibility</p>
-                  <p className="font-medium capitalize">{group.settings.visibility}</p>
-                </div>
+          {/* Content */}
+          <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-thin 
+                         scrollbar-track-indigo-500/10 scrollbar-thumb-indigo-500/40">
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-pulse text-indigo-400">Loading...</div>
               </div>
-            </div>
+            ) : error ? (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-300 
+                            px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Description */}
+                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
+                  <h3 className="text-lg font-medium text-indigo-200 mb-2">Description</h3>
+                  <p className="text-indigo-300">{group.description || 'No description provided'}</p>
+                </div>
 
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Members</h3>
-              <div className="space-y-2">
-                {group.members?.map(member => (
-                  <div key={member._id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <div className="flex items-center">
-                      <img 
-                        src={member.avatar || '/default-avatar.png'} 
-                        alt={member.username}
-                        className="w-8 h-8 rounded-full mr-2"
-                      />
-                      <span>{member.username}</span>
+                {/* Settings */}
+                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
+                  <h3 className="text-lg font-medium text-indigo-200 mb-2">Settings</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-indigo-400">Join Policy</p>
+                      <p className="font-medium text-indigo-200 capitalize">
+                        {group.settings.joinPolicy}
+                      </p>
                     </div>
-                    <span className="text-sm text-gray-500 capitalize">{member.role}</span>
+                    <div>
+                      <p className="text-sm text-indigo-400">Visibility</p>
+                      <p className="font-medium text-indigo-200 capitalize">
+                        {group.settings.visibility}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="text-sm text-gray-600">
-              <p>Created: {new Date(group.createdAt).toLocaleDateString()}</p>
-              <p>Last Updated: {new Date(group.updatedAt).toLocaleDateString()}</p>
-            </div>
+                {/* Members */}
+                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
+                  <h3 className="text-lg font-medium text-indigo-200 mb-2">Members</h3>
+                  <div className="space-y-2">
+                    {group.members?.map(member => (
+                      <div key={member._id} 
+                           className="flex items-center justify-between p-3 
+                                    bg-indigo-500/10 rounded-xl border 
+                                    border-indigo-500/20 hover:bg-indigo-500/20 
+                                    transition-colors">
+                        <div className="flex items-center">
+                          <img 
+                            src={member.avatar || '/default-avatar.png'} 
+                            alt={member.username}
+                            className="w-8 h-8 rounded-full mr-2 border 
+                                     border-indigo-500/30"
+                          />
+                          <span className="text-indigo-200">{member.username}</span>
+                        </div>
+                        <span className="text-sm text-indigo-400 capitalize px-3 
+                                       py-1 bg-indigo-500/20 rounded-full border 
+                                       border-indigo-500/30">
+                          {member.role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="text-sm text-indigo-400 space-y-1">
+                  <p>Created: {new Date(group.createdAt).toLocaleDateString()}</p>
+                  <p>Last Updated: {new Date(group.updatedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '../../Context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
+  const backgroundImages = [
+    "url(/src/assets/Anime_Pastel_Dream_Create_a_hyperrealistic_night_sky_landscape_0.jpg)",
+    "url(/src/assets/Absolute_Reality_v16_Create_a_hyperrealistic_night_sky_landsca_0.jpg)",
+    "url(/src/assets/Anime_Pastel_Dream_Create_a_hyperrealistic_night_sky_landscape_1.jpg)",
+    ];
+
+  const [backgroundImage, setBackgroundImage] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -10,6 +17,11 @@ const Login = () => {
   const [error, setError] = useState('');
   const { login } = useUser();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const randomImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
+    setBackgroundImage(randomImage);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,17 +34,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070B14] flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
+         style={{
+           backgroundImage: backgroundImage,
+           backgroundSize: 'cover',
+           backgroundPosition: 'center',
+           backgroundRepeat: 'no-repeat'
+         }}>
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/30 to-violet-600/30"></div>
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-25"></div>
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-violet-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob"></div>
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob animation-delay-4000"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-900/30 to-black/50"></div>
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
 
       {/* Main Content */}
       <div className="max-w-md w-full m-4 relative z-10">
-        <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+        <div className="backdrop-blur-xl backdrop-filter bg-white/10 rounded-2xl shadow-lg border border-white/20 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
               Welcome back

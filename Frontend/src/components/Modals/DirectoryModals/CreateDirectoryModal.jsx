@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiFolder, FiX, FiLock, FiGlobe, FiUsers } from 'react-icons/fi';
 import axios from '../../../Config/Axios';
 
 const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = null }) => {
@@ -30,63 +32,135 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Create New Directory</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">×</button>
-        </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Directory Name</label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Visibility</label>
-            <select
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              value={formData.visibility}
-              onChange={(e) => setFormData(prev => ({ ...prev, visibility: e.target.value }))}
-            >
-              <option value="private">Private</option>
-              <option value="public">Public</option>
-              <option value="shared">Shared</option>
-            </select>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="relative max-w-md w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden transition-all transform duration-300 ease-in-out hover:border-indigo-400/50 hover:shadow-indigo-500/10 mx-4"
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-indigo-500/20">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent flex items-center">
+                <FiFolder className="mr-3 text-indigo-400" />
+                Create Directory
+              </h2>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+              >
+                <FiX className="w-6 h-6" />
+              </motion.button>
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Directory'}
-            </button>
+          {/* Error Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mx-6 mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Form Content */}
+          <div className="px-6 py-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                  Directory Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter directory name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                  Visibility
+                </label>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { value: 'private', icon: FiLock, label: 'Private' },
+                    { value: 'public', icon: FiGlobe, label: 'Public' },
+                    { value: 'shared', icon: FiUsers, label: 'Shared' },
+                  ].map(({ value, icon: Icon, label }) => (
+                    <motion.button
+                      key={value}
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setFormData(prev => ({ ...prev, visibility: value }))}
+                      className={`p-3 rounded-xl flex flex-col items-center justify-center border ${
+                        formData.visibility === value
+                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                          : 'border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 mb-1" />
+                      <span className="text-sm">{label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
-      </div>
-    </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+            <div className="flex justify-end space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating...
+                  </span>
+                ) : (
+                  'Create Directory'
+                )}
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

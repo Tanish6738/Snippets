@@ -63,108 +63,100 @@ const ExportDirectoryModal = ({ isOpen, onClose, directoryId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Export Directory</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ×
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Export Format
-            </label>
-            <select
-              className="w-full border rounded p-2"
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-            >
-              <option value="zip">ZIP Archive (.zip)</option>
-              <option value="json">JSON (.json)</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="includeMetadata"
-                checked={options.includeMetadata}
-                onChange={() => handleOptionChange('includeMetadata')}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="includeMetadata" className="ml-2 text-sm text-gray-700">
-                Include metadata (creation date, author, etc.)
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="includeSnippets"
-                checked={options.includeSnippets}
-                onChange={() => handleOptionChange('includeSnippets')}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="includeSnippets" className="ml-2 text-sm text-gray-700">
-                Include snippets
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="includeSubdirectories"
-                checked={options.includeSubdirectories}
-                onChange={() => handleOptionChange('includeSubdirectories')}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="includeSubdirectories" className="ml-2 text-sm text-gray-700">
-                Include subdirectories
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="flattenStructure"
-                checked={options.flattenStructure}
-                onChange={() => handleOptionChange('flattenStructure')}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="flattenStructure" className="ml-2 text-sm text-gray-700">
-                Flatten directory structure
-              </label>
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"></div>
+      
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative max-w-2xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl 
+                       shadow-lg border border-indigo-500/30 overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-indigo-500/20">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 
+                           bg-clip-text text-transparent">
+                Export Directory
+              </h2>
+              <button onClick={onClose} className="text-2xl text-indigo-400 
+                                                hover:text-indigo-300 transition-colors">×</button>
             </div>
           </div>
 
-          <div className="text-sm text-gray-600 mt-4">
-            <p>Note: Directory export will include all selected content according to your permissions</p>
+          {/* Content */}
+          <div className="p-6 space-y-6">
+            {error && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {/* Format Selection */}
+              <div>
+                <label className="block text-sm font-medium text-indigo-300 mb-2">
+                  Export Format
+                </label>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
+                           text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 
+                           transition-all"
+                >
+                  <option value="zip">ZIP Archive (.zip)</option>
+                  <option value="json">JSON (.json)</option>
+                </select>
+              </div>
+
+              {/* Options */}
+              <div className="space-y-3">
+                {[
+                  { id: 'includeMetadata', label: 'Include metadata (creation date, author, etc.)' },
+                  { id: 'includeSnippets', label: 'Include snippets' },
+                  { id: 'includeSubdirectories', label: 'Include subdirectories' },
+                  { id: 'flattenStructure', label: 'Flatten directory structure' }
+                ].map(({ id, label }) => (
+                  <div key={id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={id}
+                      checked={options[id]}
+                      onChange={() => handleOptionChange(id)}
+                      className="w-4 h-4 rounded border-indigo-500/50 text-indigo-500 
+                               focus:ring-indigo-500/30 bg-indigo-500/10"
+                    />
+                    <label htmlFor={id} className="ml-3 text-indigo-300">
+                      {label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-sm text-indigo-400/80">
+                Note: Directory export will include all selected content according to your permissions
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Exporting...' : 'Export'}
-            </button>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 
+                         hover:bg-indigo-500/10 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={loading}
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 
+                         to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all 
+                         shadow-lg shadow-indigo-500/25 disabled:opacity-50"
+              >
+                {loading ? 'Exporting...' : 'Export'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

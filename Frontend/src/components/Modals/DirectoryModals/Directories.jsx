@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../../../Context/UserContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiFolder, FiSearch, FiPlus, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
 import axios from '../../../Config/Axios';
 import ViewDirectoryDetailsModal from './ViewDirectoryDetailsModal';
 import CreateDirectoryModal from './CreateDirectoryModal';
@@ -10,15 +12,15 @@ const Directories = () => {
   const [directories, setDirectories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState('all'); // 'all' or 'my'
+  const [viewMode, setViewMode] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // Modal states
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [modalStates, setModalStates] = useState({
+    view: false,
+    create: false,
+    edit: false
+  });
   const [selectedDirectory, setSelectedDirectory] = useState(null);
 
   const fetchDirectories = async () => {
@@ -27,12 +29,9 @@ const Directories = () => {
       const params = {
         page: currentPage,
         limit: 10,
-        q: searchQuery
+        q: searchQuery,
+        ...(viewMode === 'my' && isAuthenticated && { userId: user._id })
       };
-
-      if (viewMode === 'my' && isAuthenticated) {
-        params.userId = user._id;
-      }
 
       const { data } = await axios.get('/api/directories', { params });
       setDirectories(data.directories || []);
@@ -48,6 +47,12 @@ const Directories = () => {
     fetchDirectories();
   }, [viewMode, currentPage, searchQuery, isAuthenticated]);
 
+  const handleModalToggle = (modalType, value, directory = null) => {
+    setModalStates(prev => ({ ...prev, [modalType]: value }));
+    if (directory) setSelectedDirectory(directory);
+    if (!value) setSelectedDirectory(null);
+  };
+
   const handleDelete = async (directoryId) => {
     try {
       await axios.delete(`/api/directories/${directoryId}`);
@@ -57,41 +62,45 @@ const Directories = () => {
     }
   };
 
-  const handleDirectoryCreated = () => {
-    fetchDirectories();
-  };
-
-  const handleDirectoryUpdated = () => {
-    fetchDirectories();
-  };
-
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Directories</h1>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+    >
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4 sm:mb-0">
+          <FiFolder className="inline-block mr-2" />
+          Directories
+        </h1>
         {isAuthenticated && (
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleModalToggle('create', true)}
+            className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
           >
-            Create Directory
-          </button>
+            <FiPlus className="mr-2" /> Create Directory
+          </motion.button>
         )}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div className="flex-1">
+      {/* Search and Filter Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search directories..."
-            className="w-full p-2 border rounded"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         {isAuthenticated && (
           <select
-            className="p-2 border rounded"
+            className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value)}
           >
@@ -101,116 +110,136 @@ const Directories = () => {
         )}
       </div>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+      {/* Error Display */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r"
+          >
+            <p className="text-red-700">{error}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Directory List */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
         <div className="grid gap-6">
-          {directories.map(directory => (
-            <div key={directory._id} className="border rounded-lg p-4 bg-white shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">{directory.name}</h3>
-                  <p className="text-gray-600 mb-2">{directory.path}</p>
+          <AnimatePresence>
+            {directories.map((directory, index) => (
+              <motion.div
+                key={directory._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                  <div className="mb-4 sm:mb-0">
+                    <h3 className="text-xl font-semibold text-gray-900">{directory.name}</h3>
+                    <p className="text-gray-600 mt-1">{directory.path}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleModalToggle('view', true, directory)}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full"
+                    >
+                      <FiEye />
+                    </motion.button>
+                    {isAuthenticated && directory.createdBy === user._id && (
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleModalToggle('edit', true, directory)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-full"
+                        >
+                          <FiEdit2 />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDelete(directory._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                        >
+                          <FiTrash2 />
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => {
-                      setSelectedDirectory(directory);
-                      setViewModalOpen(true);
-                    }}
-                    className="px-3 py-1 text-blue-600 hover:text-blue-800"
-                  >
-                    View
-                  </button>
-                  {isAuthenticated && directory.createdBy === user._id && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setSelectedDirectory(directory);
-                          setEditModalOpen(true);
-                        }}
-                        className="px-3 py-1 text-green-600 hover:text-green-800"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(directory._id)}
-                        className="px-3 py-1 text-red-600 hover:text-red-800"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                    Snippets: {directory.metadata.snippetCount}
+                  </span>
+                  <span className="flex items-center">
+                    <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                    Subdirectories: {directory.metadata.subDirectoryCount}
+                  </span>
+                  <span className="flex items-center">
+                    <span className="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                    Visibility: {directory.visibility}
+                  </span>
                 </div>
-              </div>
-              <div className="mt-4 text-sm text-gray-600">
-                <span className="mr-4">Snippets: {directory.metadata.snippetCount}</span>
-                <span className="mr-4">Subdirectories: {directory.metadata.subDirectoryCount}</span>
-                <span>Visibility: {directory.visibility}</span>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-6 flex justify-center space-x-2">
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded ${
-                currentPage === i + 1
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 hover:bg-gray-300'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+        <div className="mt-8 flex justify-center">
+          <div className="flex space-x-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-10 h-10 rounded-lg ${
+                  currentPage === i + 1
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {i + 1}
+              </motion.button>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Modals */}
-      {viewModalOpen && (
-        <ViewDirectoryDetailsModal
-          isOpen={viewModalOpen}
-          onClose={() => {
-            setViewModalOpen(false);
-            setSelectedDirectory(null);
-          }}
-          directoryId={selectedDirectory?._id}
-        />
-      )}
+      <ViewDirectoryDetailsModal
+        isOpen={modalStates.view}
+        onClose={() => handleModalToggle('view', false)}
+        directoryId={selectedDirectory?._id}
+      />
 
-      {createModalOpen && (
-        <CreateDirectoryModal
-          isOpen={createModalOpen}
-          onClose={() => setCreateModalOpen(false)}
-          onDirectoryCreated={handleDirectoryCreated}
-        />
-      )}
+      <CreateDirectoryModal
+        isOpen={modalStates.create}
+        onClose={() => handleModalToggle('create', false)}
+        onDirectoryCreated={fetchDirectories}
+      />
 
-      {editModalOpen && (
-        <EditDirectoryDetails
-          isOpen={editModalOpen}
-          onClose={() => {
-            setEditModalOpen(false);
-            setSelectedDirectory(null);
-          }}
-          directory={selectedDirectory}
-          onDirectoryUpdated={handleDirectoryUpdated}
-        />
-      )}
-    </div>
+      <EditDirectoryDetails
+        isOpen={modalStates.edit}
+        onClose={() => handleModalToggle('edit', false)}
+        directory={selectedDirectory}
+        onDirectoryUpdated={fetchDirectories}
+      />
+    </motion.div>
   );
 };
 

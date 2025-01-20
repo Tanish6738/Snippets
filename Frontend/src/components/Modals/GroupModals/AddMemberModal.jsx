@@ -38,72 +38,80 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Add Member</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">×</button>
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm"></div>
+      
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative max-w-2xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden">
+          <div className="px-6 py-4 border-b border-indigo-500/20">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                Add Member
+              </h2>
+              <button onClick={onClose} className="text-indigo-400 hover:text-indigo-300 transition-colors">×</button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mx-6 mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-indigo-300 mb-1">Search User</label>
+              <input
+                type="text"
+                onChange={(e) => searchUsers(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                placeholder="Search by username or email"
+              />
+              {users.length > 0 && (
+                <div className="mt-2 border border-indigo-500/20 rounded-xl max-h-40 overflow-y-auto">
+                  {users.map(user => (
+                    <div
+                      key={user._id}
+                      onClick={() => setFormData(prev => ({ ...prev, userId: user._id }))}
+                      className="p-3 hover:bg-indigo-500/10 cursor-pointer text-indigo-200"
+                    >
+                      {user.username}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-indigo-300 mb-1">Role</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+              >
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-indigo-500/20">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !formData.userId}
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Member'}
+              </button>
+            </div>
+          </form>
         </div>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Search User</label>
-            <input
-              type="text"
-              onChange={(e) => searchUsers(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="Search by username or email"
-            />
-            {users.length > 0 && (
-              <div className="mt-2 border rounded-md max-h-40 overflow-y-auto">
-                {users.map(user => (
-                  <div
-                    key={user._id}
-                    onClick={() => setFormData(prev => ({ ...prev, userId: user._id }))}
-                    className="p-2 hover:bg-gray-50 cursor-pointer"
-                  >
-                    {user.username}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            >
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.userId}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Adding...' : 'Add Member'}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
