@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFolder, FiX, FiLock, FiGlobe, FiUsers } from 'react-icons/fi';
 import axios from '../../../Config/Axios';
+import { useLocation } from 'react-router-dom';
 
-const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = null }) => {
+const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
+  const location = useLocation();
   const [formData, setFormData] = useState({
     name: '',
     visibility: 'private',
@@ -14,20 +16,48 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = 
   const [error, setError] = useState('');
   const [availableParents, setAvailableParents] = useState([]);
 
+  // Update formData when modal opens with current directory context
+  useEffect(() => {
+    if (isOpen && location.state?.currentDirectory) {
+      const currentDir = location.state.currentDirectory;
+      setFormData(prev => ({
+        ...prev,
+        parentId: currentDir._id,
+        path: currentDir.path ? `${currentDir.path}/${currentDir.name}` : currentDir.name
+      }));
+    }
+  }, [isOpen, location.state]);
+
+  // Fetch available parent directories
   useEffect(() => {
     const fetchParentDirectories = async () => {
       try {
-        const { data } = await axios.get('/api/directories/tree');
-        setAvailableParents(data);
-      } catch (err) {
-        console.error('Failed to fetch parent directories:', err);
+        const response = await axios.get('/api/directories');
+        // Ensure we have an array and handle the directories data structure
+        const directories = response.data.directories || response.data || [];
+        
+        if (!Array.isArray(directories)) {
+          console.error('Received invalid directories data:', directories);
+          return;
+        }
+
+        // Filter out the current directory and its children to avoid circular references
+        const filteredDirectories = directories.filter(dir => {
+          if (!formData.parentId) return true;
+          return dir._id !== formData.parentId && !dir.path?.includes(formData.path);
+        });
+
+        setAvailableParents(filteredDirectories);
+      } catch (error) {
+        console.error('Failed to fetch parent directories:', error);
+        setError('Failed to load available directories');
       }
     };
 
     if (isOpen) {
       fetchParentDirectories();
     }
-  }, [isOpen]);
+  }, [isOpen, formData.parentId, formData.path]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +65,17 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = 
       setLoading(true);
       setError('');
       
-      // Filter out undefined/null values
-      const payload = Object.entries(formData)
-        .filter(([_, value]) => value !== null && value !== undefined)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+      // Construct the full path for the new directory
+      const fullPath = formData.path 
+        ? `${formData.path}/${formData.name}`
+        : formData.name;
+
+      const payload = {
+        name: formData.name,
+        visibility: formData.visibility,
+        parentId: formData.parentId,
+        path: fullPath
+      };
 
       const { data } = await axios.post('/api/directories', payload);
       
@@ -158,16 +195,32 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = 
                 </label>
                 <select
                   className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
-                  value={formData.parentId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+                  value={formData.parentId || ''}
+                  onChange={(e) => {
+                    const selectedParent = availableParents.find(p => p._id === e.target.value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      parentId: e.target.value || null,
+                      path: selectedParent ? 
+                        (selectedParent.path ? `${selectedParent.path}/${selectedParent.name}` : selectedParent.name) 
+                        : ''
+                    }));
+                  }}
                 >
-                  <option value="">Select parent directory</option>
+                  <option value="">Root Directory</option>
                   {availableParents.map(parent => (
-                    <option key={parent._id} value={parent._id}>
-                      {parent.name}
+                    <option 
+                      key={parent._id} 
+                      value={parent._id}
+                      disabled={parent._id === formData.parentId}
+                    >
+                      {parent.path ? `${parent.path}/${parent.name}` : parent.name}
                     </option>
                   ))}
                 </select>
+                {error && (
+                  <p className="mt-1 text-sm text-red-400">{error}</p>
+                )}
               </div>
             </form>
           </div>

@@ -85,13 +85,16 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
         snippets: formattedSnippets 
       });
 
-      // Track bulk creation activity
+      // Updated activity tracking with required fields
       await axios.post('/api/activities', {
         action: 'create',
         targetType: 'snippet',
+        targetId: data[0]._id, // Use the first snippet's ID as the main target
         metadata: { 
           count: data.length,
-          snippetIds: data.map(s => s._id)
+          snippetIds: data.map(s => s._id),
+          operation: 'bulk_create',
+          snippetTitles: data.map(s => s.title)
         }
       });
 

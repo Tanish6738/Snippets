@@ -23,6 +23,22 @@ const Snippets = () => {
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
   const [selectedSnippetId, setSelectedSnippetId] = useState(null);
 
+  // Add language options based on actual used languages
+  const languageOptions = [
+    { value: '', label: 'All Languages' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'python', label: 'Python' },
+    { value: 'java', label: 'Java' },
+    { value: 'cpp', label: 'C++' },
+    { value: 'csharp', label: 'C#' },
+    { value: 'php', label: 'PHP' },
+    { value: 'ruby', label: 'Ruby' },
+    { value: 'go', label: 'Go' },
+    { value: 'rust', label: 'Rust' },
+    { value: 'typescript', label: 'TypeScript' }
+  ];
+
+  // Update fetchSnippets function to handle all filters
   const fetchSnippets = async () => {
     try {
       setLoading(true);
@@ -30,12 +46,9 @@ const Snippets = () => {
         page: currentPage,
         limit: 10,
         language: selectedLanguage,
-        q: searchQuery
+        q: searchQuery,
+        visibility: viewMode === 'user' ? 'private' : undefined
       };
-
-      if (viewMode === 'user' && isAuthenticated) {
-        params.createdBy = user._id;
-      }
 
       const { data } = await axios.get('/api/snippets', { params });
       setSnippets(data.snippets);
@@ -111,15 +124,15 @@ const Snippets = () => {
           />
         </div>
         <select
-          className="p-2 border rounded"
+          className="px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
           value={selectedLanguage}
           onChange={(e) => setSelectedLanguage(e.target.value)}
         >
-          <option value="">All Languages</option>
-          <option value="javascript">JavaScript</option>
-          <option value="python">Python</option>
-          <option value="java">Java</option>
-          {/* Add more language options */}
+          {languageOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
         {isAuthenticated && (
           <select

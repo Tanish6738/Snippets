@@ -21,6 +21,31 @@ export const logActivity = async (req, res) => {
     }
 };
 
+// Create activity
+export const createActivity = async (req, res) => {
+    try {
+        const { action, targetType, targetId, metadata } = req.body;
+        
+        if (!action || !targetType || !targetId) {
+            return res.status(400).json({ 
+                error: "Missing required fields: action, targetType, and targetId" 
+            });
+        }
+
+        const activity = await Activity.create({
+            userId: req.user._id,
+            action,
+            targetType,
+            targetId,
+            metadata: metadata || {}
+        });
+
+        res.status(201).json(activity);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 // Get activities by user
 export const getActivitiesByUser = async (req, res) => {
     try {

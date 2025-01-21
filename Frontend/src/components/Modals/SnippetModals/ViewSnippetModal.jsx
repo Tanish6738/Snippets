@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useUser } from '../../../Context/UserContext';
 import axios from '../../../Config/Axios';
 import EditSnippetDetailsModal from './EditSnippetDetailsModal';
+// Add import for ExportSnippetModal
+import ExportSnippetModal from './ExportSnippetModal';
 
 const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [snippet, setSnippet] = useState(null);
@@ -9,6 +11,8 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [error, setError] = useState('');
   const { user } = useUser(); // Add this line to get current user
   const [showEditModal, setShowEditModal] = useState(false);
+  // Add state for export modal
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     const fetchSnippet = async () => {
@@ -129,6 +133,12 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
             <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
               <div className="flex justify-end space-x-3">
                 <button
+                  onClick={() => setShowExportModal(true)}
+                  className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+                >
+                  Export
+                </button>
+                <button
                   onClick={onClose}
                   className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
                 >
@@ -154,6 +164,14 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
         onClose={() => setShowEditModal(false)}
         snippet={snippet}
         onSnippetUpdated={handleEditComplete}
+      />
+
+      {/* Add ExportSnippetModal */}
+      <ExportSnippetModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        itemId={snippetId}
+        itemType="snippet"
       />
     </>
   );

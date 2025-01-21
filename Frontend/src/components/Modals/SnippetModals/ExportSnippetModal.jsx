@@ -8,6 +8,11 @@ const ExportSnippetModal = ({ isOpen, onClose, itemId, itemType }) => {
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [includeTags, setIncludeTags] = useState(true);
 
+  const supportedFormats = {
+    snippet: ['txt', 'json', 'md'],
+    directory: ['txt', 'json', 'md', 'zip']
+  };
+
   const handleExport = async () => {
     try {
       setLoading(true);
@@ -81,10 +86,11 @@ const ExportSnippetModal = ({ isOpen, onClose, itemId, itemType }) => {
                 onChange={(e) => setFormat(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
               >
-                <option value="txt">Plain Text (.txt)</option>
-                <option value="md">Markdown (.md)</option>
-                <option value="json">JSON (.json)</option>
-                {itemType === 'directory' && <option value="zip">ZIP Archive (.zip)</option>}
+                {supportedFormats[itemType].map(fmt => (
+                  <option key={fmt} value={fmt}>
+                    {fmt.toUpperCase()} (.{fmt})
+                  </option>
+                ))}
               </select>
             </div>
 

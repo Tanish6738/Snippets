@@ -3,37 +3,40 @@ import axios from '../../Config/Axios';
 
 const ShareLinkModal = ({ isOpen, onClose, itemId, itemType }) => {
   const [shareLink, setShareLink] = useState('');
-  const [expiryDuration, setExpiryDuration] = useState('24h');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [linkToken, setLinkToken] = useState('');
   const [shareSettings, setShareSettings] = useState({
     visibility: 'private',
     allowComments: true,
-    requireLogin: false
+    requireLogin: false,
+    expiryDuration: '24h'
   });
 
   useEffect(() => {
     if (isOpen && itemId) {
       generateShareLink();
     }
-  }, [isOpen, itemId, expiryDuration]);
+  }, [isOpen, itemId, shareSettings.expiryDuration]);
 
   const generateShareLink = async () => {
     try {
       setLoading(true);
       setError('');
       
-      const { data } = await axios.post(`/api/snippets/${itemId}/share-link`, {
-        expiryDuration,
-        ...shareSettings
+      const { data } = await axios.post(`/api/${itemType}s/${itemId}/share-link`, {
+        visibility: shareSettings.visibility,
+        allowComments: shareSettings.allowComments,
+        requireLogin: shareSettings.requireLogin,
+        expiryDuration: shareSettings.expiryDuration
       });
       
-      if (data.success) {
-        // Construct the share URL using the snippet ID
+      if (data.success && data.snippetId) {
         const baseUrl = window.location.origin;
-        const shareUrl = `${baseUrl}/shared-snippet/${data.snippetId}`;
+        const shareUrl = `${baseUrl}/shared/${itemType}/${data.snippetId}`;
         setShareLink(shareUrl);
+        setLinkToken(data.token);
       } else {
         setError('Failed to generate share link');
       }
@@ -105,8 +108,11 @@ const ShareLinkModal = ({ isOpen, onClose, itemId, itemType }) => {
                 </label>
                 <select
                   className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                  value={expiryDuration}
-                  onChange={(e) => setExpiryDuration(e.target.value)}
+                  value={shareSettings.expiryDuration}
+                  onChange={(e) => setShareSettings(prev => ({
+                    ...prev,
+                    expiryDuration: e.target.value
+                  }))}
                 >
                   <option value="1h">1 hour</option>
                   <option value="24h">24 hours</option>

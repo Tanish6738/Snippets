@@ -188,24 +188,28 @@ const Home = () => {
     setShareModalOpen(true);
   };
 
-  const handleSnippetCreated = () => {
-    fetchHomeData();
+  const handleSnippetCreated = async () => {
+    await fetchHomeData();
   };
 
   const handleBulkSnippetsCreated = () => {
     fetchHomeData();
   };
 
-  const handleGroupCreated = () => {
-    fetchHomeData();
+  const handleGroupCreated = async () => {
+    await fetchHomeData();
+    setCreateGroupModalOpen(false);
   };
 
-  const handleDirectoryCreated = () => {
-    fetchHomeData();
+  const handleDirectoryCreated = async () => {
+    await fetchHomeData();
+    setDirectoryModalStates(prev => ({...prev, create: false}));
   };
 
-  const handleDirectoryUpdated = () => {
-    fetchHomeData();
+  const handleDirectoryUpdated = async () => {
+    await fetchHomeData();
+    setDirectoryModalStates(prev => ({...prev, edit: false}));
+    setSelectedDirectoryId(null);
   };
 
   const handleEditSnippet = (snippetId) => {
@@ -225,15 +229,34 @@ const Home = () => {
   };
   
 
-  const handleSnippetUpdated = () => {
-    fetchHomeData();  // Refresh the data
+  const handleSnippetUpdated = async () => {
+    await fetchHomeData();
     setEditModalOpen(false);
     setSelectedSnippet(null);
   };
 
   const handleViewDirectory = (directory) => {
-    console.log('Viewing directory:', directory); // For debugging
-    navigate('/directories', { state: { selectedDirectory: directory } });
+    setLoading(true);
+    try {
+      navigate('/directories', { 
+        state: { 
+          selectedDirectory: directory,
+          directoryDetails: {
+            id: directory._id,
+            name: directory.name,
+            path: directory.path,
+            metadata: directory.metadata,
+            snippets: directory.snippets || [],
+            children: directory.children || []
+          }
+        } 
+      });
+    } catch (error) {
+      setError('Failed to open directory');
+      console.error('Directory navigation error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -662,6 +685,9 @@ const Home = () => {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSnippetCreated={handleSnippetCreated}
+        defaultValues={{
+          visibility: user?.preferences?.defaultSnippetVisibility || 'private'
+        }}
       />
 
       <BulkCreateSnippetModal
@@ -696,6 +722,12 @@ const Home = () => {
           isOpen={createGroupModalOpen}
           onClose={() => setCreateGroupModalOpen(false)}
           onGroupCreated={handleGroupCreated}
+          defaultValues={{
+            settings: {
+              joinPolicy: 'invite',
+              visibility: 'private'
+            }
+          }}
         />
       )}
 
@@ -723,6 +755,9 @@ const Home = () => {
         isOpen={directoryModalStates.create}
         onClose={() => setDirectoryModalStates(prev => ({ ...prev, create: false }))}
         onDirectoryCreated={handleDirectoryCreated}
+        defaultValues={{
+          visibility: 'private'
+        }}
       />
 
       <EditDirectoryDetails

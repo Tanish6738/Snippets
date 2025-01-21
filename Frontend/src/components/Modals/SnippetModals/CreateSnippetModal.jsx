@@ -1,15 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from '../../../Config/Axios';
+import { FiFolder } from 'react-icons/fi';
 
 const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
+  const location = useLocation();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    language: '', // Will be mapped to programmingLanguage
+    language: '',
     tags: [],
     visibility: 'private',
-    description: ''
+    description: '',
+    directoryId: null
   });
+  
+  // Add state for directories
+  const [availableDirectories, setAvailableDirectories] = useState([]);
+  const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
+
+  // Update formData when modal opens with current directory context
+  useEffect(() => {
+    if (isOpen && location.state?.currentDirectory) {
+      setFormData(prev => ({
+        ...prev,
+        directoryId: location.state.currentDirectory._id
+      }));
+    }
+  }, [isOpen, location.state]);
+
+  // Add directories fetch effect
+  useEffect(() => {
+    const fetchDirectories = async () => {
+      if (!isOpen) return;
+      
+      setIsLoadingDirectories(true);
+      try {
+        const response = await axios.get('/api/directories');
+        const directories = response.data.directories || response.data || [];
+        setAvailableDirectories(directories);
+      } catch (error) {
+        console.error('Failed to fetch directories:', error);
+        setError('Failed to load directories');
+      } finally {
+        setIsLoadingDirectories(false);
+      }
+    };
+
+    fetchDirectories();
+  }, [isOpen]);
+
   const [error, setError] = useState('');
   const [tagInput, setTagInput] = useState('');
 
@@ -41,6 +81,12 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Add directory validation
+      if (!formData.directoryId) {
+        setError('Please select a directory');
+        return;
+      }
+
       // Validate required fields
       if (!formData.title.trim()) {
         setError('Title is required');
@@ -80,6 +126,7 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
           });
           onSnippetCreated(data);
           onClose();
+          console.log('Snippet created successfully:', data);
         }
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to create snippet');
@@ -222,6 +269,35 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
                     <option value="public">Public</option>
                     <option value="shared">Shared</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-indigo-300 mb-1">
+                    Select Directory
+                  </label>
+                  <div className="relative">
+                    <FiFolder className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                    <select
+                      name="directoryId"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
+                                text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                      value={formData.directoryId || ''}
+                      onChange={handleChange}
+                      disabled={isLoadingDirectories}
+                    >
+                      <option value="">Select a directory</option>
+                      {availableDirectories.map(dir => (
+                        <option key={dir._id} value={dir._id}>
+                          {dir.path ? `${dir.path}/${dir.name}` : dir.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {isLoadingDirectories && (
+                    <div className="mt-1 text-sm text-indigo-400">
+                      Loading directories...
+                    </div>
+                  )}
                 </div>
               </div>
             </form>

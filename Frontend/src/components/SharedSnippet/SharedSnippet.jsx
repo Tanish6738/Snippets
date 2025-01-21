@@ -1,18 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
+import { useUser } from '../../Context/UserContext';
 
 const SharedSnippet = () => {
     const { snippetId } = useParams();
+    const { user } = useUser();
+    const navigate = useNavigate();
     const [snippet, setSnippet] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [requiresAuth, setRequiresAuth] = useState(false);
 
     useEffect(() => {
         const fetchSnippet = async () => {
             try {
-                const { data } = await axios.get(`/api/snippets/get/${snippetId}`);
+                const { data } = await axios.get(`/api/snippets/${snippetId}`);
+                
+                // Handle access control
+                if (data.shareLink?.requireLogin && !user) {
+                    setRequiresAuth(true);
+                    return;
+                }
+
                 setSnippet(data);
+
+                // Log view activity
+                await axios.post('/api/activities', {
+                    action: 'view',
+                    targetType: 'snippet',
+                    targetId: snippetId
+                });
+
             } catch (err) {
                 setError(err.response?.data?.error || 'Failed to load snippet');
             } finally {
@@ -21,7 +40,25 @@ const SharedSnippet = () => {
         };
 
         fetchSnippet();
-    }, [snippetId]);
+    }, [snippetId, user]);
+
+    // Handle authentication requirement
+    if (requiresAuth) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#0B1120]">
+                <div className="bg-indigo-500/10 border border-indigo-500/30 p-6 rounded-xl text-center">
+                    <h2 className="text-xl text-indigo-300 mb-4">Authentication Required</h2>
+                    <p className="text-indigo-200 mb-6">Please log in to view this snippet</p>
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500"
+                    >
+                        Log In
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
