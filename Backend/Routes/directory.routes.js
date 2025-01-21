@@ -10,7 +10,7 @@ import {
     shareDirectory,
     getDirectory,
     moveDirectory,
-    renameDirectory,
+    // renameDirectory,
     getDirectoryTree,
     exportDirectory // Add this import
 } from '../controllers/directory.controller.js';
@@ -26,7 +26,7 @@ directoryRouter.put('/:id', authMiddleware, updateDirectory);
 directoryRouter.delete('/:id', authMiddleware, deleteDirectory);
 directoryRouter.post('/:id/share', authMiddleware, shareDirectory);
 directoryRouter.post('/:id/move', authMiddleware, moveDirectory);
-directoryRouter.post('/:id/rename', authMiddleware, renameDirectory);
+// directoryRouter.post('/:id/rename', authMiddleware, renameDirectory);
 directoryRouter.get('/:id/export', authMiddleware, exportDirectory); // Add this route
 
 export default directoryRouter;

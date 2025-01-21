@@ -240,29 +240,29 @@ export const moveDirectory = async (req, res) => {
 };
 
 // Rename directory
-export const renameDirectory = async (req, res) => {
-    try {
-        const { newName } = req.body;
-        const directory = await Directory.findOne({
-            _id: req.params.id,
-            createdBy: req.user._id
-        });
+// export const renameDirectory = async (req, res) => {
+//     try {
+//         const { newName } = req.body;
+//         const directory = await Directory.findOne({
+//             _id: req.params.id,
+//             createdBy: req.user._id
+//         });
 
-        if (!directory) {
-            return res.status(404).json({ error: "Directory not found" });
-        }
+//         if (!directory) {
+//             return res.status(404).json({ error: "Directory not found" });
+//         }
 
-        directory.name = newName;
-        directory.path = directory.ancestors.length > 0
-            ? `${directory.ancestors.map(a => a.name).join('/')}/${newName}`
-            : `/${newName}`;
+//         directory.name = newName;
+//         directory.path = directory.ancestors.length > 0
+//             ? `${directory.ancestors.map(a => a.name).join('/')}/${newName}`
+//             : `/${newName}`;
 
-        await directory.save();
-        res.json(directory);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
+//         await directory.save();
+//         res.json(directory);
+//     } catch (error) {
+//         res.status(400).json({ error: error.message });
+//     }
+// };
 
 // Get directory tree
 export const getDirectoryTree = async (req, res) => {
