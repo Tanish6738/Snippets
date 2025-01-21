@@ -3,6 +3,20 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
+import { motion } from 'framer-motion';
+import { 
+  FiCode, 
+  FiUsers, 
+  FiFolder, 
+  FiActivity,
+  FiPlus, 
+  FiShare2,
+  FiEdit,
+  FiEye,
+  FiDownload,
+  FiArrowRight,
+  FiSearch
+} from 'react-icons/fi';
 
 // Import Modals
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
@@ -20,18 +34,31 @@ import EditSnippetDetailsModal from '../Modals/SnippetModals/EditSnippetDetailsM
 
 // Update StatCard component with enhanced colors
 const StatCard = ({ title, value, icon, trend }) => (
-  <div className="backdrop-blur-lg bg-white/5 p-6 rounded-2xl border border-indigo-500/30 hover:border-indigo-400/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+  <motion.div 
+    whileHover={{ scale: 1.02 }}
+    className="backdrop-blur-lg bg-white/5 p-6 rounded-2xl border border-indigo-500/30 hover:border-indigo-400/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+  >
     <div className="flex items-center justify-between mb-2">
-      <span className="text-3xl ">{icon}</span>
+      <span className="text-3xl text-indigo-400">{icon}</span>
       {trend && (
-        <span className={`text-sm font-medium ${trend > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+        <motion.span 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className={`text-sm font-medium ${trend > 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+        >
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
-        </span>
+        </motion.span>
       )}
     </div>
-    <p className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-1">{value}</p>
+    <motion.p 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-1"
+    >
+      {value}
+    </motion.p>
     <p className="text-sm text-indigo-300">{title}</p>
-  </div>
+  </motion.div>
 );
 
 // Update SectionHeader component
@@ -266,25 +293,25 @@ const Home = () => {
             <StatCard 
               title="Total Snippets" 
               value={userStats.totalSnippets}
-              icon="📝"
+              icon={<FiCode className="text-indigo-400" />}
               trend={12}
             />
             <StatCard 
               title="Created Groups" 
               value={userStats.totalGroups}
-              icon="👥"
+              icon={<FiUsers className="text-indigo-400" />}
               trend={8}
             />
             <StatCard 
               title="Joined Groups" 
               value={userStats.joinedGroups}
-              icon="🤝"
+              icon={<FiUsers className="text-indigo-400" />}
               trend={5}
             />
             <StatCard 
               title="Recent Activities" 
               value={userStats.recentActivities?.length || 0}
-              icon="📊"
+              icon={<FiActivity className="text-indigo-400" />}
               trend={15}
             />
           </div>
@@ -306,32 +333,43 @@ const Home = () => {
               />
               <div className="space-y-4">
                 {recentSnippets.map(snippet => (
-                  <div key={snippet._id} 
-                       className="border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-400/40 transition-all duration-300 bg-gradient-to-r from-indigo-600/5 to-purple-600/5 hover:from-indigo-600/10 hover:to-purple-600/10">
+                  <motion.div 
+                    key={snippet._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ scale: 1.01 }}
+                    className="border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-400/40 transition-all duration-300 bg-gradient-to-r from-indigo-600/5 to-purple-600/5 hover:from-indigo-600/10 hover:to-purple-600/10"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold text-indigo-100">{snippet.title}</h3>
                         <p className="text-sm text-indigo-300/80">{snippet.description}</p>
                       </div>
                       <div className="flex gap-3">
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleViewSnippet(snippet._id)}
-                          className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+                          className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
                         >
-                          View
-                        </button>
-                        <button
+                          <FiEye /> View
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleExportSnippet(snippet._id)}
-                          className="text-emerald-400 hover:text-emerald-300 transition-colors duration-200"
+                          className="text-emerald-400 hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1"
                         >
-                          Export
-                        </button>
-                        <button
+                          <FiDownload /> Export
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleShareSnippet(snippet._id)}
-                          className="text-violet-400 hover:text-violet-300 transition-colors duration-200"
+                          className="text-violet-400 hover:text-violet-300 transition-colors duration-200 flex items-center gap-1"
                         >
-                          Share
-                        </button>
+                          <FiShare2 /> Share
+                        </motion.button>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -349,7 +387,7 @@ const Home = () => {
                       </span>
                       <span>{new Date(snippet.createdAt).toLocaleDateString()}</span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -360,18 +398,22 @@ const Home = () => {
             <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
               <h3 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-6">Quick Actions</h3>
               <div className="space-y-4">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setCreateModalOpen(true)}
                   className="w-full group text-left p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/20 hover:border-indigo-400/30 transition-all duration-300"
                 >
                   <div className="flex items-center">
-                    <span className="text-2xl mr-4 group-hover:scale-110 transition-transform duration-200">✍️</span>
+                    <span className="text-2xl mr-4 group-hover:scale-110 transition-transform duration-200">
+                      <FiPlus className="text-indigo-400" />
+                    </span>
                     <div>
                       <h4 className="font-medium text-indigo-100 group-hover:text-white transition-colors duration-200">Create Snippet</h4>
                       <p className="text-sm text-indigo-300/80">Add a new code snippet</p>
                     </div>
                   </div>
-                </button>
+                </motion.button>
                 {/* Add similar styling for other quick actions */}
               </div>
             </div>
@@ -426,126 +468,188 @@ const Home = () => {
         {isAuthenticated && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
             {/* Created Groups */}
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300"
+            >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">My Created Groups</h2>
-                <button
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                  My Created Groups
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setCreateGroupModalOpen(true)}
-                  className="text-indigo-400 hover:text-indigo-300 font-medium group flex items-center gap-2"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/20 hover:border-indigo-400/30 text-indigo-400 hover:text-indigo-300 transition-all duration-300"
                 >
-                  Create New 
-                  <span className="group-hover:rotate-90 transition-transform duration-150">+</span>
-                </button>
+                  <FiPlus className="text-lg" /> Create New
+                </motion.button>
               </div>
-              <div className="space-y-4 text-white">
+              <div className="space-y-4">
                 {createdGroups.map(group => (
-                  <div key={group._id} className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
+                  <motion.div 
+                    key={group._id}
+                    whileHover={{ scale: 1.02 }}
+                    className="border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-400/40 transition-all duration-300 bg-gradient-to-r from-indigo-600/5 to-purple-600/5 hover:from-indigo-600/10 hover:to-purple-600/10"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{group.name}</h3>
-                        <p className="text-sm text-gray-400">{group.description}</p>
+                        <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
+                          <FiUsers className="text-indigo-400" />
+                          {group.name}
+                        </h3>
+                        <p className="text-sm text-indigo-300/80 mt-1">{group.description}</p>
                       </div>
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           setSelectedGroupId(group._id);
                           setViewGroupModalOpen(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-2"
                       >
-                        Manage
-                      </button>
+                        <FiArrowRight /> Manage
+                      </motion.button>
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      <span className="mr-4">Members: {group.members?.length}</span>
-                      <span>Created: {new Date(group.createdAt).toLocaleDateString()}</span>
+                    <div className="mt-4 flex items-center gap-4 text-xs text-indigo-400/60">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-indigo-400/60"></span>
+                        Members: {group.members?.length}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-violet-400/60"></span>
+                        Created: {new Date(group.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Joined Groups */}
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300"
+            >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">Groups I've Joined</h2>
-                <Link to="/groups" className="text-indigo-400 hover:text-indigo-300 font-medium group flex items-center gap-2">
-                  Find Groups 
-                  <span className="group-hover:translate-x-1 transition-transform duration-150">→</span>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                  Groups I've Joined
+                </h2>
+                <Link 
+                  to="/groups"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+                >
+                  <FiSearch className="text-lg" /> Find Groups
                 </Link>
               </div>
               <div className="space-y-4">
                 {joinedGroups.map(group => (
-                  <div key={group._id} className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
+                  <motion.div
+                    key={group._id}
+                    whileHover={{ scale: 1.02 }}
+                    className="border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-400/40 transition-all duration-300 bg-gradient-to-r from-indigo-600/5 to-purple-600/5 hover:from-indigo-600/10 hover:to-purple-600/10"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-white">{group.name}</h3>
-                        <p className="text-sm text-gray-400">{group.description}</p>
+                        <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
+                          <FiUsers className="text-indigo-400" />
+                          {group.name}
+                        </h3>
+                        <p className="text-sm text-indigo-300/80 mt-1">{group.description}</p>
                       </div>
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                           setSelectedGroupId(group._id);
                           setViewGroupModalOpen(true);
                         }}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-2"
                       >
-                        View
-                      </button>
+                        <FiEye /> View
+                      </motion.button>
                     </div>
-                    <div className="mt-2 flex items-center text-xs text-gray-500">
-                      <span className="mr-4">Role: {group.members.find(m => m.userId === user._id)?.role}</span>
-                      <span>Members: {group.members?.length}</span>
+                    <div className="mt-4 flex items-center gap-4 text-xs text-indigo-400/60">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400/60"></span>
+                        Role: {group.members.find(m => m.userId === user._id)?.role}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-violet-400/60"></span>
+                        Members: {group.members?.length}
+                      </span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* My Directories */}
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300"
+            >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">My Directories</h2>
-                <button
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                  My Directories
+                </h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setDirectoryModalStates(prev => ({ ...prev, create: true }))}
-                  className="text-indigo-400 hover:text-indigo-300 font-medium group flex items-center gap-2"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/20 hover:border-indigo-400/30 text-indigo-400 hover:text-indigo-300 transition-all duration-300"
                 >
-                  Create New 
-                  <span className="group-hover:rotate-90 transition-transform duration-150">+</span>
-                </button>
+                  <FiPlus className="text-lg" /> Create New
+                </motion.button>
               </div>
               <div className="space-y-4">
                 {userDirectories.map(directory => (
-                  <div key={directory._id} 
-                       className="border border-gray-100 rounded-lg p-4 hover:border-blue-200 transition-colors">
+                  <motion.div
+                    key={directory._id}
+                    whileHover={{ scale: 1.02 }}
+                    className="border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-400/40 transition-all duration-300 bg-gradient-to-r from-indigo-600/5 to-purple-600/5 hover:from-indigo-600/10 hover:to-purple-600/10"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-white">{directory.name}</h3>
-                        <p className="text-sm text-gray-400">{directory.path}</p>
+                        <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
+                          <FiFolder className="text-indigo-400" />
+                          {directory.name}
+                        </h3>
+                        <p className="text-sm text-indigo-300/80 mt-1">{directory.path}</p>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
+                      <div className="flex gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             setSelectedDirectoryId(directory._id);
                             setDirectoryModalStates(prev => ({ ...prev, view: true }));
                           }}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
                         >
-                          View
-                        </button>
-                        <button
+                          <FiEye /> View
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             setSelectedDirectoryId(directory._id);
                             setDirectoryModalStates(prev => ({ ...prev, edit: true }));
                           }}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-emerald-400 hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1"
                         >
-                          Edit
-                        </button>
+                          <FiEdit /> Edit
+                        </motion.button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </div>
