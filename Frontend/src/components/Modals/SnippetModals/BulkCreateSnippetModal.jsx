@@ -72,21 +72,33 @@ const BulkCreateSnippetModal = ({ isOpen, onClose, onSnippetsCreated }) => {
     e.preventDefault();
     try {
       const formattedSnippets = snippets.map(snippet => ({
-        title: snippet.title,
-        content: snippet.content,
-        programmingLanguage: snippet.programmingLanguage,
-        tags: snippet.tags,
+        title: snippet.title.trim(),
+        content: snippet.content.trim(),
+        programmingLanguage: snippet.programmingLanguage.trim(),
+        description: snippet.description?.trim() || '',
         visibility: snippet.visibility,
-        description: snippet.description
+        tags: snippet.tags.filter(Boolean),
+        commentsEnabled: true
       }));
 
       const { data } = await axios.post('/api/snippets/bulk', { 
         snippets: formattedSnippets 
       });
+
+      // Track bulk creation activity
+      await axios.post('/api/activities', {
+        action: 'create',
+        targetType: 'snippet',
+        metadata: { 
+          count: data.length,
+          snippetIds: data.map(s => s._id)
+        }
+      });
+
       onSnippetsCreated(data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create snippets');
+      setError(err.response?.data?.error || 'Failed to create snippets');
     }
   };
 

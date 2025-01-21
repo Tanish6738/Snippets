@@ -25,22 +25,26 @@ const Groups = () => {
   const [viewMembersModalOpen, setViewMembersModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
 
+  // Update the fetchGroups function:
   const fetchGroups = async () => {
     try {
       setLoading(true);
       const params = {
-        page: currentPage,
         limit: 10,
+        sort: '-createdAt',
+        featured: false,
         q: searchQuery
       };
 
       if (viewMode === 'my' && isAuthenticated) {
-        params.userId = user._id;
+        // Use the joined groups endpoint for "my groups"
+        const { data } = await axios.get('/api/groups/joined', { params });
+        setGroups(data);
+      } else {
+        const { data } = await axios.get('/api/groups', { params });
+        setGroups(data.groups);
+        setTotalPages(Math.ceil(data.total / 10));
       }
-
-      const { data } = await axios.get('/api/groups', { params });
-      setGroups(data.groups || data);
-      setTotalPages(data.totalPages || 1);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch groups');
     } finally {

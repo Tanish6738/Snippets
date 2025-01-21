@@ -12,8 +12,8 @@ const ViewCurrentMembers = ({ isOpen, onClose, groupId }) => {
       try {
         setLoading(true);
         setError('');
-        const { data } = await axios.get(`/api/groups/${groupId}/members`);
-        setMembers(data);
+        const { data } = await axios.get(`/api/groups/${groupId}`);
+        setMembers(data.members);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load members');
       } finally {

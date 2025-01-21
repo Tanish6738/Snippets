@@ -61,35 +61,28 @@ const EditSnippetDetailsModal = ({ isOpen, onClose, snippet, onSnippetUpdated })
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Validate required fields
-      if (!formData.title.trim()) {
-        setError('Title is required');
-        return;
-      }
-      if (!formData.content.trim()) {
-        setError('Content is required');
-        return;
-      }
-      if (!formData.language.trim()) {
-        setError('Programming language is required');
-        return;
-      }
-
-      // Transform the data to match backend expectations
       const snippetData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         programmingLanguage: formData.language.trim(),
-        description: formData.description.trim() || '',
+        description: formData.description.trim(),
         visibility: formData.visibility,
-        tags: formData.tags.filter(Boolean).map(tag => tag.trim())
+        tags: formData.tags.filter(Boolean),
+        commentsEnabled: formData.commentsEnabled
       };
 
       const { data } = await axios.patch(`/api/snippets/${snippet._id}`, snippetData);
+      
+      // Track activity
+      await axios.post('/api/activities', {
+        action: 'edit',
+        targetType: 'snippet',
+        targetId: snippet._id
+      });
+
       onSnippetUpdated(data);
       onClose();
     } catch (err) {
-      console.error('Update error:', err);
       setError(err.response?.data?.error || 'Failed to update snippet');
     }
   };

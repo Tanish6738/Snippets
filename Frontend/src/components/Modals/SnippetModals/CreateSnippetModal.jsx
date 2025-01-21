@@ -62,27 +62,27 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
         programmingLanguage: formData.language.trim(), // Map language to programmingLanguage
         description: formData.description.trim() || '',
         visibility: formData.visibility || 'private',
-        tags: formData.tags.filter(Boolean).map(tag => tag.trim()) // Clean tags array
+        tags: formData.tags.filter(Boolean).map(tag => tag.trim()), // Clean tags array
+        directoryId: formData.directoryId, // Add directory support
+        commentsEnabled: true // Add comments support
       };
 
       console.log('Sending snippet data:', snippetData); // Debug log
 
-      const response = await axios.post('/api/snippets', snippetData);
-      
-      if (response.data) {
-        onSnippetCreated(response.data);
-        onClose();
-        
-        // Reset form
-        setFormData({
-          title: '',
-          content: '',
-          language: '',
-          tags: [],
-          visibility: 'private',
-          description: ''
-        });
-        setError('');
+      try {
+        const { data } = await axios.post('/api/snippets', snippetData);
+        if (data) {
+          // Track activity
+          await axios.post('/api/activities', {
+            action: 'create',
+            targetType: 'snippet',
+            targetId: data._id
+          });
+          onSnippetCreated(data);
+          onClose();
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to create snippet');
       }
     } catch (err) {
       console.error('Full error:', err);

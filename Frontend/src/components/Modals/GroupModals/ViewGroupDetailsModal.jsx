@@ -12,6 +12,7 @@ const ViewGroupDetailsModal = ({ isOpen, onClose, groupId }) => {
       try {
         setLoading(true);
         setError('');
+        // Use the detailed endpoint that includes populated members
         const { data } = await axios.get(`/api/groups/${groupId}`);
         setGroup(data);
       } catch (err) {
@@ -92,19 +93,24 @@ const ViewGroupDetailsModal = ({ isOpen, onClose, groupId }) => {
                   <h3 className="text-lg font-medium text-indigo-200 mb-2">Members</h3>
                   <div className="space-y-2">
                     {group.members?.map(member => (
-                      <div key={member._id} 
+                      <div key={member.userId._id} 
                            className="flex items-center justify-between p-3 
                                     bg-indigo-500/10 rounded-xl border 
                                     border-indigo-500/20 hover:bg-indigo-500/20 
                                     transition-colors">
                         <div className="flex items-center">
                           <img 
-                            src={member.avatar || '/default-avatar.png'} 
-                            alt={member.username}
+                            src={member.userId.avatar || '/default-avatar.png'} 
+                            alt={member.userId.username}
                             className="w-8 h-8 rounded-full mr-2 border 
                                      border-indigo-500/30"
                           />
-                          <span className="text-indigo-200">{member.username}</span>
+                          <div>
+                            <span className="text-indigo-200">{member.userId.username}</span>
+                            <p className="text-xs text-indigo-400">
+                              Joined {new Date(member.joinedAt).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-sm text-indigo-400 capitalize px-3 
                                        py-1 bg-indigo-500/20 rounded-full border 
