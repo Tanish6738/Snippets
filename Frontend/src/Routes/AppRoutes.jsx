@@ -23,20 +23,19 @@ const AppRoutes = () => {
         {/* Public Routes */}
         <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-        <Route path="/public" element={<PublicData />} />
+        <Route path="/public" element={<PublicData />}>
+          <Route path="snippets" element={<SnippetLayout />} />
+          <Route path="directories" element={<DirectoryLayout />} />
+        </Route>
+        <Route path="/shared-snippet/:snippetId" element={<SharedSnippet />} />
 
         {/* Protected Routes */}
         <Route path="/" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
         <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
 
-        {/* Directory Routes */}
+        {/* Protected Feature Routes */}
         <Route path="/directories" element={isAuthenticated ? <DirectoryLayout /> : <Navigate to="/login" />} />
-
-        {/* Snippet Routes */}
         <Route path="/snippets" element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />} />
-        <Route path="/shared-snippet/:snippetId" element={<SharedSnippet />} />
-
-        {/* Group Routes */}
         <Route path="/groups" element={isAuthenticated ? <GroupLayout /> : <Navigate to="/login" />}>
           <Route index element={<Home />} />
         </Route>

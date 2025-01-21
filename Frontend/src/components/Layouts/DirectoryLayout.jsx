@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FaFolder, 
   FaFolderOpen, 
@@ -12,6 +12,7 @@ import {
   FaList,
   FaTh
 } from 'react-icons/fa';
+import { useLocation } from 'react-router-dom';
 
 const DirectoryItem = ({ item, level = 0, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -123,6 +124,17 @@ const DirectoryLayout = () => {
   const [selectedSnippet, setSelectedSnippet] = useState(null);
   const [showListView, setShowListView] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const location = useLocation();
+  const selectedDirectory = location.state?.selectedDirectory;
+
+  useEffect(() => {
+    if (selectedDirectory) {
+      console.log('Directory details in layout:', selectedDirectory);
+      // Here you can add logic to show the directory details
+      // For example, expand the directory tree to show this directory
+    }
+  }, [selectedDirectory]);
   
   // Sample directory structure with content
   const directoryTree = {

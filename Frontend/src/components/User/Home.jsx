@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
 import { motion } from 'framer-motion';
@@ -103,6 +103,8 @@ const Home = () => {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedSnippet, setSelectedSnippet] = useState(null);
+
+  const navigate = useNavigate();
 
   const fetchHomeData = async () => {
     try {
@@ -227,6 +229,11 @@ const Home = () => {
     fetchHomeData();  // Refresh the data
     setEditModalOpen(false);
     setSelectedSnippet(null);
+  };
+
+  const handleViewDirectory = (directory) => {
+    console.log('Viewing directory:', directory); // For debugging
+    navigate('/directories', { state: { selectedDirectory: directory } });
   };
 
   if (loading) {
@@ -438,15 +445,14 @@ const Home = () => {
                         <h3 className="font-semibold text-indigo-100">{directory.name}</h3>
                         <p className="text-sm text-indigo-300/80">{directory.path}</p>
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedDirectoryId(directory._id);
-                            setDirectoryModalStates(prev => ({ ...prev, view: true }));
-                          }}
-                          className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 font-medium"
-                          >
-                          View Details
-                          </button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleViewDirectory(directory)}
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
+                      >
+                        <FiEye /> View
+                      </motion.button>
                     </div>
                     <div className="mt-3 flex items-center text-xs text-indigo-400/60 space-x-4">
                       <span className="flex items-center gap-1">
@@ -625,10 +631,7 @@ const Home = () => {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            setSelectedDirectoryId(directory._id);
-                            setDirectoryModalStates(prev => ({ ...prev, view: true }));
-                          }}
+                          onClick={() => handleViewDirectory(directory)}
                           className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
                         >
                           <FiEye /> View
