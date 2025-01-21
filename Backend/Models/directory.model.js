@@ -20,14 +20,24 @@ const directorySchema = new mongoose.Schema({
     metadata: {
         size: { type: Number, default: 0 }, // Total size of contents
         snippetCount: { type: Number, default: 0 },
-        subDirectoryCount: { type: Number, default: 0 }
+        subDirectoryCount: { type: Number, default: 0 },
+        totalSize: { type: Number, default: 0 }
     },
-    visibility: { type: String, enum: ['public', 'private', 'shared'], default: 'private' }
+    visibility: { type: String, enum: ['public', 'private', 'shared'], default: 'private' },
+    children: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Directory'
+    }],
+    snippets: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Snippet'
+    }],
+    level: { type: Number, default: 0 },
+    isRoot: { type: Boolean, default: false }
 }, { timestamps: true });
 
 directorySchema.index({ name: 'text', path: 'text' });
 
-// Add these methods to directorySchema
 directorySchema.methods.updateMetadata = async function() {
     const Snippet = mongoose.model('Snippet');
     const Directory = this.constructor;
@@ -51,6 +61,66 @@ directorySchema.methods.isAccessibleBy = function(userId) {
            this.sharedWith.some(share => 
                share.entity.equals(userId) && ['viewer', 'editor', 'owner'].includes(share.role)
            );
+};
+
+directorySchema.methods.addChild = async function(childDir) {
+    if (!this.children.includes(childDir._id)) {
+        this.children.push(childDir._id);
+        childDir.parentId = this._id;
+        childDir.level = this.level + 1;
+        childDir.path = `${this.path}/${childDir.name}`;
+        await Promise.all([this.save(), childDir.save()]);
+    }
+    return this;
+};
+
+directorySchema.methods.addSnippet = async function(snippet) {
+    if (!this.snippets.includes(snippet._id)) {
+        this.snippets.push(snippet._id);
+        snippet.directoryId = this._id;
+        await Promise.all([this.save(), snippet.save()]);
+    }
+    return this;
+};
+
+directorySchema.methods.getFullHierarchy = async function() {
+    return await this.constructor.findById(this._id)
+        .populate({
+            path: 'children',
+            populate: {
+                path: 'snippets'
+            }
+        })
+        .populate('snippets');
+};
+
+directorySchema.methods.updateMetadataRecursive = async function() {
+    const [snippets, subdirs] = await Promise.all([
+        mongoose.model('Snippet').find({ directoryId: this._id }),
+        this.constructor.find({ parentId: this._id })
+    ]);
+
+    let totalSize = 0;
+    let totalSnippets = snippets.length;
+
+    for (const subdir of subdirs) {
+        await subdir.updateMetadataRecursive();
+        totalSize += subdir.metadata.totalSize;
+        totalSnippets += subdir.metadata.snippetCount;
+    }
+
+    totalSize += snippets.reduce((acc, curr) => 
+        acc + Buffer.byteLength(curr.content, 'utf8'), 0);
+
+    this.metadata = {
+        size: totalSize,
+        snippetCount: totalSnippets,
+        subDirectoryCount: subdirs.length,
+        totalSize: totalSize
+    };
+
+    await this.save();
+    return this;
 };
 
 export default mongoose.model('Directory', directorySchema);

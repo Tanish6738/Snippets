@@ -23,6 +23,7 @@ const UserSchema = new mongoose.Schema({
     },
     lastLogin: { type: Date },
     favoriteSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
+    rootDirectory: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {
@@ -92,6 +93,43 @@ UserSchema.methods.isMemberOf = function(groupId) {
 UserSchema.methods.hasGroupRole = function(groupId, role) {
     const group = this.groups.find(g => g.groupId.equals(groupId));
     return group && group.role === role;
+};
+
+UserSchema.methods.createRootDirectory = async function() {
+    const Directory = mongoose.model('Directory');
+    
+    if (!this.rootDirectory) {
+        const rootDir = new Directory({
+            name: 'Root',
+            path: '/',
+            createdBy: this._id,
+            isRoot: true,
+            level: 0
+        });
+        
+        await rootDir.save();
+        this.rootDirectory = rootDir._id;
+        await this.save();
+    }
+    
+    return await Directory.findById(this.rootDirectory);
+};
+
+UserSchema.methods.getUserDirectoryTree = async function() {
+    const Directory = mongoose.model('Directory');
+    
+    if (!this.rootDirectory) {
+        await this.createRootDirectory();
+    }
+    
+    return await Directory.findById(this.rootDirectory)
+        .populate({
+            path: 'children',
+            populate: {
+                path: 'snippets'
+            }
+        })
+        .populate('snippets');
 };
 
 const User = mongoose.model("User", UserSchema);

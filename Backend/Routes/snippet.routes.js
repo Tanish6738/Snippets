@@ -15,8 +15,8 @@ import {
     restoreVersion,
     bulkCreateSnippets,
     getSnippetStats,
-    getSnippet, // Add this line
-    generateShareLink, // Add this line
+    getSnippet,
+    generateShareLink
 } from "../controllers/snippet.controller.js";
 
 const snippetRouter = Router();
@@ -29,10 +29,11 @@ snippetRouter.post("/",
     [
         body("title").trim().isLength({ min: 1 }).withMessage('Title is required'),
         body("content").notEmpty().withMessage('Content is required'),
-        body("programmingLanguage").trim().notEmpty().withMessage('Programming language is required'), // Changed from language
+        body("programmingLanguage").trim().notEmpty().withMessage('Programming language is required'),
         body("tags").isArray().optional(),
         body("visibility").isIn(['public', 'private', 'shared']).optional(),
-        body("description").optional()
+        body("description").optional(),
+        body("directoryId").optional()
     ],
     createSnippet
 );
@@ -41,10 +42,13 @@ snippetRouter.post("/",
 snippetRouter.patch("/:id",
     [
         body("title").trim().isLength({ min: 1 }).optional(),
-        body("content").exists().optional(),
-        body("language").notEmpty().optional(), // Simplified language validation
+        body("content").optional(),
+        body("programmingLanguage").trim().notEmpty().optional(),
         body("tags").isArray().optional(),
-        body("visibility").isIn(['public', 'private', 'shared']).optional()
+        body("visibility").isIn(['public', 'private', 'shared']).optional(),
+        body("directoryId").optional(),
+        body("commentsEnabled").isBoolean().optional(),
+        body("description").optional()
     ],
     updateSnippet
 );
@@ -56,7 +60,7 @@ snippetRouter.delete("/:id", deleteSnippet);
 snippetRouter.get("/:id", getSnippetById);
 
 // Get specific snippet
-snippetRouter.get("/get/:id", getSnippet); // Add this line
+snippetRouter.get("/get/:id", getSnippet);
 
 // Get all snippets (with filters)
 snippetRouter.get("/", getAllSnippets);

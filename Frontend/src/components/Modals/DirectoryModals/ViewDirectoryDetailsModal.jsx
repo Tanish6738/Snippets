@@ -14,10 +14,12 @@ const ViewDirectoryDetailsModal = ({ isOpen, onClose, directoryId }) => {
       try {
         setLoading(true);
         setError('');
+        // Using getDirectoryById endpoint which includes populated data
         const { data } = await axios.get(`/api/directories/${directoryId}`);
         setDirectory(data);
       } catch (err) {
         setError(err.response?.data?.error || 'Failed to load directory details');
+        console.error('Error fetching directory:', err);
       } finally {
         setLoading(false);
       }

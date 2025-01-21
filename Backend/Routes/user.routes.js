@@ -11,7 +11,9 @@ import {
     getAllUsers,
     updateUserRoles,
     logoutUser,
-    getUser // Add this line
+    getUser,
+    toggleFavorite, // Add this line
+    getUserDirectoryTree // Add this line
 } from "../controllers/user.controller.js";
 
 const userRouter = Router();
@@ -55,11 +57,44 @@ userRouter.use(authMiddleware);
 
 // Profile routes
 userRouter.get("/profile", getProfile);
-userRouter.patch("/profile", updateProfile);
-userRouter.post("/change-password", changePassword);
+
+// Update profile validation
+const profileUpdateValidation = [
+    body('username')
+        .optional()
+        .trim()
+        .isLength({ min: 3, max: 30 })
+        .matches(/^[a-zA-Z0-9_-]+$/),
+    body('bio')
+        .optional()
+        .trim()
+        .isLength({ max: 200 }),
+    body('preferences')
+        .optional()
+        .isObject()
+];
+
+userRouter.patch("/profile", profileUpdateValidation, updateProfile);
+
+// Password change validation
+const passwordChangeValidation = [
+    body('currentPassword').exists(),
+    body('newPassword')
+        .isLength({ min: 6 })
+        .matches(/\d/)
+];
+
+userRouter.post("/change-password", passwordChangeValidation, changePassword);
+
 userRouter.delete("/account", deleteAccount);
 userRouter.post("/logout", logoutUser);
-userRouter.get("/:id", getUser); // Add this line
+userRouter.get("/:id", getUser);
+
+// Add favorites routes
+userRouter.post('/favorites/:snippetId', authMiddleware, toggleFavorite);
+
+// Add directory tree route
+userRouter.get('/directory-tree', authMiddleware, getUserDirectoryTree);
 
 // Admin routes
 userRouter.get("/all", getAllUsers);

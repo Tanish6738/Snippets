@@ -10,24 +10,34 @@ export const createDirectory = async (req, res) => {
         }
 
         const directoryData = {
-            ...req.body,
+            name: req.body.name,
+            visibility: req.body.visibility || 'private',
             createdBy: req.user._id
         };
 
         if (req.body.parentId) {
             const parent = await Directory.findById(req.body.parentId);
-            if (!parent) {
-                return res.status(404).json({ error: "Parent directory not found" });
+            if (!parent || !parent.isAccessibleBy(req.user._id)) {
+                return res.status(404).json({ error: "Parent directory not found or not accessible" });
             }
+            directoryData.parentId = parent._id;
             directoryData.ancestors = [...parent.ancestors, parent._id];
             directoryData.path = `${parent.path}/${req.body.name}`;
+            directoryData.level = parent.level + 1;
         } else {
             directoryData.path = `/${req.body.name}`;
+            directoryData.level = 0;
         }
 
         const directory = new Directory(directoryData);
-
         await directory.save();
+
+        if (req.body.parentId) {
+            const parent = await Directory.findById(req.body.parentId);
+            await parent.addChild(directory);
+            await parent.updateMetadataRecursive();
+        }
+
         res.status(201).json(directory);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -218,18 +228,36 @@ export const moveDirectory = async (req, res) => {
             return res.status(404).json({ error: "Directory not found" });
         }
 
-        if (newParentId) {
-            const newParent = await Directory.findById(newParentId);
-            if (!newParent) {
-                return res.status(404).json({ error: "New parent directory not found" });
-            }
+        const oldParent = await Directory.findById(directory.parentId);
+        const newParent = newParentId ? await Directory.findById(newParentId) : null;
+
+        if (newParentId && (!newParent || !newParent.isAccessibleBy(req.user._id))) {
+            return res.status(404).json({ error: "New parent directory not found or not accessible" });
+        }
+
+        // Update old parent
+        if (oldParent) {
+            oldParent.children = oldParent.children.filter(id => !id.equals(directory._id));
+            await oldParent.save();
+            await oldParent.updateMetadataRecursive();
+        }
+
+        // Update directory
+        if (newParent) {
+            directory.parentId = newParent._id;
             directory.ancestors = [...newParent.ancestors, newParent._id];
             directory.path = `${newParent.path}/${directory.name}`;
-            directory.parentId = newParent._id;
+            directory.level = newParent.level + 1;
+            
+            // Update new parent
+            newParent.children.push(directory._id);
+            await newParent.save();
+            await newParent.updateMetadataRecursive();
         } else {
+            directory.parentId = null;
             directory.ancestors = [];
             directory.path = `/${directory.name}`;
-            directory.parentId = null;
+            directory.level = 0;
         }
 
         await directory.save();
@@ -238,31 +266,6 @@ export const moveDirectory = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
-
-// Rename directory
-// export const renameDirectory = async (req, res) => {
-//     try {
-//         const { newName } = req.body;
-//         const directory = await Directory.findOne({
-//             _id: req.params.id,
-//             createdBy: req.user._id
-//         });
-
-//         if (!directory) {
-//             return res.status(404).json({ error: "Directory not found" });
-//         }
-
-//         directory.name = newName;
-//         directory.path = directory.ancestors.length > 0
-//             ? `${directory.ancestors.map(a => a.name).join('/')}/${newName}`
-//             : `/${newName}`;
-
-//         await directory.save();
-//         res.json(directory);
-//     } catch (error) {
-//         res.status(400).json({ error: error.message });
-//     }
-// };
 
 // Get directory tree
 export const getDirectoryTree = async (req, res) => {

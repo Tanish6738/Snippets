@@ -27,17 +27,14 @@ export const createUser = async (req, res) => {
         const user = new User({
             username,
             email,
-            password,
-            preferences: {
-                defaultSnippetVisibility: 'private',
-                theme: 'light',
-                emailNotifications: true
-            }
+            password
         });
 
+        // Create root directory for user
+        await user.createRootDirectory();
+        
         const token = await user.generateAuthToken();
         
-        // Remove password from response
         const userObject = user.toObject();
         delete userObject.password;
 
@@ -211,5 +208,33 @@ export const getUser = async (req, res) => {
         res.status(200).json(user);
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+// Add/Remove Favorites
+export const toggleFavorite = async (req, res) => {
+    try {
+        const { snippetId } = req.params;
+        const { action } = req.body;
+
+        if (action === 'add') {
+            await req.user.addToFavorites(snippetId);
+        } else if (action === 'remove') {
+            await req.user.removeFromFavorites(snippetId);
+        }
+
+        res.json({ message: "Favorites updated successfully" });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Get User Directory Tree
+export const getUserDirectoryTree = async (req, res) => {
+    try {
+        const directoryTree = await req.user.getUserDirectoryTree();
+        res.json(directoryTree);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };

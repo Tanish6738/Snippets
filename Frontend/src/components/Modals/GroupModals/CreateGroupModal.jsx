@@ -34,7 +34,28 @@ const CreateGroupModal = ({ isOpen, onClose, onGroupCreated }) => {
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.post('/api/groups', formData);
+      
+      const groupData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        settings: {
+          joinPolicy: formData.settings.joinPolicy,
+          visibility: formData.settings.visibility
+        }
+      };
+
+      const { data } = await axios.post('/api/groups', groupData);
+
+      await axios.post('/api/activities', {
+        action: 'create',
+        targetType: 'group',
+        targetId: data._id,
+        metadata: {
+          name: data.name,
+          visibility: data.settings.visibility
+        }
+      });
+
       onGroupCreated(data);
       onClose();
     } catch (err) {

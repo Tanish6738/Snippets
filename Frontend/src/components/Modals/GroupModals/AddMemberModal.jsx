@@ -14,7 +14,7 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
     if (!query) return setUsers([]);
     try {
       const { data } = await axios.get(`/api/users/search?q=${query}`);
-      setUsers(data);
+      setUsers(data.filter(user => !user.groups.some(g => g.groupId === groupId)));
     } catch (err) {
       console.error('Error searching users:', err);
     }
@@ -25,7 +25,23 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.post(`/api/groups/${groupId}/members`, formData);
+
+      const { data } = await axios.post(`/api/groups/${groupId}/members`, {
+        userId: formData.userId,
+        role: formData.role
+      });
+
+      await axios.post('/api/activities', {
+        action: 'create',
+        targetType: 'group',
+        targetId: groupId,
+        metadata: {
+          action: 'add_member',
+          memberRole: formData.role
+        },
+        relatedUsers: [formData.userId]
+      });
+
       onMemberAdded(data);
       onClose();
     } catch (err) {

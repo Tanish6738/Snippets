@@ -18,15 +18,14 @@ const EditDirectoryDetails = ({ isOpen, onClose, directoryId, onDirectoryUpdated
       try {
         setLoading(true);
         setError('');
+        // Using getDirectoryById endpoint which includes populated data
         const { data } = await axios.get(`/api/directories/${directoryId}`);
-        console.log('Fetched directory data:', data);
         setDirectory(data);
         setFormData({
           name: data.name,
-          visibility: data.visibility,
+          visibility: data.visibility
         });
       } catch (err) {
-        console.error('Error fetching directory:', err);
         setError(err.response?.data?.error || 'Failed to load directory details');
       } finally {
         setLoading(false);
@@ -50,16 +49,37 @@ const EditDirectoryDetails = ({ isOpen, onClose, directoryId, onDirectoryUpdated
       onClose();
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.put(`/api/directories/${directoryId}`, formData);
-      console.log('Directory updated successfully:', data);
+
+      // Using updateDirectory endpoint
+      const { data } = await axios.put(`/api/directories/${directoryId}`, {
+        name: formData.name,
+        visibility: formData.visibility
+      });
+
+      // Log activity after successful update
+      await axios.post('/api/activities', {
+        action: 'edit',
+        targetType: 'directory',
+        targetId: directoryId,
+        metadata: {
+          previousState: {
+            name: directory.name,
+            visibility: directory.visibility
+          },
+          newState: {
+            name: formData.name,
+            visibility: formData.visibility
+          }
+        }
+      });
+
       onDirectoryUpdated(data);
       onClose();
     } catch (err) {
-      console.error('Error updating directory:', err);
       setError(err.response?.data?.error || 'Failed to update directory');
     } finally {
       setLoading(false);

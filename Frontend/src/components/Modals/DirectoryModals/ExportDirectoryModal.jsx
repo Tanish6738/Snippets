@@ -17,36 +17,35 @@ const ExportDirectoryModal = ({ isOpen, onClose, directoryId }) => {
       setLoading(true);
       setError('');
 
+      // Using the export endpoint from directory.controller.js
       const response = await axios.get(`/api/directories/${directoryId}/export`, {
         params: {
           format,
-          ...options
+          includeMetadata: options.includeMetadata,
+          includeSnippets: options.includeSnippets,
+          includeSubdirectories: options.includeSubdirectories,
+          flattenStructure: options.flattenStructure
         },
         responseType: 'blob'
       });
 
-      // Get filename from header or generate one
+      // Process download using Content-Disposition header
       const contentDisposition = response.headers['content-disposition'];
-      let filename = `directory.${format}`;
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename=(.+)/);
-        if (filenameMatch?.length > 1) filename = filenameMatch[1];
-      }
+      let filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]
+        : `directory-${directoryId}.${format}`;
 
-      // Create and trigger download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-
-      // Cleanup
-      window.URL.revokeObjectURL(url);
       link.remove();
+      window.URL.revokeObjectURL(url);
+      
       onClose();
     } catch (err) {
-      console.error('Export error:', err);
       setError(err.response?.data?.error || 'Failed to export directory');
     } finally {
       setLoading(false);

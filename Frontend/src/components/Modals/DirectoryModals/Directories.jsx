@@ -30,16 +30,42 @@ const Directories = () => {
         page: currentPage,
         limit: 10,
         q: searchQuery,
-        ...(viewMode === 'my' && isAuthenticated && { userId: user._id })
+        featured: viewMode === 'featured' ? 'true' : undefined
       };
 
       const { data } = await axios.get('/api/directories', { params });
       setDirectories(data.directories || []);
-      setTotalPages(data.totalPages || 1);
+      setTotalPages(Math.ceil((data.total || 0) / 10));
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch directories');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add new function for moving directories
+  const handleMoveDirectory = async (directoryId, newParentId) => {
+    try {
+      await axios.post(`/api/directories/${directoryId}/move`, {
+        newParentId
+      });
+      fetchDirectories();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to move directory');
+    }
+  };
+
+  // Add sharing functionality
+  const handleShareDirectory = async (directoryId, entityId, entityType, role) => {
+    try {
+      await axios.post(`/api/directories/${directoryId}/share`, {
+        entityId,
+        entityType,
+        role
+      });
+      fetchDirectories();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to share directory');
     }
   };
 

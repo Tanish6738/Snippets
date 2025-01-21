@@ -47,7 +47,32 @@ const EditGroupDetailsModal = ({ isOpen, onClose, group, onGroupUpdated }) => {
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.put(`/api/groups/${group._id}`, formData);
+
+      // Match backend model structure  
+      const updateData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        settings: {
+          joinPolicy: formData.settings.joinPolicy,
+          visibility: formData.settings.visibility 
+        }
+      };
+
+      // Use PUT for updates based on backend route
+      const { data } = await axios.put(`/api/groups/${group._id}`, updateData);
+
+      // Log activity after successful update
+      await axios.post('/api/activities', {
+        action: 'edit',
+        targetType: 'group',
+        targetId: group._id,
+        metadata: {
+          previousState: group,
+          newState: data,
+          changes: ['settings', 'details']
+        }
+      });
+
       onGroupUpdated(data);
       onClose();
     } catch (err) {

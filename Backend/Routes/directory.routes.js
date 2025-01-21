@@ -1,4 +1,5 @@
 import express from 'express';
+import { body } from "express-validator";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 import {
@@ -10,23 +11,47 @@ import {
     shareDirectory,
     getDirectory,
     moveDirectory,
-    // renameDirectory,
     getDirectoryTree,
-    exportDirectory // Add this import
+    exportDirectory
 } from '../controllers/directory.controller.js';
 
 const directoryRouter = express.Router();
 
-directoryRouter.get('/tree', authMiddleware, getDirectoryTree);
-directoryRouter.post('/', authMiddleware, createDirectory);
-directoryRouter.get('/', authMiddleware, getAllDirectories);
-directoryRouter.get('/:id', authMiddleware, getDirectoryById);
-directoryRouter.get('/get/:id', authMiddleware, getDirectory);
-directoryRouter.put('/:id', authMiddleware, updateDirectory);
-directoryRouter.delete('/:id', authMiddleware, deleteDirectory);
-directoryRouter.post('/:id/share', authMiddleware, shareDirectory);
-directoryRouter.post('/:id/move', authMiddleware, moveDirectory);
-// directoryRouter.post('/:id/rename', authMiddleware, renameDirectory);
-directoryRouter.get('/:id/export', authMiddleware, exportDirectory); // Add this route
+// Apply auth middleware to all routes
+directoryRouter.use(authMiddleware);
+
+// Directory tree
+directoryRouter.get('/tree', getDirectoryTree);
+
+// Create directory with validation
+directoryRouter.post('/', [
+    body('name').trim().notEmpty().withMessage('Directory name is required'),
+    body('visibility').isIn(['public', 'private', 'shared']).optional(),
+    body('parentId').optional()
+], createDirectory);
+
+// Get all directories with optional query params
+directoryRouter.get('/', getAllDirectories);
+
+// Single directory routes
+directoryRouter.get('/:id', getDirectoryById);
+directoryRouter.get('/get/:id', getDirectory);
+directoryRouter.put('/:id', updateDirectory);
+directoryRouter.delete('/:id', deleteDirectory);
+
+// Share directory
+directoryRouter.post('/:id/share', [
+    body('entityId').exists(),
+    body('entityType').isIn(['User', 'Group']),
+    body('role').isIn(['viewer', 'editor', 'owner'])
+], shareDirectory);
+
+// Move directory
+directoryRouter.post('/:id/move', [
+    body('newParentId').exists()
+], moveDirectory);
+
+// Export directory
+directoryRouter.get('/:id/export', exportDirectory);
 
 export default directoryRouter;

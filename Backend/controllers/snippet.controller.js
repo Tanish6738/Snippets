@@ -1,4 +1,6 @@
 import Snippet from "../Models/snippet.model.js";
+import Directory from "../Models/directory.model.js";
+import User from "../Models/user.model.js";
 import { validationResult } from "express-validator";
 
 // Create new snippet
@@ -9,8 +11,7 @@ export const createSnippet = async (req, res) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        // Ensure all required fields are present
-        const { title, content, programmingLanguage } = req.body;
+        const { title, content, programmingLanguage, directoryId } = req.body;
         
         if (!title || !content || !programmingLanguage) {
             return res.status(400).json({
@@ -18,24 +19,52 @@ export const createSnippet = async (req, res) => {
             });
         }
 
+        let directory = null;
+        if (directoryId) {
+            directory = await Directory.findById(directoryId);
+            if (!directory || !directory.isAccessibleBy(req.user._id)) {
+                return res.status(404).json({ error: "Directory not found or not accessible" });
+            }
+        }
+
         const snippetData = {
             title: title.trim(),
             content: content.trim(),
             programmingLanguage: programmingLanguage.trim(),
             tags: (req.body.tags || []).filter(Boolean).map(tag => tag.trim()),
-            visibility: req.body.visibility || 'private',
+            visibility: req.body.visibility || req.user.preferences.defaultSnippetVisibility,
             description: req.body.description?.trim() || '',
-            createdBy: req.user._id
+            createdBy: req.user._id,
+            directory: directory ? {
+                current: directory._id,
+                path: [...directory.ancestors, directory._id]
+            } : null,
+            versionHistory: [{
+                version: 1,
+                content: content.trim(),
+                updatedBy: req.user._id
+            }]
         };
 
         const snippet = new Snippet(snippetData);
         await snippet.save();
 
-        res.status(201).json(snippet);
+        // Update directory if specified
+        if (directory) {
+            await directory.addSnippet(snippet);
+            await directory.updateMetadataRecursive();
+        }
+
+        const populatedSnippet = await Snippet.findById(snippet._id)
+            .populate('createdBy', 'username email')
+            .populate('directory.current')
+            .populate('directory.path');
+
+        res.status(201).json(populatedSnippet);
     } catch (error) {
-        console.error('Snippet creation error:', error);
         res.status(400).json({ 
-            errors: [{ msg: error.message }]
+            error: "Snippet creation failed",
+            message: error.message 
         });
     }
 };
@@ -45,25 +74,45 @@ export const updateSnippet = async (req, res) => {
     try {
         const snippet = await Snippet.findOne({
             _id: req.params.id,
-            createdBy: req.user._id
+            $or: [
+                { createdBy: req.user._id },
+                { 'sharedWith.entity': req.user._id, 'sharedWith.role': { $in: ['editor', 'owner'] } }
+            ]
         });
 
         if (!snippet) {
-            return res.status(404).json({ error: "Snippet not found" });
+            return res.status(404).json({ error: "Snippet not found or not authorized" });
         }
 
-        // Create version history entry
-        if (req.body.content && req.body.content !== snippet.content) {
-            snippet.versionHistory.push({
-                version: snippet.versionHistory.length + 1,
-                content: snippet.content,
-                updatedBy: req.user._id
-            });
+        // Handle directory change
+        if (req.body.directoryId && req.body.directoryId !== snippet.directory?.current) {
+            await snippet.moveToDirectory(req.body.directoryId);
         }
 
-        Object.assign(snippet, req.body);
+        // Version history is handled by pre-save middleware
+
+        const allowedUpdates = [
+            'title', 'content', 'tags', 'visibility', 'description',
+            'programmingLanguage', 'commentsEnabled', 'shareLink'
+        ];
+
+        const updates = Object.keys(req.body)
+            .filter(key => allowedUpdates.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = req.body[key];
+                return obj;
+            }, {});
+
+        Object.assign(snippet, updates);
         await snippet.save();
-        res.json(snippet);
+
+        const populatedSnippet = await Snippet.findById(snippet._id)
+            .populate('createdBy', 'username email')
+            .populate('directory.current')
+            .populate('directory.path')
+            .populate('sharedWith.entity');
+
+        res.json(populatedSnippet);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -178,7 +227,21 @@ export const shareSnippet = async (req, res) => {
 
         const { entityId, entityType, role } = req.body;
 
-        // Check if already shared
+        if (!snippet.canEdit(req.user._id)) {
+            return res.status(403).json({ error: "Not authorized to share this snippet" });
+        }
+
+        let entity;
+        if (entityType === 'User') {
+            entity = await User.findById(entityId);
+        } else if (entityType === 'Group') {
+            entity = await Group.findById(entityId);
+        }
+
+        if (!entity) {
+            return res.status(404).json({ error: `${entityType} not found` });
+        }
+
         const existingShare = snippet.sharedWith.find(
             share => share.entity.toString() === entityId && 
             share.entityType === entityType
@@ -190,12 +253,18 @@ export const shareSnippet = async (req, res) => {
             snippet.sharedWith.push({
                 entity: entityId,
                 entityType,
-                role
+                role,
+                sharedAt: new Date()
             });
         }
 
         await snippet.save();
-        res.json(snippet);
+
+        const populatedSnippet = await Snippet.findById(snippet._id)
+            .populate('createdBy', 'username email')
+            .populate('sharedWith.entity');
+
+        res.json(populatedSnippet);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -362,11 +431,14 @@ export const restoreVersion = async (req, res) => {
     try {
         const snippet = await Snippet.findOne({
             _id: req.params.id,
-            createdBy: req.user._id
+            $or: [
+                { createdBy: req.user._id },
+                { 'sharedWith.entity': req.user._id, 'sharedWith.role': { $in: ['editor', 'owner'] } }
+            ]
         });
 
         if (!snippet) {
-            return res.status(404).json({ error: "Snippet not found" });
+            return res.status(404).json({ error: "Snippet not found or not authorized" });
         }
 
         const version = snippet.versionHistory.find(v => v.version === parseInt(req.params.version));
@@ -374,19 +446,15 @@ export const restoreVersion = async (req, res) => {
             return res.status(404).json({ error: "Version not found" });
         }
 
-        // Save current content as a new version
-        snippet.versionHistory.push({
-            version: snippet.versionHistory.length + 1,
-            content: snippet.content,
-            updatedBy: req.user._id,
-            description: "Auto-saved before version restore"
-        });
-
-        // Restore the old version
+        // Current version is automatically saved by pre-save middleware
         snippet.content = version.content;
         await snippet.save();
 
-        res.json(snippet);
+        const populatedSnippet = await Snippet.findById(snippet._id)
+            .populate('createdBy', 'username email')
+            .populate('versionHistory.updatedBy');
+
+        res.json(populatedSnippet);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

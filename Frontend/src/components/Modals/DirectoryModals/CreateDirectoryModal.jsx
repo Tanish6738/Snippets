@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFolder, FiX, FiLock, FiGlobe, FiUsers } from 'react-icons/fi';
 import axios from '../../../Config/Axios';
@@ -6,20 +6,49 @@ import axios from '../../../Config/Axios';
 const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = null }) => {
   const [formData, setFormData] = useState({
     name: '',
-    visibility: 'private'
+    visibility: 'private',
+    parentId: null,
+    path: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [availableParents, setAvailableParents] = useState([]);
+
+  useEffect(() => {
+    const fetchParentDirectories = async () => {
+      try {
+        const { data } = await axios.get('/api/directories/tree');
+        setAvailableParents(data);
+      } catch (err) {
+        console.error('Failed to fetch parent directories:', err);
+      }
+    };
+
+    if (isOpen) {
+      fetchParentDirectories();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.post('/api/directories', {
-        ...formData,
-        parentId
+      
+      // Filter out undefined/null values
+      const payload = Object.entries(formData)
+        .filter(([_, value]) => value !== null && value !== undefined)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+      const { data } = await axios.post('/api/directories', payload);
+      
+      // Log activity
+      await axios.post('/api/activities', {
+        action: 'create',
+        targetType: 'directory',
+        targetId: data._id
       });
+
       onDirectoryCreated(data);
       onClose();
     } catch (err) {
@@ -121,6 +150,24 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated, parentId = 
                     </motion.button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                  Parent Directory
+                </label>
+                <select
+                  className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                  value={formData.parentId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+                >
+                  <option value="">Select parent directory</option>
+                  {availableParents.map(parent => (
+                    <option key={parent._id} value={parent._id}>
+                      {parent.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </form>
           </div>

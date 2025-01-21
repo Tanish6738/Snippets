@@ -37,7 +37,12 @@ const snippetSchema = new mongoose.Schema({
         favorites: { type: Number, default: 0 }
     },
     commentsEnabled: { type: Boolean, default: true },
-    commentCount: { type: Number, default: 0 }
+    commentCount: { type: Number, default: 0 },
+    directory: {
+        current: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' },
+        path: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Directory' }]
+    },
+    position: { type: Number, default: 0 }
 }, { timestamps: true });
 
 snippetSchema.index({ title: 'text', content: 'text', tags: 'text' });
@@ -89,6 +94,34 @@ snippetSchema.methods.canEdit = function(userId) {
            this.sharedWith.some(share => 
                share.entity.equals(userId) && ['editor', 'owner'].includes(share.role)
            );
+};
+
+snippetSchema.methods.moveToDirectory = async function(newDirectoryId) {
+    const Directory = mongoose.model('Directory');
+    
+    if (this.directory.current) {
+        const oldDir = await Directory.findById(this.directory.current);
+        if (oldDir) {
+            oldDir.snippets = oldDir.snippets.filter(id => !id.equals(this._id));
+            await oldDir.save();
+        }
+    }
+    
+    const newDir = await Directory.findById(newDirectoryId);
+    if (newDir) {
+        this.directory.current = newDir._id;
+        const ancestors = await Directory.find({ 
+            _id: { $in: newDir.ancestors } 
+        });
+        this.directory.path = [...ancestors.map(a => a._id), newDir._id];
+        
+        newDir.snippets.push(this._id);
+        await Promise.all([this.save(), newDir.save()]);
+        
+        await newDir.updateMetadataRecursive();
+    }
+    
+    return this;
 };
 
 export default mongoose.model('Snippet', snippetSchema);
