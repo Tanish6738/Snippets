@@ -277,9 +277,9 @@ const SnippetList = ({ snippets }) => {
 
   return (
     <div className="space-y-2">
-      {snippets.map(snippet => (
+      {snippets.map((snippet, index) => (
         <div 
-          key={snippet._id}
+          key={snippet._id || `snippet-${index}`}
           className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
                      hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
         >
@@ -289,9 +289,9 @@ const SnippetList = ({ snippets }) => {
               <p className="text-xs text-indigo-400">{snippet.programmingLanguage}</p>
             </div>
             <div className="flex items-center gap-2">
-              {snippet.tags?.map(tag => (
+              {snippet.tags?.map((tag, tagIndex) => (
                 <span 
-                  key={`${snippet._id}-${tag}`}
+                  key={`${snippet._id || index}-${tag}-${tagIndex}`}
                   className="px-2 py-1 text-xs rounded-full bg-indigo-500/20 text-indigo-300"
                 >
                   {tag}
