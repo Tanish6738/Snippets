@@ -33,7 +33,9 @@ const directorySchema = new mongoose.Schema({
         ref: 'Snippet'
     }],
     level: { type: Number, default: 0 },
-    isRoot: { type: Boolean, default: false }
+    isRoot: { type: Boolean, default: false },
+    allSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
+    directSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }]
 }, { timestamps: true });
 
 directorySchema.index({ name: 'text', path: 'text' });
@@ -74,10 +76,22 @@ directorySchema.methods.addChild = async function(childDir) {
     return this;
 };
 
+directorySchema.methods.propagateSnippetToAncestors = async function(snippetId) {
+    const ancestors = await this.constructor.find({ _id: { $in: this.ancestors } });
+    await Promise.all(ancestors.map(ancestor => {
+        if (!ancestor.allSnippets.includes(snippetId)) {
+            ancestor.allSnippets.push(snippetId);
+            return ancestor.save();
+        }
+    }));
+};
+
 directorySchema.methods.addSnippet = async function(snippet) {
-    if (!this.snippets.includes(snippet._id)) {
-        this.snippets.push(snippet._id);
+    if (!this.directSnippets.includes(snippet._id)) {
+        this.directSnippets.push(snippet._id);
+        this.allSnippets.push(snippet._id);
         snippet.directoryId = this._id;
+        await this.propagateSnippetToAncestors(snippet._id);
         await Promise.all([this.save(), snippet.save()]);
     }
     return this;
@@ -92,6 +106,19 @@ directorySchema.methods.getFullHierarchy = async function() {
             }
         })
         .populate('snippets');
+};
+
+directorySchema.methods.getFullHierarchyWithSnippets = async function() {
+    const populatedDir = await this.constructor.findById(this._id)
+        .populate({
+            path: 'children',
+            populate: {
+                path: 'directSnippets allSnippets'
+            }
+        })
+        .populate('directSnippets')
+        .populate('allSnippets');
+    return populatedDir;
 };
 
 directorySchema.methods.updateMetadataRecursive = async function() {

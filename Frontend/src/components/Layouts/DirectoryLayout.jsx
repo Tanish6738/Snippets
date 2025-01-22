@@ -15,122 +15,86 @@ import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
 import CreateDirectoryModal from '../Modals/DirectoryModals/CreateDirectoryModal';
 import axios from '../../Config/Axios';
 
+// Add these helper functions at the top
+const buildDirectoryTree = (directory) => {
+  if (!directory) return null;
+
+  return {
+    type: 'directory',
+    id: directory._id || null,
+    name: directory.name || 'Unnamed Directory',
+    path: directory.path || '/',
+    metadata: directory.metadata || {},
+    children: Array.isArray(directory.children) ? directory.children : [],
+    directSnippets: Array.isArray(directory.directSnippets) ? directory.directSnippets : [],
+    allSnippets: Array.isArray(directory.allSnippets) ? directory.allSnippets : [],
+    createdAt: directory.createdAt || new Date().toISOString(),
+    visibility: directory.visibility || 'private'
+  };
+};
+
+// Update the DirectoryItem component to handle the new structure
 const DirectoryItem = ({ item, level = 0, onSelect, onMove, currentDirectory }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [showDropZone, setShowDropZone] = useState(false);
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-    if (item.type === 'file') {
-      onSelect(item);
-    } else {
-      setIsOpen(!isOpen);
-    }
-  };
-
-  const handleDragStart = (e) => {
-    e.stopPropagation();
-    setIsDragging(true);
-    e.dataTransfer.setData('text/plain', JSON.stringify({
-      id: item.id,
-      type: item.type,
-      name: item.name
-    }));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    if (item.type === 'directory') {
-      setShowDropZone(true);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setShowDropZone(false);
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    setShowDropZone(false);
-    const droppedItem = JSON.parse(e.dataTransfer.getData('text/plain'));
-    
-    if (droppedItem.id !== item.id) {
-      try {
-        await onMove(droppedItem, item.id);
-      } catch (error) {
-        console.error('Failed to move item:', error);
-      }
-    }
-  };
-
-  // Add validation check before rendering
-  if (!item || !item.name) return null;
+  
+  // Modify to handle both direct and inherited snippets
+  const snippetCount = item.allSnippets?.length || 0;
+  const directSnippetCount = item.snippets?.length || 0;
 
   return (
     <div className="relative">
       <div 
         className={`
-          flex items-center py-0.5 px-2
-          hover:bg-indigo-500/10 rounded-none
+          flex items-center py-1 px-2
+          hover:bg-indigo-500/10 rounded-lg
           transition-colors duration-75
-          ${showDropZone ? 'bg-indigo-500/20' : ''}
           ${level > 0 ? `ml-${level * 4}` : ''}
           group cursor-pointer
         `}
-        onClick={handleClick}
-        draggable={true}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onClick={() => onSelect(item)}
       >
-        <span 
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }} 
-          className={`
-            w-4 h-4 flex items-center justify-center
-            text-indigo-400/75 hover:text-indigo-300
-            transition-transform duration-75
-          `}
-        >
-          {item.type === 'directory' && (
-            isOpen ? 
-              <FaChevronDown className="w-3 h-3" /> : 
-              <FaChevronRight className="w-3 h-3" />
+        <span className="w-4 h-4 flex items-center justify-center">
+          {item.children?.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(!isOpen);
+              }}
+              className="text-indigo-400/75 hover:text-indigo-300"
+            >
+              {isOpen ? <FaChevronDown /> : <FaChevronRight />}
+            </button>
           )}
         </span>
+        
         <span className="w-5 h-5 flex items-center justify-center mx-1">
-          {item.type === 'directory' ? (
-            isOpen ? 
-              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" /> : 
-              <FaFolder className="w-4 h-4 text-indigo-400/90" />
-          ) : (
-            <FaFile className="w-3.5 h-3.5 text-indigo-300/90" />
-          )}
+          {isOpen ? 
+            <FaFolderOpen className="w-4 h-4 text-indigo-400/90" /> : 
+            <FaFolder className="w-4 h-4 text-indigo-400/90" />
+          }
         </span>
-        <span className="text-sm text-indigo-200/90 font-medium">{item.name}</span>
-        <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-75">
-          <button className="p-1 hover:bg-indigo-500/20 rounded">
-            <FaEdit className="w-3 h-3 text-indigo-400/75" />
-          </button>
-          <button className="p-1 hover:bg-red-500/20 rounded">
-            <FaTrash className="w-3 h-3 text-red-400/75" />
-          </button>
-        </div>
+        
+        <span className="text-sm text-indigo-200/90 font-medium flex-1">
+          {item.name}
+        </span>
+        
+        <span className="text-xs text-indigo-400/75">
+          {directSnippetCount > 0 && `${directSnippetCount} direct`}
+          {directSnippetCount > 0 && snippetCount - directSnippetCount > 0 && ' + '}
+          {snippetCount - directSnippetCount > 0 && `${snippetCount - directSnippetCount} inherited`}
+        </span>
       </div>
-      {item.type === 'directory' && isOpen && item.children && (
-        <div>
+
+      {isOpen && item.children?.length > 0 && (
+        <div className="ml-4">
           {item.children.map((child, index) => (
-            <DirectoryItem 
-              key={index} 
-              item={child} 
-              level={level + 1} 
-              onSelect={onSelect} 
-              onMove={onMove} 
-              currentDirectory={currentDirectory} 
+            <DirectoryItem
+              key={child._id || index}
+              item={child}
+              level={level + 1}
+              onSelect={onSelect}
+              onMove={onMove}
+              currentDirectory={currentDirectory}
             />
           ))}
         </div>
@@ -231,6 +195,141 @@ const SidebarSection = ({ title, children, defaultOpen = true }) => {
   );
 };
 
+const DirectoryStats = ({ directory }) => {
+  if (!directory) return null;
+  
+  return (
+    <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-4">
+      <div className="flex items-center gap-3 pb-3 border-b border-indigo-500/20">
+        <FaFolderOpen className="w-5 h-5 text-indigo-400" />
+        <div>
+          <h3 className="text-lg font-semibold text-white">{directory.name}</h3>
+          <p className="text-xs text-indigo-400">{directory.path}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
+          <div className="text-xs text-indigo-400 mb-1">Direct Snippets</div>
+          <div className="text-xl font-semibold text-white">
+            {directory.directSnippets?.length || 0}
+          </div>
+        </div>
+        <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
+          <div className="text-xs text-indigo-400 mb-1">All Snippets</div>
+          <div className="text-xl font-semibold text-white">
+            {directory.allSnippets?.length || 0}
+          </div>
+        </div>
+      </div>
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between text-indigo-300">
+          <span>Created</span>
+          <span>{new Date(directory.createdAt).toLocaleDateString()}</span>
+        </div>
+        <div className="flex justify-between text-indigo-300">
+          <span>Size</span>
+          <span>{directory.metadata?.size || 0} bytes</span>
+        </div>
+        <div className="flex justify-between text-indigo-300">
+          <span>Visibility</span>
+          <span className="capitalize">{directory.visibility}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Fix the SnippetList component to handle undefined tags
+const SnippetList = ({ snippets }) => {
+  if (!snippets?.length) return (
+    <div className="text-center text-indigo-400 py-8">
+      No snippets in this directory
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {snippets.map(snippet => (
+        <div 
+          key={snippet._id}
+          className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+                     hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-white font-medium">{snippet.title}</h4>
+              <p className="text-xs text-indigo-400">{snippet.programmingLanguage}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {snippet.tags?.map(tag => (
+                <span 
+                  key={`${snippet._id}-${tag}`}
+                  className="px-2 py-1 text-xs rounded-full bg-indigo-500/20 text-indigo-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-indigo-400 flex items-center justify-between">
+            <span>Created: {new Date(snippet.createdAt).toLocaleDateString()}</span>
+            <span>Version: {snippet.versionHistory?.length || 0}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Fix the MainContent component to include unique keys
+const MainContent = ({ directory, selectedSnippet }) => {
+  if (selectedSnippet) {
+    return <SnippetDetails snippet={selectedSnippet} />;
+  }
+
+  if (!directory) {
+    return (
+      <div className="text-center text-indigo-300 mt-10">
+        Select a directory to view its contents
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <DirectoryStats directory={directory} />
+      
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-white">Snippets</h3>
+        <SnippetList snippets={directory.directSnippets || []} />
+      </div>
+      
+      {directory.children?.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white">Subdirectories</h3>
+          <div className="grid grid-cols-3 gap-4">
+            {directory.children.map(child => (
+              <div 
+                key={child._id || `dir-${child.name}`}
+                className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+                           hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <FaFolder className="text-indigo-400" />
+                  <span className="text-white">{child.name}</span>
+                </div>
+                <div className="mt-2 text-xs text-indigo-400">
+                  {child.snippets?.length || 0} snippets
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DirectoryLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedSnippet, setSelectedSnippet] = useState(null);
@@ -247,34 +346,7 @@ const DirectoryLayout = () => {
     if (location.state?.selectedDirectory) {
       const directory = location.state.selectedDirectory;
       setCurrentDirectory(directory);
-      
-      // Create directory structure based on received data
-      const structure = {
-        type: 'directory',
-        name: directory.name,
-        id: directory._id,
-        path: directory.path,
-        metadata: directory.metadata,
-        children: [
-          ...(directory.children || []).map(child => ({
-            type: 'directory',
-            name: child.name,
-            id: child._id,
-            path: child.path,
-            children: child.children || []
-          })),
-          ...(directory.snippets || []).map(snippet => ({
-            type: 'file',
-            name: snippet.title,
-            id: snippet._id,
-            content: snippet.content,
-            lastModified: new Date(snippet.updatedAt).toLocaleDateString(),
-            programmingLanguage: snippet.programmingLanguage
-          }))
-        ]
-      };
-      
-      setDirectoryStructure(structure);
+      setDirectoryStructure(buildDirectoryTree(directory));
     }
   }, [location.state]);
 
@@ -298,65 +370,14 @@ const DirectoryLayout = () => {
   const fetchDirectoryData = async (directoryId) => {
     try {
       const { data: directoryData } = await axios.get(`/api/directories/${directoryId}`);
+      
+      // Update both current directory and directory structure
       setCurrentDirectory(directoryData);
+      setDirectoryStructure(buildDirectoryTree(directoryData));
       
-      const fetchSubdirectories = async (dir) => {
-        if (!dir.children?.length) return [];
-        
-        const childPromises = dir.children.map(async (childId) => {
-          const { data: child } = await axios.get(`/api/directories/${childId}`);
-          const subdirs = await fetchSubdirectories(child);
-          return {
-            ...child,
-            type: 'directory',
-            children: subdirs
-          };
-        });
-        
-        return Promise.all(childPromises);
-      };
-      
-      const [snippetResponses, subdirectories] = await Promise.all([
-        Promise.all(directoryData.snippets.map(snippetId => 
-          axios.get(`/api/snippets/${snippetId}`)
-        )),
-        fetchSubdirectories(directoryData)
-      ]);
-
-      const snippetsData = snippetResponses.map(response => response.data);
-      
-      const structure = {
-        type: 'directory',
-        name: directoryData.name,
-        id: directoryData._id,
-        path: directoryData.path,
-        metadata: directoryData.metadata,
-        children: [
-          ...subdirectories.map(child => ({
-            type: 'directory',
-            name: child.name,
-            id: child._id,
-            path: child.path,
-            metadata: child.metadata,
-            children: child.children || []
-          })),
-          ...snippetsData.map(snippet => ({
-            type: 'file',
-            name: snippet.title,
-            id: snippet._id,
-            content: snippet.content,
-            lastModified: new Date(snippet.updatedAt).toLocaleDateString(),
-            programmingLanguage: snippet.programmingLanguage,
-            description: snippet.description,
-            visibility: snippet.visibility,
-            tags: snippet.tags
-          }))
-        ].filter(Boolean)
-      };
-      
-      setDirectoryStructure(structure);
+      console.log('Directory Structure:', buildDirectoryTree(directoryData));
     } catch (error) {
-      console.error('Failed to fetch directory or snippets:', error);
+      console.error('Failed to fetch directory data:', error);
     }
   };
 
@@ -449,37 +470,68 @@ const DirectoryLayout = () => {
 
   // Add this new function to render directory contents
   const renderDirectoryContents = () => {
-    if (!directoryStructure || !directoryStructure.children) return null;
+    if (!directoryStructure) return null;
+
+    const snippets = directoryStructure.directSnippets || [];
+    const children = directoryStructure.children || [];
 
     return (
-      <div className="space-y-1">
-        <div className="text-indigo-400/75 text-xs px-2 py-1">
-          {directoryStructure.path}
-        </div>
-        {directoryStructure.children
-          .filter(item => 
-            item?.name ? item.name.toLowerCase().includes((searchTerm || '').toLowerCase()) : false
-          )
-          .map((item, index) => (
-            item && <DirectoryItem
-              key={`${item.id}-${index}`}
-              item={item}
-              onSelect={(item) => {
-                if (item.type === 'directory') {
-                  setCurrentDirectory({
-                    _id: item.id,
-                    name: item.name,
-                    path: item.path,
-                    metadata: item.metadata
-                  });
-                } else {
-                  setSelectedSnippet(item);
-                }
-              }}
-              onMove={handleMove}
-              currentDirectory={currentDirectory}
-            />
-          ))}
+      <div className="space-y-4">
+        {/* Directories */}
+        {children.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs text-indigo-400 uppercase">Directories</div>
+            {children
+              .filter(dir => dir && dir.name && dir.name.toLowerCase().includes((searchTerm || '').toLowerCase()))
+              .map(dir => (
+                <DirectoryItem
+                  key={dir._id || Math.random()}
+                  item={{
+                    ...dir,
+                    type: 'directory',
+                    name: dir.name || 'Unnamed Directory',
+                    children: dir.children || [],
+                    directSnippets: dir.directSnippets || [],
+                    allSnippets: dir.allSnippets || []
+                  }}
+                  onSelect={() => fetchDirectoryData(dir._id)}
+                  onMove={handleMove}
+                  currentDirectory={currentDirectory}
+                />
+              ))}
+          </div>
+        )}
+
+        {/* Snippets */}
+        {snippets.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs text-indigo-400 uppercase">Snippets</div>
+            {snippets
+              .filter(snippet => snippet && snippet.title && snippet.title.toLowerCase().includes((searchTerm || '').toLowerCase()))
+              .map(snippet => (
+                <div
+                  key={snippet._id || Math.random()}
+                  onClick={() => setSelectedSnippet(snippet)}
+                  className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20 
+                           hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <FaFile className="text-indigo-400" />
+                    <span className="text-white">{snippet.title || 'Untitled'}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-indigo-400">
+                    {snippet.programmingLanguage || 'No language specified'}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+
+        {(!children.length && !snippets.length) && (
+          <div className="text-center text-indigo-400 py-4">
+            No items in this directory
+          </div>
+        )}
       </div>
     );
   };
@@ -525,13 +577,10 @@ const DirectoryLayout = () => {
         {/* Main Content */}
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="bg-[#0B1120]/80 backdrop-blur-xl h-full rounded-2xl p-6 border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
-            {selectedSnippet ? (
-              <SnippetDetails snippet={selectedSnippet} />
-            ) : (
-              <div className="text-center text-indigo-300 mt-10">
-                Select a snippet to view or edit
-              </div>
-            )}
+            <MainContent 
+              directory={currentDirectory}
+              selectedSnippet={selectedSnippet}
+            />
           </div>
         </div>
       </div>

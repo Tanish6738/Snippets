@@ -59,6 +59,29 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
     }
   }, [isOpen, formData.parentId, formData.path]);
 
+  // Add this effect to handle path updates
+  useEffect(() => {
+    const updatePath = () => {
+      if (formData.parentId) {
+        const parent = availableParents.find(p => p._id === formData.parentId);
+        if (parent) {
+          const parentPath = parent.path ? `${parent.path}/${parent.name}` : parent.name;
+          setFormData(prev => ({
+            ...prev,
+            path: parentPath
+          }));
+        }
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          path: ''
+        }));
+      }
+    };
+
+    updatePath();
+  }, [formData.parentId, availableParents]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -189,38 +212,39 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
                 </div>
               </div>
 
+              {/* Update the parent directory selection */}
               <div>
                 <label className="block text-sm font-medium text-indigo-300 mb-1">
                   Parent Directory
                 </label>
-                <select
-                  className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
-                  value={formData.parentId || ''}
-                  onChange={(e) => {
-                    const selectedParent = availableParents.find(p => p._id === e.target.value);
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      parentId: e.target.value || null,
-                      path: selectedParent ? 
-                        (selectedParent.path ? `${selectedParent.path}/${selectedParent.name}` : selectedParent.name) 
-                        : ''
-                    }));
-                  }}
-                >
-                  <option value="">Root Directory</option>
-                  {availableParents.map(parent => (
-                    <option 
-                      key={parent._id} 
-                      value={parent._id}
-                      disabled={parent._id === formData.parentId}
-                    >
-                      {parent.path ? `${parent.path}/${parent.name}` : parent.name}
-                    </option>
-                  ))}
-                </select>
-                {error && (
-                  <p className="mt-1 text-sm text-red-400">{error}</p>
-                )}
+                <div className="relative">
+                  <FiFolder className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                  <select
+                    name="parentId"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
+                              text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                    value={formData.parentId || ''}
+                    onChange={(e) => {
+                      const selectedParentId = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        parentId: selectedParentId || null
+                      }));
+                    }}
+                  >
+                    <option value="">Root Directory</option>
+                    {availableParents.map(parent => (
+                      <option 
+                        key={parent._id} 
+                        value={parent._id}
+                        disabled={parent._id === formData._id}
+                      >
+                        {parent.path ? `${parent.path}/${parent.name}` : parent.name}
+                        {parent.allSnippets?.length > 0 && ` (${parent.allSnippets.length} snippets)`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </form>
           </div>

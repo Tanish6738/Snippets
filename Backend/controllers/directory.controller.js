@@ -87,11 +87,25 @@ export const getAllDirectories = async (req, res) => {
 export const getDirectoryById = async (req, res) => {
     try {
         const directory = await Directory.findById(req.params.id)
-            .populate('parentId')
-            .populate('ancestors');
+            .populate({
+                path: 'ancestors',
+                select: 'name path level'
+            })
+            .populate('directSnippets')
+            .populate('allSnippets')
+            .populate({
+                path: 'children',
+                populate: {
+                    path: 'directSnippets allSnippets'
+                }
+            });
 
         if (!directory) {
             return res.status(404).json({ error: "Directory not found" });
+        }
+
+        if (!directory.isAccessibleBy(req.user._id)) {
+            return res.status(403).json({ error: "Access denied" });
         }
 
         await directory.updateMetadata();
@@ -276,14 +290,18 @@ export const getDirectoryTree = async (req, res) => {
                 { visibility: 'public' },
                 { 'sharedWith.entity': req.user._id }
             ]
-        });
+        })
+        .populate('directSnippets')
+        .populate('allSnippets');
 
         const buildTree = (parentId = null) => {
             return directories
                 .filter(dir => (dir.parentId ? dir.parentId.toString() === parentId : parentId === null))
                 .map(dir => ({
                     ...dir.toObject(),
-                    children: buildTree(dir._id.toString())
+                    children: buildTree(dir._id.toString()),
+                    snippets: dir.directSnippets,
+                    allSnippets: dir.allSnippets
                 }));
         };
 

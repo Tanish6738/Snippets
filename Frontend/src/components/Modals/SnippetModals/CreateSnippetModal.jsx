@@ -148,6 +148,17 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
     }
   };
 
+  // Add this function inside the component
+  const fetchDirectoryHierarchy = async () => {
+    try {
+      const response = await axios.get('/api/directories/tree');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch directory hierarchy:', error);
+      return [];
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -287,17 +298,17 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
                     >
                       <option value="">Select a directory</option>
                       {availableDirectories.map(dir => (
-                        <option key={dir._id} value={dir._id}>
+                        <option 
+                          key={dir._id} 
+                          value={dir._id}
+                          className="text-sm"
+                        >
                           {dir.path ? `${dir.path}/${dir.name}` : dir.name}
+                          {dir.allSnippets?.length > 0 && ` (${dir.allSnippets.length} snippets)`}
                         </option>
                       ))}
                     </select>
                   </div>
-                  {isLoadingDirectories && (
-                    <div className="mt-1 text-sm text-indigo-400">
-                      Loading directories...
-                    </div>
-                  )}
                 </div>
               </div>
             </form>

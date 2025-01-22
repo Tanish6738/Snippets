@@ -49,10 +49,8 @@ export const createSnippet = async (req, res) => {
         const snippet = new Snippet(snippetData);
         await snippet.save();
 
-        // Update directory if specified
         if (directory) {
             await directory.addSnippet(snippet);
-            await directory.updateMetadataRecursive();
         }
 
         const populatedSnippet = await Snippet.findById(snippet._id)
