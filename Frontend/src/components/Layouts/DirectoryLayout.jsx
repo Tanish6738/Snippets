@@ -33,68 +33,96 @@ const buildDirectoryTree = (directory) => {
   };
 };
 
-// Update the DirectoryItem component to handle the new structure
-const DirectoryItem = ({ item, level = 0, onSelect, onMove, currentDirectory }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Modify to handle both direct and inherited snippets
-  const snippetCount = item.allSnippets?.length || 0;
-  const directSnippetCount = item.snippets?.length || 0;
+// Add this FileTreeNode component
+const FileTreeNode = ({ item, level = 0, onSelect }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const isDirectory = item.type === 'directory' || item.children;
+  const hasChildren = isDirectory && (item.children?.length > 0 || item.directSnippets?.length > 0);
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onSelect(item);
+  };
+
+  const handleExpandClick = (e) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
 
   return (
-    <div className="relative">
-      <div 
+    <div className="select-none">
+      <div
         className={`
-          flex items-center py-1 px-2
-          hover:bg-indigo-500/10 rounded-lg
-          transition-colors duration-75
+          flex items-center py-1.5 px-2 
+          hover:bg-indigo-500/10 rounded-lg 
+          cursor-pointer
           ${level > 0 ? `ml-${level * 4}` : ''}
-          group cursor-pointer
         `}
-        onClick={() => onSelect(item)}
+        onClick={handleClick}
       >
-        <span className="w-4 h-4 flex items-center justify-center">
-          {item.children?.length > 0 && (
+        <span className="w-4 h-4 flex items-center justify-center mr-1">
+          {hasChildren && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(!isOpen);
-              }}
+              onClick={handleExpandClick}
               className="text-indigo-400/75 hover:text-indigo-300"
             >
-              {isOpen ? <FaChevronDown /> : <FaChevronRight />}
+              {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
             </button>
           )}
         </span>
-        
-        <span className="w-5 h-5 flex items-center justify-center mx-1">
-          {isOpen ? 
-            <FaFolderOpen className="w-4 h-4 text-indigo-400/90" /> : 
-            <FaFolder className="w-4 h-4 text-indigo-400/90" />
-          }
+
+        <span className="w-5 h-5 flex items-center justify-center mr-2">
+          {isDirectory ? (
+            isExpanded ? (
+              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
+            ) : (
+              <FaFolder className="w-4 h-4 text-indigo-400/90" />
+            )
+          ) : (
+            <FaFile className="w-4 h-4 text-indigo-300/90" />
+          )}
         </span>
-        
+
         <span className="text-sm text-indigo-200/90 font-medium flex-1">
-          {item.name}
+          {item.name || item.title}
         </span>
-        
-        <span className="text-xs text-indigo-400/75">
-          {directSnippetCount > 0 && `${directSnippetCount} direct`}
-          {directSnippetCount > 0 && snippetCount - directSnippetCount > 0 && ' + '}
-          {snippetCount - directSnippetCount > 0 && `${snippetCount - directSnippetCount} inherited`}
-        </span>
+
+        {/* Add open directory button for directories */}
+        {isDirectory && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(item);
+            }}
+            className="px-2 py-1 text-xs bg-indigo-500/20 hover:bg-indigo-500/30 
+                     text-indigo-300 rounded-lg ml-2 flex items-center gap-1 
+                     opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            Open
+          </button>
+        )}
       </div>
 
-      {isOpen && item.children?.length > 0 && (
-        <div className="ml-4">
-          {item.children.map((child, index) => (
-            <DirectoryItem
-              key={child._id || index}
-              item={child}
+      {isExpanded && hasChildren && (
+        <div>
+          {/* Render child directories */}
+          {item.children?.map((child) => (
+            <FileTreeNode
+              key={child._id}
+              item={{ ...child, type: 'directory' }}
               level={level + 1}
               onSelect={onSelect}
-              onMove={onMove}
-              currentDirectory={currentDirectory}
+            />
+          ))}
+          
+          {/* Render snippets in this directory */}
+          {item.directSnippets?.map((snippet) => (
+            <FileTreeNode
+              key={snippet._id}
+              item={{ ...snippet, type: 'snippet' }}
+              level={level + 1}
+              onSelect={onSelect}
             />
           ))}
         </div>
@@ -330,6 +358,7 @@ const MainContent = ({ directory, selectedSnippet }) => {
   );
 };
 
+// Update the DirectoryLayout component main render
 const DirectoryLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedSnippet, setSelectedSnippet] = useState(null);
@@ -403,138 +432,78 @@ const DirectoryLayout = () => {
     }
   };
 
+  useEffect(() => {
+    // Initial load of root directory
+    const fetchRootDirectory = async () => {
+      try {
+        const response = await axios.get('/api/directories/tree');
+        setDirectoryStructure(response.data[0]); // Get the root directory
+      } catch (error) {
+        console.error('Error fetching directory tree:', error);
+      }
+    };
+    
+    fetchRootDirectory();
+  }, []);
+
+  // Move renderSidebarContent inside component to access state
   const renderSidebarContent = () => (
     <div className="p-4 space-y-6">
       <div className="space-y-3">
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setShowCreateSnippetModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white
-              bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 
-              transition-all duration-300 shadow-lg shadow-indigo-500/25"
-          >
-            <FaPlus className="w-4 h-4" /> New Snippet
-          </button>
-          <button 
-            onClick={() => setShowCreateDirectoryModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white
-              bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 
-              transition-all duration-300 shadow-lg shadow-blue-500/25"
-          >
-            <FaPlus className="w-4 h-4" /> New Folder
-          </button>
-        </div>
+        <button
+          onClick={() => setShowCreateSnippetModal(true)}
+          className="w-full px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 
+                     text-indigo-300 rounded-lg flex items-center gap-2"
+        >
+          <FaPlus className="w-3 h-3" />
+          <span>New Snippet</span>
+        </button>
+        
+        <button
+          onClick={() => setShowCreateDirectoryModal(true)}
+          className="w-full px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 
+                     text-indigo-300 rounded-lg flex items-center gap-2"
+        >
+          <FaFolder className="w-3 h-3" />
+          <span>New Directory</span>
+        </button>
 
         <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
           <input
             type="text"
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#0B1120] border border-indigo-500/30 rounded-xl
-              text-indigo-300 placeholder-indigo-400 focus:outline-none focus:border-indigo-400/60
-              transition-colors duration-200"
+            className="w-full bg-indigo-500/10 border border-indigo-500/20 
+                       rounded-lg px-4 py-2 text-indigo-300 
+                       placeholder-indigo-400/50 focus:outline-none 
+                       focus:border-indigo-500/50"
           />
+          <FaSearch className="absolute right-3 top-3 text-indigo-400/50" />
         </div>
       </div>
 
-      {currentDirectory && (
-        <SidebarSection title="Directory Info">
-          <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-            <div className="space-y-2 text-sm text-indigo-300">
-              <div className="flex justify-between">
-                <span>Snippets:</span>
-                <span className="font-medium text-indigo-200">{currentDirectory.metadata?.snippetCount || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Subdirectories:</span>
-                <span className="font-medium text-indigo-200">{currentDirectory.metadata?.subDirectoryCount || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Created:</span>
-                <span className="font-medium text-indigo-200">
-                  {new Date(currentDirectory.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </SidebarSection>
+      {directoryStructure && (
+        <div className="mt-6">
+          <div className="text-xs text-indigo-400 uppercase mb-2 px-2">Files & Directories</div>
+          <FileTreeNode
+            item={{
+              ...directoryStructure,
+              type: 'directory'
+            }}
+            onSelect={(item) => {
+              if (item.type === 'snippet') {
+                setSelectedSnippet(item);
+              } else {
+                setCurrentDirectory(item);
+                setSelectedSnippet(null);
+              }
+            }}
+          />
+        </div>
       )}
-
-      <SidebarSection title="Contents">
-        {renderDirectoryContents()}
-      </SidebarSection>
     </div>
   );
-
-  // Add this new function to render directory contents
-  const renderDirectoryContents = () => {
-    if (!directoryStructure) return null;
-
-    const snippets = directoryStructure.directSnippets || [];
-    const children = directoryStructure.children || [];
-
-    return (
-      <div className="space-y-4">
-        {/* Directories */}
-        {children.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-xs text-indigo-400 uppercase">Directories</div>
-            {children
-              .filter(dir => dir && dir.name && dir.name.toLowerCase().includes((searchTerm || '').toLowerCase()))
-              .map(dir => (
-                <DirectoryItem
-                  key={dir._id || Math.random()}
-                  item={{
-                    ...dir,
-                    type: 'directory',
-                    name: dir.name || 'Unnamed Directory',
-                    children: dir.children || [],
-                    directSnippets: dir.directSnippets || [],
-                    allSnippets: dir.allSnippets || []
-                  }}
-                  onSelect={() => fetchDirectoryData(dir._id)}
-                  onMove={handleMove}
-                  currentDirectory={currentDirectory}
-                />
-              ))}
-          </div>
-        )}
-
-        {/* Snippets */}
-        {snippets.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-xs text-indigo-400 uppercase">Snippets</div>
-            {snippets
-              .filter(snippet => snippet && snippet.title && snippet.title.toLowerCase().includes((searchTerm || '').toLowerCase()))
-              .map(snippet => (
-                <div
-                  key={snippet._id || Math.random()}
-                  onClick={() => setSelectedSnippet(snippet)}
-                  className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20 
-                           hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <FaFile className="text-indigo-400" />
-                    <span className="text-white">{snippet.title || 'Untitled'}</span>
-                  </div>
-                  <div className="mt-1 text-xs text-indigo-400">
-                    {snippet.programmingLanguage || 'No language specified'}
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-
-        {(!children.length && !snippets.length) && (
-          <div className="text-center text-indigo-400 py-4">
-            No items in this directory
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // Move modals outside of sidebar
   return (
@@ -545,8 +514,9 @@ const DirectoryLayout = () => {
           bg-[#0B1120]/80 backdrop-blur-xl 
           border-r border-indigo-500/20 
           shadow-lg shadow-indigo-500/10
-          ${isCollapsed ? 'w-16' : 'w-64'} 
+          ${isCollapsed ? 'w-16' : 'w-72'} 
           transition-all duration-300
+          overflow-y-auto
         `}>
           {/* Sidebar Header */}
           <div className="p-4 border-b border-indigo-500/20">
@@ -566,12 +536,7 @@ const DirectoryLayout = () => {
           </div>
           
           {/* Sidebar Content */}
-          {!isCollapsed && (
-            <>
-              {renderSidebarContent()}
-              {renderDirectoryContents()}
-            </>
-          )}
+          {!isCollapsed && renderSidebarContent()}
         </div>
 
         {/* Main Content */}
