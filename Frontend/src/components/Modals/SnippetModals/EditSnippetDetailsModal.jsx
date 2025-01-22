@@ -14,11 +14,11 @@ const EditSnippetDetailsModal = ({ isOpen, onClose, snippet, onSnippetUpdated })
   const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
-    console.log('EditSnippetDetailsModal props:', {
-      isOpen,
-      hasSnippet: !!snippet,
-      snippetData: snippet
-    });
+    // console.log('EditSnippetDetailsModal props:', {
+    //   isOpen,
+    //   hasSnippet: !!snippet,
+    //   snippetData: snippet
+    // });
 
     if (snippet) {
       setFormData({
@@ -29,7 +29,7 @@ const EditSnippetDetailsModal = ({ isOpen, onClose, snippet, onSnippetUpdated })
         visibility: snippet.visibility,
         description: snippet.description
       });
-      console.log('Form data set:', formData);
+      // console.log('Form data set:', formData);
     }
   }, [snippet]);
 
@@ -88,7 +88,7 @@ const EditSnippetDetailsModal = ({ isOpen, onClose, snippet, onSnippetUpdated })
   };
 
   if (!isOpen) {
-    console.log('EditSnippetDetailsModal not showing because isOpen is false');
+    // console.log('EditSnippetDetailsModal not showing because isOpen is false');
     return null;
   }
 
