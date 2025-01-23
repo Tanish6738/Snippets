@@ -30,7 +30,7 @@ const Navbar = () => {
             <div className="flex-shrink-0">
               <Link to="/" className="flex items-center space-x-2">
                 <span className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                  Snippets
+                 CodeArc
                 </span>
               </Link>
             </div>
