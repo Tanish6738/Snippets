@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaUsers, 
   FaComments, 
@@ -7,24 +7,118 @@ import {
   FaChevronLeft,
   FaPlus,
   FaSearch,
-  FaCog
+  FaCog,
+  FaBars,
+  FaArrowLeft,
+  FaPaperPlane 
 } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 const GroupLayout = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isChatOpen, setChatOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('members'); // members, files
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isChatOpen, setChatOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('members');
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const mainContentRef = useRef(null);
+
+  // Check for mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+        setChatOpen(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Add touch handlers for mobile gestures
+  const handleTouchStart = (e) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStart) return;
+    
+    const currentTouch = e.touches[0].clientX;
+    const diff = touchStart - currentTouch;
+
+    // Swipe left closes sidebar
+    if (diff > 50 && isSidebarOpen) {
+      setSidebarOpen(false);
+    }
+    // Swipe right opens sidebar
+    if (diff < -50 && !isSidebarOpen) {
+      setSidebarOpen(true);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchStart(null);
+  };
 
   return (
-    <div className="min-h-screen bg-[#070B14] pt-16">
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left Sidebar */}
-        <div className={`
-          bg-[#0B1120]/80 backdrop-blur-xl
-          border-r border-indigo-500/20
-          transition-all duration-300
-          ${isSidebarCollapsed ? 'w-20' : 'w-72'}
-        `}>
+    <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120]">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 
+                    bg-gradient-to-r from-[#0B1120]/95 to-[#0D1428]/95
+                    border-b border-indigo-500/10 flex items-center px-4 z-50
+                    backdrop-blur-2xl">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg
+                   active:scale-95 transition-transform"
+        >
+          <FaBars size={18} />
+        </button>
+        <h1 className="text-lg font-semibold text-indigo-300 mx-auto">Group Name</h1>
+        <button
+          onClick={() => setChatOpen(true)}
+          className="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg
+                   active:scale-95 transition-transform"
+        >
+          <FaComments size={18} />
+        </button>
+      </div>
+
+      <div className="flex h-screen md:h-[calc(100vh-4rem)] pt-16 md:pt-20">
+        {/* Sidebar */}
+        <motion.div 
+          initial={isMobile ? { x: -320 } : false}
+          animate={{ 
+            x: isSidebarOpen ? 0 : -320,
+            width: isSidebarCollapsed ? 80 : 320
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className={`
+            fixed md:relative
+            bg-gradient-to-b from-[#0B1120]/95 to-[#0D1428]/95
+            border-r border-indigo-500/10
+            h-full z-50 md:translate-x-0
+            touch-pan-y
+            md:rounded-2xl md:m-4 md:h-[calc(100vh-7rem)]
+            shadow-2xl shadow-indigo-500/5
+          `}>
+          {/* Mobile Sidebar Header */}
+          {isMobile && (
+            <div className="p-4 flex items-center gap-3 border-b border-indigo-500/20">
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg"
+              >
+                <FaArrowLeft />
+              </button>
+              <h2 className="text-lg font-semibold text-indigo-300">Group Name</h2>
+            </div>
+          )}
+
           {/* Group Header */}
           <div className="p-4 border-b border-indigo-500/20">
             <div className="flex items-center justify-between">
@@ -120,76 +214,130 @@ const GroupLayout = () => {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
+
+        {/* Chat Panel */}
+        <motion.div 
+          initial={{ x: 384 }}
+          animate={{ x: isChatOpen ? 0 : 384 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className={`
+            fixed right-0 top-0 bottom-0 md:bottom-4
+            bg-gradient-to-b from-[#0B1120]/95 to-[#0D1428]/95
+            border-l border-indigo-500/10
+            z-50 w-96 flex flex-col
+            md:top-20 shadow-2xl shadow-indigo-500/5
+            md:rounded-2xl md:mr-4
+          `}>
+          {/* Mobile Chat Header */}
+          <div className="shrink-0 p-4 border-b border-indigo-500/20 flex items-center gap-3">
+            {isMobile ? (
+              <button
+                onClick={() => setChatOpen(false)}
+                className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg"
+              >
+                <FaArrowLeft />
+              </button>
+            ) : (
+              <button
+                onClick={() => setChatOpen(false)}
+                className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg"
+              >
+                <FaChevronRight />
+              </button>
+            )}
+            <h3 className="text-lg font-semibold text-indigo-300">Group Chat</h3>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Messages would go here */}
+          </div>
+
+          {/* Chat Input - Fixed at bottom */}
+          <div className="shrink-0 p-3 border-t border-indigo-500/20 bg-[#0B1120]/95 backdrop-blur-xl">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                className="flex-1 bg-indigo-500/10 border border-indigo-500/20 
+                         rounded-lg px-4 py-2.5 text-indigo-300 
+                         placeholder-indigo-400/50 focus:outline-none 
+                         focus:border-indigo-500/50"
+              />
+              <button className="p-2.5 bg-indigo-500 text-white rounded-lg
+                             hover:bg-indigo-600 active:scale-95 transition-all">
+                <FaPaperPlane size={16} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Main Content */}
-        <div className="flex-1 flex">
-          <div className={`
-            flex-1 p-6 
-            ${isChatOpen ? 'mr-80' : ''}
-          `}>
-            <div className="bg-[#0B1120]/80 backdrop-blur-xl h-full 
-                          rounded-2xl p-6 border border-indigo-500/20">
-              {/* Main content would go here */}
+        <div className="flex-1 flex overflow-hidden">
+          <motion.div 
+            layout
+            className={`
+              flex-1 p-6 md:p-8
+              transition-all duration-300 ease-out
+              ${!isMobile && isChatOpen ? 'mr-96' : ''}
+              relative
+            `}>
+            {/* Refresh Indicator */}
+            {refreshing && (
+              <motion.div 
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                className="absolute top-0 left-0 right-0 h-0.5">
+                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 animate-shimmer" />
+              </motion.div>
+            )}
+            
+            <div className="bg-gradient-to-br from-[#0B1120]/90 to-[#0D1428]/90 
+                          backdrop-blur-2xl h-full 
+                          rounded-2xl p-6 md:p-8
+                          border border-indigo-500/10
+                          shadow-2xl shadow-indigo-500/5
+                          transition-all duration-300">
+              {/* Main content... */}
               <div className="text-indigo-300">
                 Select a snippet or directory to view
               </div>
             </div>
-          </div>
-
-          {/* Chat Panel */}
-          <div className={`
-            fixed right-0 top-16 bottom-0
-            bg-[#0B1120]/80 backdrop-blur-xl
-            border-l border-indigo-500/20
-            transition-all duration-300
-            ${isChatOpen ? 'w-80 translate-x-0' : 'translate-x-full'}
-          `}>
-            <div className="flex flex-col h-full">
-              {/* Chat Header */}
-              <div className="p-4 border-b border-indigo-500/20 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-indigo-300">Group Chat</h3>
-                <button
-                  onClick={() => setChatOpen(false)}
-                  className="p-2 text-indigo-400 hover:text-indigo-300"
-                >
-                  <FaChevronRight />
-                </button>
-              </div>
-
-              {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {/* Messages would go here */}
-              </div>
-
-              {/* Chat Input */}
-              <div className="p-4 border-t border-indigo-500/20">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  className="w-full bg-indigo-500/10 border border-indigo-500/20 
-                           rounded-lg px-4 py-2 text-indigo-300 
-                           placeholder-indigo-400/50 focus:outline-none 
-                           focus:border-indigo-500/50"
-                />
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Chat Toggle Button (Mobile) */}
-      {!isChatOpen && (
-        <button
+      {/* Chat Toggle Button */}
+      {!isChatOpen && !isMobile && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-4 right-4 p-3 rounded-full 
-                     bg-indigo-500 text-white shadow-lg"
+          className="fixed bottom-8 right-8 p-4 rounded-xl
+                     bg-gradient-to-br from-indigo-500 to-indigo-600
+                     text-white shadow-lg shadow-indigo-500/20
+                     hover:shadow-xl hover:shadow-indigo-500/30
+                     transition-all duration-300"
         >
-          <FaComments />
-        </button>
+          <FaComments size={20} />
+        </motion.button>
       )}
     </div>
   );
 };
+
+// Add these styles to your global CSS
+const globalStyles = `
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+`;
 
 export default GroupLayout;
