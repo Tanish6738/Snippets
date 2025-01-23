@@ -1,41 +1,62 @@
-import { createContext, useState, useContext } from 'react';
-import axios from '../Config/Axios';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Clear any existing invalid tokens on initial load
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setUser(null);
+  }, []);
 
   const login = async (credentials) => {
     try {
-      const { data } = await axios.post('/api/users/login', credentials);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       setIsAuthenticated(true);
-      return data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw error;
     }
   };
 
   const register = async (userData) => {
     try {
-      const { data } = await axios.post('/api/users/register', userData);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed');
+      }
+
+      const data = await response.json();
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       setIsAuthenticated(true);
-      return data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw error;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     setUser(null);
     setIsAuthenticated(false);
   };
