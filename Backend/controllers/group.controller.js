@@ -1,4 +1,5 @@
 import Group from "../Models/group.model.js";
+import Activity from "../Models/activity.model.js";
 import { validationResult } from "express-validator";
 
 // Create new group
@@ -287,6 +288,137 @@ export const getJoinedGroups = async (req, res) => {
         res.set('Pragma', 'no-cache');
         
         res.json(groups);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Chat Controllers
+export const addMessage = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group) {
+            return res.status(404).json({ error: "Group not found" });
+        }
+
+        const { content, attachments } = req.body;
+        await group.addMessage(req.user._id, content, attachments);
+
+        // Log activity
+        await Activity.logActivity({
+            userId: req.user._id,
+            action: 'create',
+            targetType: 'group',
+            targetId: group._id,
+            metadata: { messageType: 'chat' }
+        });
+
+        res.status(201).json(group.chat.messages[group.chat.messages.length - 1]);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const getMessages = async (req, res) => {
+    try {
+        const { limit = 50, before } = req.query;
+        const group = await Group.findById(req.params.id)
+            .populate('chat.messages.sender', 'username avatar');
+
+        let messages = group.chat.messages;
+        if (before) {
+            messages = messages.filter(m => m.createdAt < new Date(before));
+        }
+        messages = messages.slice(-limit);
+
+        res.json(messages);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const pinMessage = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group.canPerformAction(req.user._id, 'manage_chat')) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        if (!group.chat.pinnedMessages.includes(req.params.messageId)) {
+            group.chat.pinnedMessages.push(req.params.messageId);
+            await group.save();
+        }
+
+        res.json(group.chat.pinnedMessages);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Enhanced Member Management
+export const updateMemberPermissions = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        if (!group.canPerformAction(req.user._id, 'manage_roles')) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        await group.updateMemberPermissions(req.params.userId, req.body.permissions);
+        res.json(group.members.find(m => m.userId.equals(req.params.userId)));
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Content Management
+export const getGroupContent = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id)
+            .populate('snippets.snippetId')
+            .populate('directories.directoryId')
+            .populate('rootDirectory');
+
+        res.json({
+            rootDirectory: group.rootDirectory,
+            snippets: group.snippets,
+            directories: group.directories
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const searchGroupContent = async (req, res) => {
+    try {
+        const { query } = req.query;
+        const group = await Group.findById(req.params.id);
+        
+        const snippets = await mongoose.model('Snippet').find({
+            _id: { $in: group.snippets.map(s => s.snippetId) },
+            $text: { $search: query }
+        });
+
+        const directories = await mongoose.model('Directory').find({
+            _id: { $in: group.directories.map(d => d.directoryId) },
+            $text: { $search: query }
+        });
+
+        res.json({ snippets, directories });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getGroupStats = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id);
+        const stats = {
+            memberCount: group.members.length,
+            snippetCount: group.snippets.length,
+            directoryCount: group.directories.length,
+            messageCount: group.chat.messages.length
+        };
+        res.json(stats);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

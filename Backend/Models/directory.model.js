@@ -23,7 +23,7 @@ const directorySchema = new mongoose.Schema({
         subDirectoryCount: { type: Number, default: 0 },
         totalSize: { type: Number, default: 0 }
     },
-    visibility: { type: String, enum: ['public', 'private', 'shared'], default: 'private' },
+    visibility: { type: String, enum: ['public', 'private', 'group'], default: 'private' },
     children: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Directory'

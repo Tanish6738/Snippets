@@ -1,50 +1,158 @@
 import mongoose from 'mongoose';
 
+// Message sub-schema for chat functionality
+const messageSchema = new mongoose.Schema({
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    content: { type: String, required: true },
+    attachments: [{
+        type: { type: String, enum: ['snippet', 'directory', 'file'] },
+        itemId: { type: mongoose.Schema.Types.ObjectId },
+        name: String
+    }],
+    reactions: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        type: String
+    }],
+    isEdited: { type: Boolean, default: false }
+}, { timestamps: true });
+
 const groupSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
     description: { type: String, maxlength: 500 },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     members: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        role: { type: String, enum: ['member', 'admin'], default: 'member' },
-        joinedAt: { type: Date, default: Date.now }
+        role: { type: String, enum: ['member', 'admin', 'moderator'], default: 'member' },
+        joinedAt: { type: Date, default: Date.now },
+        permissions: [{
+            type: String,
+            enum: ['create_snippet', 'edit_snippet', 'delete_snippet', 
+                   'create_directory', 'edit_directory', 'delete_directory',
+                   'invite_members', 'remove_members', 'manage_roles']
+        }]
     }],
-    snippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
-    directories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Directory' }],
+    snippets: [{
+        snippetId: { type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' },
+        addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        addedAt: { type: Date, default: Date.now }
+    }],
+    directories: [{
+        directoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' },
+        addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        addedAt: { type: Date, default: Date.now }
+    }],
+    rootDirectory: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' },
+    chat: {
+        messages: [messageSchema],
+        pinnedMessages: [{ type: mongoose.Schema.Types.ObjectId }],
+        settings: {
+            enabled: { type: Boolean, default: true },
+            fileSharing: { type: Boolean, default: true },
+            retention: { type: Number, default: 300 } // Days to keep messages
+        }
+    },
     featured: { type: Boolean, default: false },
     settings: {
         joinPolicy: { type: String, enum: ['open', 'invite', 'closed'], default: 'invite' },
-        visibility: { type: String, enum: ['public', 'private'], default: 'private' }
+        visibility: { type: String, enum: ['public', 'private'], default: 'private' },
+        snippetPermissions: {
+            defaultVisibility: { type: String, enum: ['public', 'private', 'group'], default: 'group' },
+            allowMemberCreation: { type: Boolean, default: true }
+        },
+        directoryPermissions: {
+            allowMemberCreation: { type: Boolean, default: true }
+        }
     }
 }, { timestamps: true });
 
-groupSchema.pre('save', function(next) {
-    // Ensure at least one admin exists
-    if (this.members.length > 0 && !this.members.some(m => m.role === 'admin')) {
-        this.members[0].role = 'admin';
+// Initialize root directory on group creation
+groupSchema.pre('save', async function(next) {
+    if (!this.rootDirectory) {
+        const Directory = mongoose.model('Directory');
+        const rootDir = new Directory({
+            name: `${this.name}-root`,
+            path: '/',
+            createdBy: this.createdBy,
+            isRoot: true,
+            level: 0,
+            visibility: 'group'
+        });
+        await rootDir.save();
+        this.rootDirectory = rootDir._id;
     }
     next();
 });
 
-groupSchema.methods.addMember = async function(userId, role = 'member') {
-    if (!this.members.some(m => m.userId.equals(userId))) {
-        this.members.push({ userId, role });
+// Chat methods
+groupSchema.methods.addMessage = async function(senderId, content, attachments = []) {
+    const message = {
+        sender: senderId,
+        content,
+        attachments
+    };
+    this.chat.messages.push(message);
+    return this.save();
+};
+
+// Snippet management methods
+groupSchema.methods.addSnippet = async function(snippetId, userId) {
+    if (!this.snippets.some(s => s.snippetId.equals(snippetId))) {
+        this.snippets.push({
+            snippetId,
+            addedBy: userId
+        });
         await this.save();
     }
     return this;
 };
 
-groupSchema.methods.removeMember = async function(userId) {
-    this.members = this.members.filter(m => !m.userId.equals(userId));
-    await this.save();
+// Directory management methods
+groupSchema.methods.addDirectory = async function(directoryId, userId) {
+    if (!this.directories.some(d => d.directoryId.equals(directoryId))) {
+        this.directories.push({
+            directoryId,
+            addedBy: userId
+        });
+        await this.save();
+    }
     return this;
 };
 
-groupSchema.methods.isMemberAllowed = function(userId, requiredRole) {
+// Member management with enhanced permissions
+groupSchema.methods.addMember = async function(userId, role = 'member') {
+    if (!this.members.some(m => m.userId.equals(userId))) {
+        const defaultPermissions = role === 'admin' 
+            ? ['create_snippet', 'edit_snippet', 'delete_snippet', 
+               'create_directory', 'edit_directory', 'delete_directory',
+               'invite_members', 'remove_members', 'manage_roles']
+            : ['create_snippet', 'edit_snippet', 'create_directory'];
+
+        this.members.push({
+            userId,
+            role,
+            permissions: defaultPermissions
+        });
+        await this.save();
+    }
+    return this;
+};
+
+groupSchema.methods.updateMemberPermissions = async function(userId, permissions) {
     const member = this.members.find(m => m.userId.equals(userId));
-    if (!member) return false;
-    if (requiredRole === 'member') return true;
-    return member.role === requiredRole;
+    if (member) {
+        member.permissions = permissions;
+        await this.save();
+    }
+    return this;
+};
+
+// Check member permissions
+groupSchema.methods.canPerformAction = function(userId, permission) {
+    const member = this.members.find(m => m.userId.equals(userId));
+    return member && (
+        member.role === 'admin' || 
+        member.permissions.includes(permission)
+    );
 };
 
 export default mongoose.model('Group', groupSchema);

@@ -262,6 +262,33 @@ const Home = () => {
     }
   };
 
+  const handleViewGroup = (group) => {
+    console.log('Selected group details:', {
+      id: group._id,
+      name: group.name,
+      description: group.description,
+      members: group.members,
+      snippets: group.snippets,
+      directories: group.directories,
+      settings: group.settings
+    });
+  
+    navigate('/groups', {
+      state: {
+        selectedGroup: group,
+        groupDetails: {
+          id: group._id,
+          name: group.name,
+          description: group.description,
+          members: group.members || [],
+          snippets: group.snippets || [],
+          directories: group.directories || [],
+          settings: group.settings || {}
+        }
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -553,10 +580,7 @@ const Home = () => {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          setSelectedGroupId(group._id);
-                          setViewGroupModalOpen(true);
-                        }}
+                        onClick={() => handleViewGroup(group)}
                         className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-2"
                       >
                         <FiArrowRight /> Manage
@@ -612,10 +636,7 @@ const Home = () => {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          setSelectedGroupId(group._id);
-                          setViewGroupModalOpen(true);
-                        }}
+                        onClick={() => handleViewGroup(group)}
                         className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-2"
                       >
                         <FiEye /> View
@@ -748,17 +769,6 @@ const Home = () => {
               visibility: 'private'
             }
           }}
-        />
-      )}
-
-      {viewGroupModalOpen && (
-        <ViewGroupDetailsModal
-          isOpen={viewGroupModalOpen}
-          onClose={() => {
-            setViewGroupModalOpen(false);
-            setSelectedGroupId(null);
-          }}
-          groupId={selectedGroupId}
         />
       )}
 
