@@ -3,6 +3,7 @@ import {
   FaFolder, 
   FaFolderOpen, 
   FaChevronRight, 
+  FaChevronLeft,
   FaChevronDown,
   FaFile,
   FaPlus,
@@ -31,6 +32,28 @@ const buildDirectoryTree = (directory) => {
     createdAt: directory.createdAt || new Date().toISOString(),
     visibility: directory.visibility || 'private'
   };
+};
+
+// Add this new utility function at the top of the file
+const searchItems = (items, searchTerm) => {
+  if (!searchTerm) return items;
+  const lowerSearchTerm = searchTerm.toLowerCase();
+  
+  return items.filter(item => {
+    // Search in directory/snippet name
+    const nameMatch = (item.name || item.title || '').toLowerCase().includes(lowerSearchTerm);
+    
+    // For snippets, also search in tags and programming language
+    if (item.type === 'snippet') {
+      const tagMatch = (item.tags || []).some(tag => 
+        tag.toLowerCase().includes(lowerSearchTerm)
+      );
+      const languageMatch = (item.programmingLanguage || '').toLowerCase().includes(lowerSearchTerm);
+      return nameMatch || tagMatch || languageMatch;
+    }
+    
+    return nameMatch;
+  });
 };
 
 // Add this FileTreeNode component
@@ -276,19 +299,19 @@ const SnippetList = ({ snippets }) => {
   );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 md:space-y-3">
       {snippets.map((snippet, index) => (
         <div 
           key={snippet._id || `snippet-${index}`}
-          className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+          className="p-3 md:p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
                      hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div>
               <h4 className="text-white font-medium">{snippet.title}</h4>
               <p className="text-xs text-indigo-400">{snippet.programmingLanguage}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1 md:gap-2">
               {snippet.tags?.map((tag, tagIndex) => (
                 <span 
                   key={`${snippet._id || index}-${tag}-${tagIndex}`}
@@ -310,7 +333,7 @@ const SnippetList = ({ snippets }) => {
 };
 
 // Fix the MainContent component to include unique keys
-const MainContent = ({ directory, selectedSnippet }) => {
+const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
   if (selectedSnippet) {
     return <SnippetDetails snippet={selectedSnippet} />;
   }
@@ -323,20 +346,48 @@ const MainContent = ({ directory, selectedSnippet }) => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <DirectoryStats directory={directory} />
-      
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white">Snippets</h3>
-        <SnippetList snippets={directory.directSnippets || []} />
+  // Filter snippets and directories based on search term
+  const filteredSnippets = searchItems(directory.directSnippets || [], searchTerm);
+  const filteredDirectories = searchItems(directory.children || [], searchTerm);
+
+  const hasResults = filteredSnippets.length > 0 || filteredDirectories.length > 0;
+  const isSearching = Boolean(searchTerm);
+
+  if (isSearching && !hasResults) {
+    return (
+      <div className="text-center text-indigo-300 mt-10">
+        No results found for "{searchTerm}"
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {!isSearching && <DirectoryStats directory={directory} />}
       
-      {directory.children?.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">Subdirectories</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {directory.children.map(child => (
+      {/* Show filtered results count when searching */}
+      {isSearching && (
+        <div className="text-indigo-300 mb-4">
+          Found {filteredSnippets.length + filteredDirectories.length} results for "{searchTerm}"
+        </div>
+      )}
+      
+      {filteredSnippets.length > 0 && (
+        <div className="space-y-3 md:space-y-4">
+          <h3 className="text-lg font-semibold text-white">
+            {isSearching ? 'Matching Snippets' : 'Snippets'}
+          </h3>
+          <SnippetList snippets={filteredSnippets} />
+        </div>
+      )}
+      
+      {filteredDirectories.length > 0 && (
+        <div className="space-y-3 md:space-y-4">
+          <h3 className="text-lg font-semibold text-white">
+            {isSearching ? 'Matching Directories' : 'Subdirectories'}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {filteredDirectories.map(child => (
               <div 
                 key={child._id || `dir-${child.name}`}
                 className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
@@ -505,21 +556,36 @@ const DirectoryLayout = () => {
     </div>
   );
 
+  // Debounce search term updates
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Move modals outside of sidebar
   return (
     <div className="min-h-screen bg-[#070B14] pt-16">
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Sidebar */}
+      <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
+        {/* Sidebar - Updated for mobile */}
         <div className={`
+          fixed md:relative
+          z-40 md:z-auto
           bg-[#0B1120]/80 backdrop-blur-xl 
           border-r border-indigo-500/20 
           shadow-lg shadow-indigo-500/10
-          ${isCollapsed ? 'w-16' : 'w-72'} 
+          h-full
+          ${isCollapsed ? 'w-0 md:w-16' : 'w-[85vw] md:w-72'} 
           transition-all duration-300
-          overflow-y-auto
+          transform ${isCollapsed ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
+          overflow-hidden
         `}>
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-indigo-500/20">
+          {/* Sidebar Header - Updated for mobile */}
+          <div className="sticky top-0 z-10 p-4 border-b border-indigo-500/20 bg-[#0B1120]/90 backdrop-blur-xl">
             <div className="flex justify-between items-center">
               {!isCollapsed && currentDirectory && (
                 <h2 className="text-lg font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent truncate">
@@ -536,15 +602,28 @@ const DirectoryLayout = () => {
           </div>
           
           {/* Sidebar Content */}
-          {!isCollapsed && renderSidebarContent()}
+          {!isCollapsed && (
+            <div className="h-full overflow-y-auto pb-20">
+              {renderSidebarContent()}
+            </div>
+          )}
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          <div className="bg-[#0B1120]/80 backdrop-blur-xl h-full rounded-2xl p-6 border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+        {/* Toggle Sidebar Button for Mobile */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="fixed md:hidden z-50 bottom-4 right-4 p-3 rounded-full bg-indigo-500 text-white shadow-lg"
+        >
+          {isCollapsed ? <FaFolder /> : <FaChevronLeft />}
+        </button>
+
+        {/* Main Content - Updated for mobile */}
+        <div className="flex-1 p-2 md:p-4 overflow-hidden h-full">
+          <div className="bg-[#0B1120]/80 backdrop-blur-xl h-full rounded-xl md:rounded-2xl p-3 md:p-6 border border-indigo-500/20 shadow-lg shadow-indigo-500/10 overflow-y-auto">
             <MainContent 
               directory={currentDirectory}
               selectedSnippet={selectedSnippet}
+              searchTerm={debouncedSearchTerm}
             />
           </div>
         </div>

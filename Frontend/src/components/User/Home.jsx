@@ -32,19 +32,21 @@ import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails
 import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 import EditSnippetDetailsModal from '../Modals/SnippetModals/EditSnippetDetailsModal';
 
-// Update StatCard component with enhanced colors
+// Update StatCard component for better mobile layout
 const StatCard = ({ title, value, icon, trend }) => (
   <motion.div 
     whileHover={{ scale: 1.02 }}
-    className="backdrop-blur-lg bg-white/5 p-6 rounded-2xl border border-indigo-500/30 hover:border-indigo-400/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+    className="backdrop-blur-lg bg-white/5 p-4 sm:p-6 rounded-xl border border-indigo-500/30 
+               hover:border-indigo-400/50 transition-all duration-300 
+               shadow-[0_0_20px_rgba(99,102,241,0.15)]"
   >
     <div className="flex items-center justify-between mb-2">
-      <span className="text-3xl text-indigo-400">{icon}</span>
+      <span className="text-2xl sm:text-3xl text-indigo-400">{icon}</span>
       {trend && (
         <motion.span 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className={`text-sm font-medium ${trend > 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+          className={`text-xs sm:text-sm font-medium ${trend > 0 ? 'text-emerald-300' : 'text-rose-300'}`}
         >
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
         </motion.span>
@@ -53,11 +55,12 @@ const StatCard = ({ title, value, icon, trend }) => (
     <motion.p 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-1"
+      className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 
+                 bg-clip-text text-transparent mb-1"
     >
       {value}
     </motion.p>
-    <p className="text-sm text-indigo-300">{title}</p>
+    <p className="text-xs sm:text-sm text-indigo-300">{title}</p>
   </motion.div>
 );
 
@@ -268,7 +271,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#070B14]">
+    <div className="min-h-screen bg-[#070B14] overflow-x-hidden">
       {/* Enhanced Hero Section */}
       <div className="bg-[#0B1120] relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/30 to-violet-600/30"></div>
@@ -276,29 +279,37 @@ const Home = () => {
         <div className="absolute top-0 -left-4 w-72 h-72 bg-violet-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob"></div>
         <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-blob animation-delay-4000"></div>
-        <div className="container mx-auto px-4 py-24 relative">
+        <div className="container mx-auto px-4 py-12 sm:py-24 relative">
           <div className="max-w-4xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-blue-300 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 
+                         text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 
+                         via-purple-300 to-blue-300 leading-tight">
               {isAuthenticated 
                 ? `Welcome back, ${user.username}!` 
                 : 'Your Code Snippet Library'}
             </h1>
-            <p className="text-xl mb-8 text-indigo-100 leading-relaxed opacity-90">
+            <p className="text-lg sm:text-xl mb-6 sm:mb-8 text-indigo-100 leading-relaxed opacity-90">
               Organize, share, and collaborate on code snippets with your team.
               Build your personal knowledge base efficiently.
             </p>
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               {isAuthenticated ? (
                 <>
                   <button
                     onClick={() => setCreateModalOpen(true)}
-                    className="relative px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(99,102,241,0.45)]"
+                    className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 rounded-xl font-semibold 
+                           text-white bg-gradient-to-r from-indigo-500 to-violet-500 
+                           hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 
+                           shadow-[0_0_25px_rgba(99,102,241,0.35)]"
                   >
                     Create New Snippet
                   </button>
                   <button
                     onClick={() => setBulkCreateModalOpen(true)}
-                    className="px-8 py-4 rounded-xl font-semibold text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/10 hover:border-indigo-400 hover:text-indigo-200 transition-all duration-300 backdrop-blur-sm"
+                    className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 rounded-xl font-semibold 
+                           text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/10 
+                           hover:border-indigo-400 hover:text-indigo-200 transition-all duration-300 
+                           backdrop-blur-sm"
                   >
                     Bulk Import
                   </button>
@@ -306,7 +317,10 @@ const Home = () => {
               ) : (
                 <Link
                   to="/register"
-                  className="relative px-8 py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(99,102,241,0.45)]"
+                  className="w-full sm:w-auto text-center px-6 py-3 sm:px-8 sm:py-4 rounded-xl 
+                         font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-500 
+                         hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 
+                         shadow-[0_0_25px_rgba(99,102,241,0.35)]"
                 >
                   Get Started Free
                 </Link>
@@ -316,10 +330,10 @@ const Home = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-10 relative z-10">
+      <div className="container mx-auto px-4 -mt-6 sm:-mt-10 relative z-10">
         {/* Enhanced Stats Section */}
         {isAuthenticated && userStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
             <StatCard 
               title="Total Snippets" 
               value={userStats.totalSnippets}
@@ -348,10 +362,12 @@ const Home = () => {
         )}
 
         {/* Main Content with Better Organization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           {/* Recent Snippets - Wider Column */}
           <div className="lg:col-span-2">
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg 
+                         border border-indigo-500/30 p-4 sm:p-8 hover:shadow-indigo-500/10 
+                         transition-all duration-300">
               <SectionHeader 
                 title="Recent Snippets"
                 action={
@@ -424,8 +440,10 @@ const Home = () => {
           </div>
 
           {/* Quick Actions Panel */}
-          <div className="space-y-8">
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+          <div className="space-y-4 sm:space-y-8">
+            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg 
+                         border border-indigo-500/30 p-4 sm:p-8 hover:shadow-indigo-500/10 
+                         transition-all duration-300">
               <h3 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-6">Quick Actions</h3>
               <div className="space-y-4">
                 <motion.button
@@ -449,7 +467,9 @@ const Home = () => {
             </div>
 
             {/* Featured Directories Panel */}
-            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
+            <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg 
+                         border border-indigo-500/30 p-4 sm:p-8 hover:shadow-indigo-500/10 
+                         transition-all duration-300">
               <SectionHeader 
                 title="Featured Directories"
                 action={

@@ -9,7 +9,7 @@ import snippetRouter from './Routes/snippet.routes.js';
 import groupRouter from './Routes/groups.routes.js';
 import directoryRouter from './Routes/directory.routes.js';
 import activityRouter from './Routes/activity.routes.js'; // Import activity routes
-
+import aiRouter from './Routes/Ai.routes.js';
 dotenv.config();
 
 // Initialize express
@@ -54,7 +54,8 @@ app.use('/api/users', userRouter);
 app.use('/api/snippets', snippetRouter);
 app.use('/api/groups', groupRouter);
 app.use('/api/directories', directoryRouter);
-app.use('/api/activities', activityRouter); // Add activity routes
+app.use('/api/activities', activityRouter); 
+app.use('/api/ai', aiRouter);
 
 // Base route
 app.get('/', (req, res) => {
