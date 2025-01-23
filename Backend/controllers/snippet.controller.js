@@ -545,3 +545,35 @@ export const generateShareLink = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Get user snippets
+export const getUserSnippets = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
+        
+        const query = {
+            createdBy: req.user._id
+        };
+
+        const snippets = await Snippet.find(query)
+            .populate('createdBy', 'username email')
+            .populate('directory.current')
+            .sort(sort)
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit));
+
+        const total = await Snippet.countDocuments(query);
+
+        res.json({
+            snippets,
+            totalPages: Math.ceil(total / parseInt(limit)),
+            currentPage: parseInt(page),
+            total
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: "Failed to fetch user snippets",
+            message: error.message 
+        });
+    }
+};

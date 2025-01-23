@@ -109,68 +109,107 @@ const Home = () => {
 
   const navigate = useNavigate();
 
-  const fetchHomeData = async () => {
+  // Update the fetchHomeData function
+const fetchHomeData = async () => {
     try {
-      setLoading(true);
-      setError('');
+        setLoading(true);
+        setError('');
 
-      const timestamp = Date.now();
-      const headers = {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      };
-      const params = { _t: timestamp };
-
-      // Fetch all data in parallel
-      const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes, userDirectoriesRes] = await Promise.all([
-        axios.get('/api/snippets', {
-          params: { ...params, limit: 5, sort: '-createdAt' },
-          headers
-        }),
-        axios.get('/api/directories', {
-          params: { ...params, featured: true, limit: 4 },
-          headers
-        }),
-        axios.get('/api/groups', {
-          params: { ...params, created: true, limit: 3 },
-          headers
-        }),
-        isAuthenticated ? axios.get('/api/activities/user', {
-          params,
-          headers
-        }) : Promise.resolve({ data: { activities: [] } }),
-        isAuthenticated ? axios.get('/api/groups/joined', {
-          params: { ...params, limit: 3 },
-          headers
-        }) : Promise.resolve({ data: [] }),
-        isAuthenticated ? axios.get('/api/directories', {
-          params: { ...params, userId: user._id, limit: 3 },
-          headers
-        }) : Promise.resolve({ data: [] })
-      ]);
-
-      setRecentSnippets(snippetsRes.data.snippets || []);
-      setFeaturedDirectories(directoriesRes.data.directories || []);
-      setCreatedGroups(groupsRes.data.groups || []);
-      setJoinedGroups(joinedGroupsRes.data || []); // Handle the array response directly
-      setUserDirectories(userDirectoriesRes.data.directories || []);
-
-      if (isAuthenticated) {
-        const stats = {
-          totalSnippets: snippetsRes.data.total || 0,
-          totalGroups: groupsRes.data.total || 0,
-          joinedGroups: joinedGroupsRes.data.length || 0,
-          recentActivities: activitiesRes.data.activities || []
+        const timestamp = Date.now();
+        const headers = {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
         };
-        setUserStats(stats);
-      }
+        
+        // Only fetch data if user is authenticated
+        if (!isAuthenticated || !user?._id) {
+            setRecentSnippets([]);
+            setFeaturedDirectories([]);
+            setCreatedGroups([]);
+            setJoinedGroups([]);
+            setUserDirectories([]);
+            return;
+        }
+
+        const params = { 
+            _t: timestamp,
+            userId: user._id // Add user ID to filter results
+        };
+
+        // Update API calls to fetch only user-specific data
+        const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes, userDirectoriesRes] = await Promise.all([
+            // Get only user's snippets and shared snippets
+            axios.get('/api/snippets/user/snippets', {
+                params: { ...params, limit: 5, sort: '-createdAt' },
+                headers
+            }),
+            // Get user's directories
+            axios.get('/api/directories/user/directories', {
+                params: { ...params, limit: 4 },
+                headers
+            }),
+            // Get user's created groups
+            axios.get('/api/groups', {
+                params: { ...params, created: true, limit: 3 },
+                headers
+            }),
+            // Get user's activities
+            axios.get('/api/activities/user', {
+                params,
+                headers
+            }),
+            // Get user's joined groups
+            axios.get('/api/groups/joined', {
+                params: { limit: 3 },
+                headers
+            }),
+            // Get user's directories
+            axios.get('/api/directories', {
+                params: { userId: user._id, limit: 3 },
+                headers
+            })
+        ]);
+
+        // Filter and set data
+        setRecentSnippets(snippetsRes.data.snippets?.filter(snippet => 
+            snippet.createdBy._id === user._id || 
+            snippet.sharedWith?.some(share => share.entity === user._id)
+        ) || []);
+
+        setFeaturedDirectories(directoriesRes.data.directories?.filter(directory =>
+            directory.createdBy === user._id ||
+            directory.sharedWith?.some(share => share.entity === user._id)
+        ) || []);
+
+        setCreatedGroups(groupsRes.data.groups?.filter(group =>
+            group.createdBy === user._id
+        ) || []);
+
+        setJoinedGroups(joinedGroupsRes.data || []);
+        
+        setUserDirectories(userDirectoriesRes.data.directories?.filter(directory =>
+            directory.createdBy === user._id ||
+            directory.sharedWith?.some(share => share.entity === user._id)
+        ) || []);
+
+        // Update user stats if available
+        if (isAuthenticated) {
+            const userStats = {
+                totalSnippets: snippetsRes.data.total || 0,
+                totalGroups: groupsRes.data.total || 0,
+                joinedGroups: joinedGroupsRes.data.length || 0,
+                recentActivities: activitiesRes.data.activities || []
+            };
+            setUserStats(userStats);
+        }
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load data');
-      console.error('Error fetching home data:', err);
+        setError(err.response?.data?.message || 'Failed to load data');
+        console.error('Error fetching home data:', err);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   useEffect(() => {
     fetchHomeData();
@@ -359,10 +398,10 @@ const Home = () => {
 
       <div className="container mx-auto px-4 -mt-6 sm:-mt-10 relative z-10">
         {/* Enhanced Stats Section */}
-        {isAuthenticated && userStats && (
+        {isAuthenticated && userStats && user && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
             <StatCard 
-              title="Total Snippets" 
+              title="My Snippets" 
               value={userStats.totalSnippets}
               icon={<FiCode className="text-indigo-400" />}
               trend={12}
@@ -391,6 +430,7 @@ const Home = () => {
         {/* Main Content with Better Organization */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           {/* Recent Snippets - Wider Column */}
+          {isAuthenticated && recentSnippets.length > 0 && (
           <div className="lg:col-span-2">
             <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg 
                          border border-indigo-500/30 p-4 sm:p-8 hover:shadow-indigo-500/10 
@@ -465,6 +505,7 @@ const Home = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Quick Actions Panel */}
           <div className="space-y-4 sm:space-y-8">
@@ -494,6 +535,7 @@ const Home = () => {
             </div>
 
             {/* Featured Directories Panel */}
+            {isAuthenticated && featuredDirectories.length > 0 && (
             <div className="bg-[#0B1120]/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-lg 
                          border border-indigo-500/30 p-4 sm:p-8 hover:shadow-indigo-500/10 
                          transition-all duration-300">
@@ -538,6 +580,7 @@ const Home = () => {
                 ))}
               </div>
             </div>
+            )}
           </div>
         </div>
 

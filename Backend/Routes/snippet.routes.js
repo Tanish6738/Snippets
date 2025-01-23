@@ -16,7 +16,8 @@ import {
     bulkCreateSnippets,
     getSnippetStats,
     getSnippet,
-    generateShareLink
+    generateShareLink,
+    getUserSnippets
 } from "../controllers/snippet.controller.js";
 
 const snippetRouter = Router();
@@ -64,6 +65,13 @@ snippetRouter.get("/get/:id", getSnippet);
 
 // Get all snippets (with filters)
 snippetRouter.get("/", getAllSnippets);
+
+// Get all snippets created by the current user
+snippetRouter.get("/user/snippets", [
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('sort').optional().isString()
+], getUserSnippets);
 
 // Share snippet
 snippetRouter.post("/:id/share",

@@ -359,3 +359,41 @@ export const exportDirectory = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Get user directories
+export const getUserDirectories = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, sort = '-createdAt' } = req.query;
+        
+        const query = {
+            createdBy: req.user._id
+        };
+
+        const directories = await Directory.find(query)
+            .populate({
+                path: 'snippets',
+                select: 'title programmingLanguage updatedAt'
+            })
+            .populate({
+                path: 'children',
+                select: 'name path level'
+            })
+            .sort(sort)
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit));
+
+        const total = await Directory.countDocuments(query);
+
+        res.json({
+            directories,
+            totalPages: Math.ceil(total / parseInt(limit)),
+            currentPage: parseInt(page),
+            total
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: "Failed to fetch user directories",
+            message: error.message 
+        });
+    }
+};

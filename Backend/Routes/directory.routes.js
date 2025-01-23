@@ -1,5 +1,5 @@
 import express from 'express';
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 import {
@@ -12,7 +12,8 @@ import {
     getDirectory,
     moveDirectory,
     getDirectoryTree,
-    exportDirectory
+    exportDirectory,
+    getUserDirectories
 } from '../controllers/directory.controller.js';
 
 const directoryRouter = express.Router();
@@ -32,6 +33,13 @@ directoryRouter.post('/', [
 
 // Get all directories with optional query params
 directoryRouter.get('/', getAllDirectories);
+
+// Get all directories created by the current user
+directoryRouter.get("/user/directories", [
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 100 }),
+    query('sort').optional().isString()
+], getUserDirectories);
 
 // Single directory routes
 directoryRouter.get('/:id', getDirectoryById);
