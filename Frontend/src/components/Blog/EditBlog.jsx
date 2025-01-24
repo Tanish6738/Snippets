@@ -65,8 +65,9 @@ const EditBlog = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       className="max-w-4xl mx-auto"
     >
       <div className="mb-6 flex items-center justify-between">
@@ -76,15 +77,36 @@ const EditBlog = () => {
                    hover:bg-indigo-500/10 transition-all"
         >
           <FiArrowLeft />
-          Back to Blogs
+          Back to Blog
         </button>
         <h2 className="text-2xl font-bold text-indigo-300">Edit Blog</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <motion.form 
+        onSubmit={handleSubmit} 
+        className="space-y-6 bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 p-6"
+      >
         {/* Form fields identical to CreateBlog */}
-        // ...existing code from CreateBlog form fields...
-      </form>
+        {/* ...existing code from CreateBlog form fields... */}
+
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => navigate('/blog')}
+            className="px-4 py-2 rounded-xl border border-indigo-500/20 hover:bg-indigo-500/10"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 
+                     transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </motion.form>
     </motion.div>
   );
 };

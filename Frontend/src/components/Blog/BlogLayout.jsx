@@ -48,6 +48,8 @@ const STATIC_BLOGS = [
 // Main Layout Component
 const BlogLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#030712] text-white pt-16"> {/* Added pt-16 for navbar space */}
@@ -63,7 +65,11 @@ const BlogLayout = () => {
           transition={{ type: 'spring', damping: 20 }}
           className="fixed inset-y-0 left-0 w-[280px] z-40 md:hidden"
         >
-          <BlogSidebar onClose={() => setSidebarOpen(false)} />
+          <BlogSidebar 
+            onClose={() => setSidebarOpen(false)}
+            isCollapsed={isLeftSidebarCollapsed}
+            onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+          />
         </motion.div>
 
         {/* Backdrop */}
@@ -80,9 +86,20 @@ const BlogLayout = () => {
         <div className="container mx-auto px-4 py-4 md:py-8">
           <div className="flex gap-8">
             {/* Desktop Sidebar */}
-            <div className="hidden md:block w-[280px] sticky top-20">
-              <BlogSidebar />
-            </div>
+            <motion.div 
+              className="hidden md:block"
+              animate={{ 
+                width: isLeftSidebarCollapsed ? '60px' : '280px',
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="sticky top-20">
+                <BlogSidebar 
+                  isCollapsed={isLeftSidebarCollapsed}
+                  onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+                />
+              </div>
+            </motion.div>
 
             {/* Main Content */}
             <main className="flex-1 min-w-0 overflow-hidden">
@@ -95,9 +112,20 @@ const BlogLayout = () => {
             </main>
 
             {/* Right Sidebar */}
-            <div className="hidden lg:block w-[300px] sticky top-20">
-              <BlogRightSidebar />
-            </div>
+            <motion.div 
+              className="hidden lg:block"
+              animate={{ 
+                width: isRightSidebarCollapsed ? '60px' : '300px',
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="sticky top-20">
+                <BlogRightSidebar 
+                  isCollapsed={isRightSidebarCollapsed}
+                  onToggleCollapse={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+                />
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -131,50 +159,56 @@ const BlogHeader = ({ onMenuClick }) => {
 };
 
 // Sidebar Components
-const BlogSidebar = ({ onClose }) => {
+const BlogSidebar = ({ onClose, isCollapsed, onToggleCollapse }) => {
   return (
     <motion.div
       className="bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 
-                 shadow-lg shadow-indigo-500/10 h-full"
+                 shadow-lg shadow-indigo-500/10 h-full relative"
     >
-      <div className="p-4">
+      <button
+        onClick={onToggleCollapse}
+        className="absolute -right-3 top-4 p-1.5 rounded-full bg-indigo-500 text-white
+                   hover:bg-indigo-600 transition-colors z-10"
+      >
+        <FiChevronLeft className={`transform transition-transform duration-300 
+                                 ${isCollapsed ? 'rotate-180' : ''}`} />
+      </button>
+
+      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
+        {/* Existing sidebar content */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-indigo-300">Categories</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-all"
-          >
-            <FiChevronLeft className={`transform transition-transform duration-300`} />
-          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="md:hidden p-2 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-all"
+            >
+              <FiChevronLeft className="w-6 h-6" />
+            </button>
+          )}
         </div>
-
+        
         <nav className="space-y-2">
           {CATEGORIES.map((category, index) => (
             <SidebarLink 
               key={index}
               icon={category.icon}
-              label={category.label}
-              count={category.count}
+              label={!isCollapsed && category.label}
+              count={!isCollapsed && category.count}
             />
           ))}
         </nav>
+      </div>
 
-        {/* Popular Tags Section */}
-        <div className="mt-8">
-          <h3 className="text-md font-semibold text-indigo-300 mb-4">Popular Tags</h3>
-          <div className="flex flex-wrap gap-2">
-            {['React', 'JavaScript', 'Node.js', 'TypeScript', 'CSS'].map((tag) => (
-              <span
-                key={tag}
-                className="px-3 py-1 text-xs rounded-full bg-indigo-500/20 text-indigo-300 
-                         border border-indigo-500/30 cursor-pointer hover:bg-indigo-500/30 
-                         transition-all duration-300"
-              >
-                {tag}
-              </span>
-            ))}
+      {/* Collapsed View */}
+      <div className={`p-4 ${isCollapsed ? 'block' : 'hidden'}`}>
+        {CATEGORIES.map((category, index) => (
+          <div key={index} className="mb-4 flex justify-center">
+            <span className="text-indigo-300 hover:text-indigo-200 cursor-pointer">
+              {category.icon}
+            </span>
           </div>
-        </div>
+        ))}
       </div>
     </motion.div>
   );
@@ -241,153 +275,135 @@ const BlogList = () => {
     }));
   };
 
-  // Update BlogCard to include interactive elements
-  const BlogCard = ({ blog }) => {
-    const isLiked = blog.likes.includes('currentUser');
-    const isBookmarked = blog.bookmarks.includes('currentUser');
+  return (
+    <>
+      {/* Add a container for better content width control */}
+      <div className="max-w-[1400px] mx-auto">
+        {/* Blog header section */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Latest Articles</h1>
+          <p className="text-indigo-300">Discover the latest insights and tutorials</p>
+        </div>
 
-    return (
-      <motion.div
-        whileHover={{ scale: 1.01 }}
-        className="bg-[#0B1120]/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-indigo-500/20 
-                   overflow-hidden shadow-lg shadow-indigo-500/10 transition-all duration-300"
-      >
-        {blog.thumbnail?.url && (
+        {/* Blog grid with responsive columns */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="grid gap-6"
+          style={{
+            gridTemplateColumns: `repeat(auto-fill, minmax(300px, 1fr))`,
+            maxWidth: '100%',
+          }}
+        >
+          {blogs.map(blog => (
+            <BlogCard key={blog._id} blog={blog} />
+          ))}
+        </motion.div>
+      </div>
+
+      {/* ...existing modals... */}
+    </>
+  );
+};
+
+// Update BlogCard to be more responsive
+const BlogCard = ({ blog }) => {
+  const isLiked = blog.likes.includes('currentUser');
+  const isBookmarked = blog.bookmarks.includes('currentUser');
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, translateY: -4 }}
+      transition={{ duration: 0.2 }}
+      className="bg-[#0B1120]/50 backdrop-blur-xl rounded-xl border border-indigo-500/20 
+                 overflow-hidden shadow-lg shadow-indigo-500/10 transition-all duration-300
+                 hover:shadow-xl hover:shadow-indigo-500/20 hover:border-indigo-500/30
+                 flex flex-col h-full"
+    >
+      {blog.thumbnail?.url && (
+        <div className="relative h-48 overflow-hidden">
           <img
             src={blog.thumbnail.url}
             alt={blog.thumbnail.alt || blog.title}
-            className="w-full h-48 object-cover"
+            className="w-full h-full object-cover transition-transform duration-300
+                     hover:scale-105"
           />
-        )}
+        </div>
+      )}
 
-        <div className="p-6">
-          <Link to={`/blog/posts/${blog.slug}`}>
-            <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 
-                          bg-clip-text text-transparent hover:from-indigo-200 hover:to-white 
-                          transition-all mb-2">
-              {blog.title}
-            </h2>
-          </Link>
+      <div className="p-5 flex flex-col flex-grow">
+        <Link to={`/blog/posts/${blog.slug}`}>
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-white to-indigo-200 
+                        bg-clip-text text-transparent hover:from-indigo-200 hover:to-white 
+                        transition-all mb-3 line-clamp-2">
+            {blog.title}
+          </h2>
+        </Link>
 
-          <div className="flex items-center gap-4 text-sm text-indigo-400 mb-4">
-            <span className="flex items-center gap-2">
-              <FiUser size={14} />
-              {blog.author.username}
-            </span>
-            <span className="flex items-center gap-2">
-              <FiCalendar size={14} />
-              {new Date(blog.createdAt).toLocaleDateString()}
-            </span>
-            <span className="flex items-center gap-2">
-              <FiEye size={14} />
-              {blog.metadata.views}
-            </span>
-            <span className="flex items-center gap-2">
-              <FiMessageCircle size={14} />
-              {blog.comments.length}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-4">
-            {blog.tags.map(tag => (
-              <span
-                key={tag}
-                className="px-3 py-1 text-xs rounded-full bg-indigo-500/20 text-indigo-300 
-                         border border-indigo-500/30"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <p className="text-indigo-200/80 line-clamp-3 mb-4">
-            {blog.content.substring(0, 150)}...
-          </p>
-
-          <Link
-            to={`/blog/posts/${blog.slug}`}
-            className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 
-                     transition-colors"
-          >
-            Read More
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </Link>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-indigo-400 mb-3">
+          <span className="flex items-center gap-1">
+            <FiUser size={12} />
+            {blog.author.username}
+          </span>
+          <span className="flex items-center gap-1">
+            <FiCalendar size={12} />
+            {new Date(blog.createdAt).toLocaleDateString()}
+          </span>
         </div>
 
-        <div className="flex justify-between items-center p-4 border-t border-indigo-500/20">
-          <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {blog.tags.slice(0, 3).map(tag => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 text-xs rounded-full bg-indigo-500/10 text-indigo-300 
+                       border border-indigo-500/20"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <p className="text-sm text-indigo-200/70 line-clamp-3 mb-4 flex-grow">
+          {blog.content.substring(0, 120)}...
+        </p>
+
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-indigo-500/20">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleLike(blog._id)}
-              className={`flex items-center gap-2 ${
+              className={`flex items-center gap-1.5 text-sm ${
                 isLiked ? 'text-red-400' : 'text-indigo-400'
               } hover:text-red-300`}
             >
-              <FiHeart className={isLiked ? 'fill-current' : ''} />
+              <FiHeart className={isLiked ? 'fill-current' : ''} size={14} />
               <span>{blog.likes.length}</span>
             </button>
             
-            <button
-              onClick={() => setActiveModals({ ...activeModals, comment: blog._id })}
-              className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300"
-            >
-              <FiMessageCircle />
+            <span className="flex items-center gap-1.5 text-sm text-indigo-400">
+              <FiMessageCircle size={14} />
               <span>{blog.comments.length}</span>
-            </button>
+            </span>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleBookmark(blog._id)}
               className={`${
                 isBookmarked ? 'text-yellow-400' : 'text-indigo-400'
               } hover:text-yellow-300`}
             >
-              <FiBookmark className={isBookmarked ? 'fill-current' : ''} />
+              <FiBookmark className={isBookmarked ? 'fill-current' : ''} size={14} />
             </button>
             
             <button
-              onClick={() => setActiveModals({ ...activeModals, share: blog._id })}
               className="text-indigo-400 hover:text-indigo-300"
             >
-              <FiShare2 />
+              <FiShare2 size={14} />
             </button>
           </div>
         </div>
-      </motion.div>
-    );
-  };
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
-      >
-        {blogs.map(blog => (
-          <BlogCard key={blog._id} blog={blog} />
-        ))}
-      </motion.div>
-
-      {/* Modals */}
-      <ShareModal 
-        isOpen={!!activeModals.share}
-        onClose={() => setActiveModals({ ...activeModals, share: null })}
-        blog={blogs.find(b => b._id === activeModals.share)}
-      />
-    </>
+      </div>
+    </motion.div>
   );
 };
 
@@ -576,57 +592,95 @@ const BlogFooter = ({ blog, onLike, onComment, onShare, onBookmark }) => {
 };
 
 // Add new BlogRightSidebar component
-const BlogRightSidebar = () => {
+const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
   const { isAuthenticated } = useUser();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    // TODO: Implement search functionality
+  };
+
+  const handleCreate = () => {
+    navigate('/blog/create');
+  };
 
   return (
-    <div className="bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 
-                   shadow-lg shadow-indigo-500/10 p-4 space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Search blogs..."
-          className="w-full px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                   text-sm placeholder:text-indigo-400/60"
-        />
-        <FiSearch className="absolute right-3 top-3 text-indigo-400/50" />
-      </div>
+    <motion.div
+      className="bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 
+                 shadow-lg shadow-indigo-500/10 relative h-full"
+    >
+      <button
+        onClick={onToggleCollapse}
+        className="absolute -left-3 top-4 p-1.5 rounded-full bg-indigo-500 text-white
+                   hover:bg-indigo-600 transition-colors z-10"
+      >
+        <FiChevronLeft className={`transform transition-transform duration-300 
+                                 ${!isCollapsed ? 'rotate-180' : ''}`} />
+      </button>
 
-      {/* Write Blog Button */}
-      {isAuthenticated && (
-        <Link
-          to="/blog/create"
-          className="flex items-center justify-center gap-2 px-4 py-2 w-full rounded-xl text-white 
-                   bg-gradient-to-r from-indigo-500 to-violet-500 text-sm hover:from-indigo-600 
-                   hover:to-violet-600 transition-all"
-        >
-          <FiEdit className="w-4 h-4" />
-          Write Blog
-        </Link>
-      )}
+      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
+        {/* Search Section */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearch}
+              placeholder="Search blogs..."
+              className="w-full px-4 py-2 pl-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
+                     text-sm placeholder:text-indigo-400/60"
+            />
+            <FiSearch className="absolute left-3 top-2.5 text-indigo-400/50" size={16} />
+          </div>
+        </div>
 
-      {/* Recent Posts */}
-      <div className="mt-6">
-        <h3 className="text-md font-semibold text-indigo-300 mb-4">Recent Posts</h3>
-        <div className="space-y-3">
-          {STATIC_BLOGS.slice(0, 3).map(blog => (
-            <Link
-              key={blog._id}
-              to={`/blog/posts/${blog.slug}`}
-              className="block group"
-            >
-              <h4 className="text-sm text-indigo-300 group-hover:text-indigo-200 line-clamp-2">
-                {blog.title}
-              </h4>
-              <p className="text-xs text-indigo-400 mt-1">
-                {new Date(blog.createdAt).toLocaleDateString()}
-              </p>
-            </Link>
-          ))}
+        {/* Create Blog Button */}
+        {isAuthenticated && (
+          <button
+            onClick={handleCreate}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl 
+                     bg-indigo-500 hover:bg-indigo-600 transition-colors text-white"
+          >
+            <FiEdit size={16} />
+            Create New Blog
+          </button>
+        )}
+
+        {/* Quick Stats */}
+        <div className="mt-6 space-y-4">
+          <h3 className="text-sm font-medium text-indigo-300">Quick Stats</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+              <div className="text-2xl font-bold text-indigo-300">12</div>
+              <div className="text-xs text-indigo-400">Your Posts</div>
+            </div>
+            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+              <div className="text-2xl font-bold text-indigo-300">48</div>
+              <div className="text-xs text-indigo-400">Total Views</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Collapsed View */}
+      <div className={`p-4 ${isCollapsed ? 'block' : 'hidden'}`}>
+        <div className="flex flex-col items-center space-y-4">
+          <button className="p-2 rounded-lg hover:bg-indigo-500/10">
+            <FiSearch className="text-indigo-300 hover:text-indigo-200" size={20} />
+          </button>
+          {isAuthenticated && (
+            <button 
+              onClick={handleCreate}
+              className="p-2 rounded-lg hover:bg-indigo-500/10"
+            >
+              <FiEdit className="text-indigo-300 hover:text-indigo-200" size={20} />
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

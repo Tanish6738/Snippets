@@ -37,8 +37,9 @@ const CreateBlog = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       className="max-w-4xl mx-auto"
     >
       <div className="mb-6 flex items-center justify-between">
@@ -53,30 +54,39 @@ const CreateBlog = () => {
         <h2 className="text-2xl font-bold text-indigo-300">Create New Blog</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
+      <motion.form 
+        onSubmit={handleSubmit} 
+        className="space-y-6 bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 p-6"
+      >
+        {/* Title Input */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <label className="block text-sm font-medium text-indigo-300 mb-2">Title</label>
           <input
             type="text"
             name="title"
             value={formData.title}
             onChange={handleChange}
-            placeholder="Blog Title"
-            className="w-full px-4 py-2 rounded-xl bg-[#0B1120]/50 border border-indigo-500/20"
+            placeholder="Enter your blog title"
+            className="w-full px-4 py-2 rounded-xl bg-[#0B1120]/50 border border-indigo-500/20
+                     focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             required
           />
-        </div>
+        </motion.div>
 
-        <div>
+        {/* Content Input */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+          <label className="block text-sm font-medium text-indigo-300 mb-2">Content</label>
           <textarea
             name="content"
             value={formData.content}
             onChange={handleChange}
-            placeholder="Blog Content"
+            placeholder="Write your blog content"
             rows="10"
-            className="w-full px-4 py-2 rounded-xl bg-[#0B1120]/50 border border-indigo-500/20"
+            className="w-full px-4 py-2 rounded-xl bg-[#0B1120]/50 border border-indigo-500/20
+                     focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             required
           />
-        </div>
+        </motion.div>
 
         <div>
           <input
@@ -119,15 +129,24 @@ const CreateBlog = () => {
           <div className="text-red-500 text-sm">{error}</div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 
-                   transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Creating...' : 'Create Blog'}
-        </button>
-      </form>
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => navigate('/blog')}
+            className="px-4 py-2 rounded-xl border border-indigo-500/20 hover:bg-indigo-500/10"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 
+                     transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Creating...' : 'Create Blog'}
+          </button>
+        </div>
+      </motion.form>
     </motion.div>
   );
 };
