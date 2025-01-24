@@ -10,6 +10,8 @@ import groupRouter from './Routes/groups.routes.js';
 import directoryRouter from './Routes/directory.routes.js';
 import activityRouter from './Routes/activity.routes.js'; // Import activity routes
 import aiRouter from './Routes/Ai.routes.js';
+import blogRouter from './Routes/Blog/Blog.routes.js';
+import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 dotenv.config();
 
 // Initialize express
@@ -56,6 +58,8 @@ app.use('/api/groups', groupRouter);
 app.use('/api/directories', directoryRouter);
 app.use('/api/activities', activityRouter); 
 app.use('/api/ai', aiRouter);
+app.use('/api/blogs', blogRouter);
+app.use('/api/blog-interactions', blogInteractionRouter);
 
 // Base route
 app.get('/', (req, res) => {
@@ -76,7 +80,9 @@ app.get('/api/docs', (req, res) => {
             snippets: '/api/v1/snippets',
             groups: '/api/v1/groups',
             directories: '/api/v1/directories',
-            activities: '/api/v1/activities' // Add activities endpoint
+            activities: '/api/v1/activities', // Add activities endpoint
+            blogs: '/api/v1/blogs',
+            blogInteractions: '/api/v1/blog-interactions'
         },
         documentation: 'https://github.com/yourusername/snippets/wiki'
     });

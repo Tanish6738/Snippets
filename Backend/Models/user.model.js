@@ -23,7 +23,21 @@ const UserSchema = new mongoose.Schema({
     },
     lastLogin: { type: Date },
     favoriteSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
-    rootDirectory: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' }
+    rootDirectory: { type: mongoose.Schema.Types.ObjectId, ref: 'Directory' },
+    blogActivity: {
+        posts: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Blog'
+        }],
+        comments: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Comment'
+        }],
+        likes: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Like'
+        }]
+    }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {
@@ -130,6 +144,47 @@ UserSchema.methods.getUserDirectoryTree = async function() {
             }
         })
         .populate('snippets');
+};
+
+UserSchema.methods.addBlogPost = async function(blogId) {
+    if (!this.blogActivity.posts.includes(blogId)) {
+        this.blogActivity.posts.push(blogId);
+        await this.save();
+    }
+    return this;
+};
+
+UserSchema.methods.addBlogComment = async function(commentId) {
+    if (!this.blogActivity.comments.includes(commentId)) {
+        this.blogActivity.comments.push(commentId);
+        await this.save();
+    }
+    return this;
+};
+
+UserSchema.methods.toggleBlogLike = async function(blogId) {
+    const Like = mongoose.model('Like');
+    const existingLike = await Like.findOne({
+        user: this._id,
+        contentType: 'blog',
+        contentId: blogId
+    });
+
+    if (existingLike) {
+        await Like.deleteOne({ _id: existingLike._id });
+        this.blogActivity.likes = this.blogActivity.likes.filter(
+            like => !like.equals(existingLike._id)
+        );
+    } else {
+        const newLike = await Like.create({
+            user: this._id,
+            contentType: 'blog',
+            contentId: blogId
+        });
+        this.blogActivity.likes.push(newLike._id);
+    }
+    await this.save();
+    return this;
 };
 
 const User = mongoose.model("User", UserSchema);
