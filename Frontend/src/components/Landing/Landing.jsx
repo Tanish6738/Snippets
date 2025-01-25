@@ -1,6 +1,7 @@
 import React from 'react'
 import StarsCanvas from './StartBackground'
 import Hero from './Hero'
+import KeyFeatures from './KeyFeatures'
 
 const Landing = () => {
   return (
@@ -19,6 +20,7 @@ const Landing = () => {
 
       <div className="relative z-[20] w-full">
         <Hero />
+        <KeyFeatures />
       </div>
 
       <div className="absolute inset-0 z-[10]">
