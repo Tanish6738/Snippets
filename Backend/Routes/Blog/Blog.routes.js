@@ -9,7 +9,8 @@ import {
     updateBlog,
     deleteBlog,
     toggleFeatured,
-    getBlogStats
+    getBlogStats,
+    getCategoryStats
 } from '../../controllers/Blog/blog.controller.js';
 
 const blogRouter = Router();
@@ -35,10 +36,10 @@ const blogValidation = [
 
 // Public routes
 blogRouter.get('/', getAllBlogs);
+blogRouter.get('/category/stats', getCategoryStats); // Move this line here
 
-// Protected routes that need to come BEFORE parameter routes
 blogRouter.use(authMiddleware);
-blogRouter.get('/stats', getBlogStats); // Move this BEFORE parameter routes
+blogRouter.get('/stats', getBlogStats); 
 
 // Routes with parameters
 blogRouter.get('/:slug', getBlogBySlug);

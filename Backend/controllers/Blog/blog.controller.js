@@ -298,3 +298,131 @@ export const getBlogStats = async (req, res) => {
         });
     }
 };
+
+export const getCategoryStats = async (req, res) => {
+    try {
+        const [tagStats, defaultStats] = await Promise.all([
+            // Get tag-based categories
+            Blog.aggregate([
+                { $match: { status: 'published' } },
+                { $unwind: '$tags' },
+                {
+                    $group: {
+                        _id: '$tags',
+                        count: { $sum: 1 },
+                        views: { $sum: '$metadata.views' },
+                        likes: { $sum: { $size: '$likes' } }
+                    }
+                },
+                {
+                    $project: {
+                        category: '$_id',
+                        count: 1,
+                        views: 1,
+                        likes: 1,
+                        _id: 0
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]),
+
+            // Get default categories
+            Blog.aggregate([
+                { $match: { status: 'published' } },
+                {
+                    $facet: {
+                        recent: [
+                            { $sort: { createdAt: -1 } },
+                            { $limit: 1 },
+                            { 
+                                $group: { 
+                                    _id: null, 
+                                    count: { $sum: 1 },
+                                    views: { $sum: '$metadata.views' },
+                                    likes: { $sum: { $size: '$likes' } }
+                                }
+                            }
+                        ],
+                        trending: [
+                            { $sort: { 'metadata.views': -1 } },
+                            { $limit: 1 },
+                            { 
+                                $group: { 
+                                    _id: null, 
+                                    count: { $sum: 1 },
+                                    views: { $sum: '$metadata.views' },
+                                    likes: { $sum: { $size: '$likes' } }
+                                }
+                            }
+                        ],
+                        mostLiked: [
+                            { $sort: { 'likes': -1 } },
+                            { $limit: 1 },
+                            { 
+                                $group: { 
+                                    _id: null, 
+                                    count: { $sum: 1 },
+                                    views: { $sum: '$metadata.views' },
+                                    likes: { $sum: { $size: '$likes' } }
+                                }
+                            }
+                        ],
+                        featured: [
+                            { $match: { 'metadata.featured': true } },
+                            { 
+                                $group: { 
+                                    _id: null, 
+                                    count: { $sum: 1 },
+                                    views: { $sum: '$metadata.views' },
+                                    likes: { $sum: { $size: '$likes' } }
+                                }
+                            }
+                        ]
+                    }
+                }
+            ])
+        ]);
+
+        // Format default categories
+        const defaultCategories = [
+            {
+                category: 'Recent',
+                count: defaultStats[0].recent[0]?.count || 0,
+                views: defaultStats[0].recent[0]?.views || 0,
+                likes: defaultStats[0].recent[0]?.likes || 0,
+                isDefault: true
+            },
+            {
+                category: 'Trending',
+                count: defaultStats[0].trending[0]?.count || 0,
+                views: defaultStats[0].trending[0]?.views || 0,
+                likes: defaultStats[0].trending[0]?.likes || 0,
+                isDefault: true
+            },
+            {
+                category: 'Most Liked',
+                count: defaultStats[0].mostLiked[0]?.count || 0,
+                views: defaultStats[0].mostLiked[0]?.views || 0,
+                likes: defaultStats[0].mostLiked[0]?.likes || 0,
+                isDefault: true
+            },
+            {
+                category: 'Featured',
+                count: defaultStats[0].featured[0]?.count || 0,
+                views: defaultStats[0].featured[0]?.views || 0,
+                likes: defaultStats[0].featured[0]?.likes || 0,
+                isDefault: true
+            }
+        ];
+
+        res.json({
+            success: true,
+            categories: [...defaultCategories, ...tagStats]
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
