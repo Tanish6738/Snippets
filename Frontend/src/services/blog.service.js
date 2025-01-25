@@ -107,5 +107,15 @@ export const blogService = {
       logger.error('Failed to delete blog:', error);
       throw error;
     }
+  },
+
+  async getBlogStats() {
+    try {
+      const response = await axios.get('/api/blogs/stats');
+      return response.data.stats;
+    } catch (error) {
+      logger.error('Error fetching blog stats:', error);
+      throw error;
+    }
   }
 };

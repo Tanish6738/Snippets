@@ -33,13 +33,24 @@ export const createBlog = async (req, res) => {
 // Get All Blogs
 export const getAllBlogs = async (req, res) => {
     try {
-        const { page = 1, limit = 10, tag, status = 'published' } = req.query;
+        const { page = 1, limit = 10, tag, status = 'published', search } = req.query;
         const query = { status };
+        
+        if (search) {
+            // Simplified search logic
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { title: searchRegex },
+                { content: searchRegex },
+                { tags: searchRegex }
+            ];
+        }
         
         if (tag) {
             query.tags = tag;
         }
 
+        // Rest of the function remains the same
         const blogs = await Blog.find(query)
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
@@ -55,6 +66,7 @@ export const getAllBlogs = async (req, res) => {
             pages: Math.ceil(total / limit)
         });
     } catch (error) {
+        console.error('Search error:', error); // Add this for debugging
         res.status(500).json({
             success: false,
             error: error.message
@@ -226,6 +238,58 @@ export const toggleFeatured = async (req, res) => {
         res.json({
             success: true,
             blog
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+export const getBlogStats = async (req, res) => {
+    try {
+        const stats = await Blog.aggregate([
+            { $match: { author: req.user._id } },
+            {
+                $facet: {
+                    posts: [{ $count: "total" }],
+                    views: [
+                        { $group: { _id: null, total: { $sum: "$metadata.views" } } }
+                    ],
+                    likes: [
+                        { $lookup: {
+                            from: 'likes',
+                            localField: '_id',
+                            foreignField: 'contentId',
+                            as: 'likes'
+                        }},
+                        { $group: { _id: null, total: { $sum: { $size: "$likes" } } } }
+                    ],
+                    comments: [
+                        { $lookup: {
+                            from: 'comments',
+                            localField: '_id',
+                            foreignField: 'blog',
+                            as: 'comments'
+                        }},
+                        { $group: { _id: null, total: { $sum: { $size: "$comments" } } } }
+                    ]
+                }
+            }
+        ]);
+
+        // Format the response
+        const formattedStats = {
+            posts: stats[0].posts[0]?.total || 0,
+            views: stats[0].views[0]?.total || 0,
+            likes: stats[0].likes[0]?.total || 0,
+            comments: stats[0].comments[0]?.total || 0
+        };
+
+        res.json({
+            success: true,
+            stats: formattedStats
         });
     } catch (error) {
         res.status(500).json({

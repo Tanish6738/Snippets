@@ -71,6 +71,17 @@ const blogSchema = new mongoose.Schema({
 blogSchema.index({ author: 1, createdAt: -1 });
 blogSchema.index({ tags: 1 });
 
+// Remove or comment out the existing text index
+// blogSchema.index({
+//   title: 'text',
+//   content: 'text',
+//   tags: 'text',
+//   'author.username': 'text'
+// });
+
+// Add a single compound text index instead
+blogSchema.index({ title: 'text', content: 'text', tags: 'text' });
+
 // Pre-save middleware to generate slug
 blogSchema.pre('save', function(next) {
     if (this.isModified('title')) {

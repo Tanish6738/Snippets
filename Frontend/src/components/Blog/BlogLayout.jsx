@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, Outlet, useParams, Routes, Route, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiUser, FiCalendar, FiEye, FiMessageCircle, FiHeart, 
@@ -13,6 +13,7 @@ import { blogService } from '../../services/blog.service';
 import { logger } from '../../utils/logger';
 import { toast } from 'react-toastify';
 import { useQueryParams } from '../../hooks/useQueryParams';
+import { debounce } from 'lodash'; // You'll need to install lodash
 
 // Static category data
 const CATEGORIES = [
@@ -29,9 +30,56 @@ const BlogLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [allBlogs, setAllBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch all blogs once when component mounts
+  useEffect(() => {
+    const fetchAllBlogs = async () => {
+      try {
+        setLoading(true);
+        const response = await blogService.getBlogs({
+          limit: 100, // Adjust this value based on your needs
+          status: 'published'
+        });
+        setAllBlogs(response.blogs);
+      } catch (error) {
+        logger.error('Failed to fetch blogs:', error);
+        setError('Failed to load blogs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllBlogs();
+  }, []);
+
+  // Filter blogs based on search query
+  const filteredBlogs = useMemo(() => {
+    if (!globalSearchQuery) return allBlogs;
+
+    const searchTerms = globalSearchQuery.toLowerCase().split(' ');
+    return allBlogs.filter(blog => {
+      const searchableText = `
+        ${blog.title} 
+        ${blog.content} 
+        ${blog.tags.join(' ')} 
+        ${blog.author.username}
+      `.toLowerCase();
+
+      return searchTerms.every(term => searchableText.includes(term));
+    });
+  }, [allBlogs, globalSearchQuery]);
+
+  // Handle search
+  const handleGlobalSearch = useCallback((query) => {
+    setGlobalSearchQuery(query);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white pt-16"> {/* Added pt-16 for navbar space */}
+    <div className="min-h-screen bg-[#030712] text-white pt-16">
       <BlogHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="relative">
@@ -83,7 +131,13 @@ const BlogLayout = () => {
             {/* Main Content */}
             <main className="flex-1 min-w-0 overflow-hidden">
               <Routes>
-                <Route index element={<BlogList />} />
+                <Route index element={
+                  <BlogList 
+                    blogs={filteredBlogs}
+                    loading={loading}
+                    error={error}
+                  />
+                } />
                 <Route path="create" element={<CreateBlog />} />
                 <Route path="edit/:id" element={<EditBlog />} />
                 <Route path="posts/:slug" element={<ViewBlog />} />
@@ -102,6 +156,7 @@ const BlogLayout = () => {
                 <BlogRightSidebar 
                   isCollapsed={isRightSidebarCollapsed}
                   onToggleCollapse={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+                  onSearch={handleGlobalSearch}
                 />
               </div>
             </motion.div>
@@ -216,58 +271,20 @@ const SidebarLink = ({ icon, label, count }) => (
 );
 
 // Blog List Component
-const BlogList = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const BlogList = ({ blogs, loading, error }) => {
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const { queryParams, setQueryParams } = useQueryParams();
+  const ITEMS_PER_PAGE = 10;
 
-  const fetchBlogs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await blogService.getBlogs({
-        page,
-        limit: 10,
-        ...(queryParams.tag && { tag: queryParams.tag }), // Only include tag if it exists
-        status: 'published'
-      });
+  // Calculate pagination
+  const paginatedBlogs = useMemo(() => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    return blogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [blogs, page]);
 
-      setBlogs(prevBlogs => page === 1 ? response.blogs : [...prevBlogs, ...response.blogs]);
-      setHasMore(response.blogs.length === 10);
-      setError(null);
-    } catch (error) {
-      logger.error('Failed to fetch blogs:', error);
-      setError('Failed to load blogs. Please try again later.');
-      toast.error('Failed to load blogs');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, queryParams.tag]);
-
-  useEffect(() => {
-    fetchBlogs();
-  }, [fetchBlogs]);
+  const hasMore = blogs.length > page * ITEMS_PER_PAGE;
 
   const handleLike = async (blogId) => {
-    try {
-      const response = await blogService.toggleLike(blogId);
-      setBlogs(blogs.map(blog => {
-        if (blog._id === blogId) {
-          return {
-            ...blog,
-            likes: response.likes,
-            isLiked: response.isLiked
-          };
-        }
-        return blog;
-      }));
-      toast.success(response.message);
-    } catch (error) {
-      logger.error('Error toggling like:', error);
-      toast.error('Failed to update like status');
-    }
+    // ...existing like handling code...
   };
 
   if (error) {
@@ -275,7 +292,7 @@ const BlogList = () => {
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <p className="text-red-400 mb-4">{error}</p>
         <button
-          onClick={fetchBlogs}
+          onClick={() => window.location.reload()}
           className="px-4 py-2 bg-indigo-500 rounded-xl hover:bg-indigo-600"
         >
           Try Again
@@ -304,7 +321,7 @@ const BlogList = () => {
                 maxWidth: '100%',
               }}
             >
-              {blogs.map(blog => (
+              {paginatedBlogs.map(blog => (
                 <BlogCard 
                   key={blog._id} 
                   blog={blog}
@@ -313,13 +330,7 @@ const BlogList = () => {
               ))}
             </motion.div>
 
-            {loading && (
-              <div className="flex justify-center mt-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-              </div>
-            )}
-
-            {!loading && hasMore && (
+            {hasMore && (
               <button
                 onClick={() => setPage(p => p + 1)}
                 className="w-full mt-8 px-4 py-2 bg-indigo-500/20 rounded-xl hover:bg-indigo-500/30
@@ -660,7 +671,7 @@ const BlogFooter = ({ blog, onLike, onComment, onShare, onBookmark }) => {
 };
 
 // Add new BlogRightSidebar component
-const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
+const BlogRightSidebar = ({ isCollapsed, onToggleCollapse, onSearch }) => {
   const { isAuthenticated, user } = useUser();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -672,6 +683,19 @@ const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
+  const debouncedSearch = useCallback(
+    debounce((query) => {
+      onSearch(query);
+    }, 300),
+    [onSearch]
+  );
+
+  const handleSearch = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    debouncedSearch(query);
+  };
+
   useEffect(() => {
     const fetchStats = async () => {
       if (!isAuthenticated) {
@@ -680,8 +704,8 @@ const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
       }
 
       try {
-        const { data } = await axios.get('/api/blogs/stats');
-        setStats(data.stats);
+        const statsData = await blogService.getBlogStats();
+        setStats(statsData);
       } catch (error) {
         logger.error('Failed to fetch stats:', error);
         toast.error('Failed to load stats');
@@ -692,11 +716,6 @@ const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
 
     fetchStats();
   }, [isAuthenticated]);
-
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-    // TODO: Implement search functionality
-  };
 
   const handleCreate = () => {
     navigate('/blog/create');
