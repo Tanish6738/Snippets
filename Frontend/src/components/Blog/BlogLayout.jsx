@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, Outlet, useParams, Routes, Route, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiUser, FiCalendar, FiEye, FiMessageCircle, FiHeart, 
@@ -9,6 +9,10 @@ import axios from '../../Config/Axios';
 import ViewBlog from './ViewBlog';
 import CreateBlog from './CreateBlog';
 import EditBlog from './EditBlog';
+import { blogService } from '../../services/blog.service';
+import { logger } from '../../utils/logger';
+import { toast } from 'react-toastify';
+import { useQueryParams } from '../../hooks/useQueryParams';
 
 // Static category data
 const CATEGORIES = [
@@ -18,31 +22,6 @@ const CATEGORIES = [
   { icon: <FiTag />, label: "JavaScript", count: 8 },
   { icon: <FiTag />, label: "React", count: 6 },
   { icon: <FiTag />, label: "Node.js", count: 4 },
-];
-
-// Static blog data
-const STATIC_BLOGS = [
-  {
-    _id: '1',
-    title: 'Getting Started with React 18',
-    slug: 'getting-started-with-react-18',
-    content: 'React 18 introduces several exciting features including automatic batching, concurrent rendering...',
-    author: { _id: '1', username: 'John Doe' },
-    createdAt: '2024-01-15T10:00:00Z',
-    metadata: { views: 1234 },
-    comments: [
-      { _id: '1', text: 'Great article!', author: 'Alice' },
-      { _id: '2', text: 'Very helpful', author: 'Bob' }
-    ],
-    tags: ['React', 'JavaScript', 'Web Development'],
-    thumbnail: {
-      url: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee',
-      alt: 'React Code'
-    },
-    likes: ['user1', 'user2'],
-    bookmarks: ['user3']
-  },
-  // ... add more static blogs here ...
 ];
 
 // Main Layout Component
@@ -238,84 +217,173 @@ const SidebarLink = ({ icon, label, count }) => (
 
 // Blog List Component
 const BlogList = () => {
-  const [blogs, setBlogs] = useState(STATIC_BLOGS);
-  const [loading, setLoading] = useState(false);
-  const [activeModals, setActiveModals] = useState({
-    share: null,
-    comment: null
-  });
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { queryParams, setQueryParams } = useQueryParams();
 
-  const handleLike = (blogId) => {
-    setBlogs(blogs.map(blog => {
-      if (blog._id === blogId) {
-        const liked = blog.likes.includes('currentUser');
-        return {
-          ...blog,
-          likes: liked 
-            ? blog.likes.filter(id => id !== 'currentUser')
-            : [...blog.likes, 'currentUser']
-        };
-      }
-      return blog;
-    }));
+  const fetchBlogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await blogService.getBlogs({
+        page,
+        limit: 10,
+        ...(queryParams.tag && { tag: queryParams.tag }), // Only include tag if it exists
+        status: 'published'
+      });
+
+      setBlogs(prevBlogs => page === 1 ? response.blogs : [...prevBlogs, ...response.blogs]);
+      setHasMore(response.blogs.length === 10);
+      setError(null);
+    } catch (error) {
+      logger.error('Failed to fetch blogs:', error);
+      setError('Failed to load blogs. Please try again later.');
+      toast.error('Failed to load blogs');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, queryParams.tag]);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
+
+  const handleLike = async (blogId) => {
+    try {
+      const response = await blogService.toggleLike(blogId);
+      setBlogs(blogs.map(blog => {
+        if (blog._id === blogId) {
+          return {
+            ...blog,
+            likes: response.likes,
+            isLiked: response.isLiked
+          };
+        }
+        return blog;
+      }));
+      toast.success(response.message);
+    } catch (error) {
+      logger.error('Error toggling like:', error);
+      toast.error('Failed to update like status');
+    }
   };
 
-  const handleBookmark = (blogId) => {
-    setBlogs(blogs.map(blog => {
-      if (blog._id === blogId) {
-        const bookmarked = blog.bookmarks.includes('currentUser');
-        return {
-          ...blog,
-          bookmarks: bookmarked
-            ? blog.bookmarks.filter(id => id !== 'currentUser')
-            : [...blog.bookmarks, 'currentUser']
-        };
-      }
-      return blog;
-    }));
-  };
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button
+          onClick={fetchBlogs}
+          className="px-4 py-2 bg-indigo-500 rounded-xl hover:bg-indigo-600"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Add a container for better content width control */}
       <div className="max-w-[1400px] mx-auto">
-        {/* Blog header section */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Latest Articles</h1>
-          <p className="text-indigo-300">Discover the latest insights and tutorials</p>
-        </div>
+        {loading && blogs.length === 0 ? (
+          <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+            {[...Array(6)].map((_, i) => (
+              <BlogCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid gap-6"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(300px, 1fr))`,
+                maxWidth: '100%',
+              }}
+            >
+              {blogs.map(blog => (
+                <BlogCard 
+                  key={blog._id} 
+                  blog={blog}
+                  onLike={() => handleLike(blog._id)}
+                />
+              ))}
+            </motion.div>
 
-        {/* Blog grid with responsive columns */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid gap-6"
-          style={{
-            gridTemplateColumns: `repeat(auto-fill, minmax(300px, 1fr))`,
-            maxWidth: '100%',
-          }}
-        >
-          {blogs.map(blog => (
-            <BlogCard key={blog._id} blog={blog} />
-          ))}
-        </motion.div>
+            {loading && (
+              <div className="flex justify-center mt-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              </div>
+            )}
+
+            {!loading && hasMore && (
+              <button
+                onClick={() => setPage(p => p + 1)}
+                className="w-full mt-8 px-4 py-2 bg-indigo-500/20 rounded-xl hover:bg-indigo-500/30
+                         text-indigo-300 transition-colors"
+              >
+                Load More
+              </button>
+            )}
+          </>
+        )}
       </div>
-
-      {/* ...existing modals... */}
     </>
   );
 };
 
-// Update BlogCard to be more responsive
-const BlogCard = ({ blog }) => {
-  const isLiked = blog.likes.includes('currentUser');
-  const isBookmarked = blog.bookmarks.includes('currentUser');
+const BlogCardSkeleton = () => (
+  <div className="animate-pulse bg-[#0B1120]/50 rounded-xl border border-indigo-500/20 overflow-hidden">
+    <div className="h-48 bg-indigo-500/10"></div>
+    <div className="p-5">
+      <div className="h-6 bg-indigo-500/10 rounded w-3/4 mb-3"></div>
+      <div className="h-4 bg-indigo-500/10 rounded w-1/2 mb-3"></div>
+      <div className="h-4 bg-indigo-500/10 rounded w-full mb-3"></div>
+      <div className="h-4 bg-indigo-500/10 rounded w-3/4"></div>
+    </div>
+  </div>
+);
+
+const BlogCard = ({ blog, onLike }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useUser();
+  const [isBookmarked, setIsBookmarked] = useState(false); // Add bookmark state
+
+  const handleLikeClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      toast.info('Please log in to like posts');
+      return;
+    }
+    onLike();
+  };
+
+  const handleBookmark = (e) => {  // Add bookmark handler
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      toast.info('Please log in to bookmark posts');
+      return;
+    }
+    setIsBookmarked(!isBookmarked);
+    // TODO: Implement bookmark API call
+    toast.success(isBookmarked ? 'Removed from bookmarks' : 'Added to bookmarks');
+  };
+
+  const handleCardClick = () => {
+    navigate(`/blog/posts/${blog.slug}`);
+  };
 
   return (
     <motion.div
       whileHover={{ scale: 1.02, translateY: -4 }}
       transition={{ duration: 0.2 }}
-      className="bg-[#0B1120]/50 backdrop-blur-xl rounded-xl border border-indigo-500/20 
+      onClick={handleCardClick}
+      className="cursor-pointer bg-[#0B1120]/50 backdrop-blur-xl rounded-xl border border-indigo-500/20 
                  overflow-hidden shadow-lg shadow-indigo-500/10 transition-all duration-300
                  hover:shadow-xl hover:shadow-indigo-500/20 hover:border-indigo-500/30
                  flex flex-col h-full"
@@ -370,12 +438,12 @@ const BlogCard = ({ blog }) => {
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-indigo-500/20">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleLike(blog._id)}
+              onClick={handleLikeClick}
               className={`flex items-center gap-1.5 text-sm ${
-                isLiked ? 'text-red-400' : 'text-indigo-400'
+                blog.isLiked ? 'text-red-400' : 'text-indigo-400'
               } hover:text-red-300`}
             >
-              <FiHeart className={isLiked ? 'fill-current' : ''} size={14} />
+              <FiHeart className={blog.isLiked ? 'fill-current' : ''} size={14} />
               <span>{blog.likes.length}</span>
             </button>
             
@@ -387,7 +455,7 @@ const BlogCard = ({ blog }) => {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleBookmark(blog._id)}
+              onClick={handleBookmark}
               className={`${
                 isBookmarked ? 'text-yellow-400' : 'text-indigo-400'
               } hover:text-yellow-300`}
@@ -593,9 +661,37 @@ const BlogFooter = ({ blog, onLike, onComment, onShare, onBookmark }) => {
 
 // Add new BlogRightSidebar component
 const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, user } = useUser();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [stats, setStats] = useState({
+    posts: 0,
+    views: 0,
+    likes: 0,
+    comments: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!isAuthenticated) {
+        setStatsLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await axios.get('/api/blogs/stats');
+        setStats(data.stats);
+      } catch (error) {
+        logger.error('Failed to fetch stats:', error);
+        toast.error('Failed to load stats');
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
@@ -648,20 +744,64 @@ const BlogRightSidebar = ({ isCollapsed, onToggleCollapse }) => {
           </button>
         )}
 
-        {/* Quick Stats */}
-        <div className="mt-6 space-y-4">
-          <h3 className="text-sm font-medium text-indigo-300">Quick Stats</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-              <div className="text-2xl font-bold text-indigo-300">12</div>
-              <div className="text-xs text-indigo-400">Your Posts</div>
-            </div>
-            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-              <div className="text-2xl font-bold text-indigo-300">48</div>
-              <div className="text-xs text-indigo-400">Total Views</div>
+        {/* Updated Quick Stats */}
+        {isAuthenticated && (
+          <div className="mt-6 space-y-4">
+            <h3 className="text-sm font-medium text-indigo-300">Quick Stats</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {statsLoading ? (
+                <>
+                  <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 animate-pulse">
+                    <div className="h-6 bg-indigo-500/20 rounded w-12 mb-2"></div>
+                    <div className="h-4 bg-indigo-500/20 rounded w-16"></div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 animate-pulse">
+                    <div className="h-6 bg-indigo-500/20 rounded w-12 mb-2"></div>
+                    <div className="h-4 bg-indigo-500/20 rounded w-16"></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
+                  >
+                    <div className="text-2xl font-bold text-indigo-300">{stats.posts}</div>
+                    <div className="text-xs text-indigo-400">Your Posts</div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
+                  >
+                    <div className="text-2xl font-bold text-indigo-300">{stats.views}</div>
+                    <div className="text-xs text-indigo-400">Total Views</div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
+                  >
+                    <div className="text-2xl font-bold text-indigo-300">{stats.likes}</div>
+                    <div className="text-xs text-indigo-400">Total Likes</div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
+                  >
+                    <div className="text-2xl font-bold text-indigo-300">{stats.comments}</div>
+                    <div className="text-xs text-indigo-400">Comments</div>
+                  </motion.div>
+                </>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Collapsed View */}

@@ -98,6 +98,38 @@ export const getBlogBySlug = async (req, res) => {
     }
 };
 
+// Get Blog by ID
+export const getBlogById = async (req, res) => {
+    try {
+        const blog = await Blog.findById(req.params.id)
+            .populate('author', 'username avatar bio')
+            .populate({
+                path: 'comments',
+                populate: {
+                    path: 'author',
+                    select: 'username avatar'
+                }
+            });
+
+        if (!blog) {
+            return res.status(404).json({
+                success: false,
+                error: 'Blog not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            blog
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
 // Update Blog
 export const updateBlog = async (req, res) => {
     try {

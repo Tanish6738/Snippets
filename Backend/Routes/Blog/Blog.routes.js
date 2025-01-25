@@ -5,6 +5,7 @@ import {
     createBlog,
     getAllBlogs,
     getBlogBySlug,
+    getBlogById,
     updateBlog,
     deleteBlog,
     toggleFeatured
@@ -34,6 +35,7 @@ const blogValidation = [
 // Public routes
 blogRouter.get('/', getAllBlogs);
 blogRouter.get('/:slug', getBlogBySlug);
+blogRouter.get('/id/:id', getBlogById); // Add this before protected routes
 
 // Protected routes
 blogRouter.use(authMiddleware);
