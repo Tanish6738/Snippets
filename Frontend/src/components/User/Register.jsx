@@ -1,15 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser } from '../../Context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
+import StarsCanvas from '../Landing/StartBackground';
 
 const Register = () => {
-  const backgroundImages = [
-    "url(/src/assets/Anime_Pastel_Dream_Create_a_hyperrealistic_night_sky_landscape_0.jpg)",
-    "url(/src/assets/Absolute_Reality_v16_Create_a_hyperrealistic_night_sky_landsca_0.jpg)",
-    "url(/src/assets/Anime_Pastel_Dream_Create_a_hyperrealistic_night_sky_landscape_1.jpg)",
-    ];
-
-  const [backgroundImage, setBackgroundImage] = useState('');
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -19,11 +13,6 @@ const Register = () => {
   const [error, setError] = useState('');
   const { register } = useUser();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const randomImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
-    setBackgroundImage(randomImage);
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,19 +29,19 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
-         style={{
-           backgroundImage: backgroundImage,
-           backgroundSize: 'cover',
-           backgroundPosition: 'center',
-           backgroundRepeat: 'no-repeat'
-         }}>
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-900/30 to-black/50"></div>
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#030014]">
+      <video 
+        autoPlay
+        loop
+        muted
+        className='rotate-180 absolute top-[-260px] left-0 z-[1] w-full h-full object-cover'
+      >
+        <source src='/blackhole.webm' type='video/webm' />
+      </video>
+      <StarsCanvas />
 
       {/* Main Content */}
-      <div className="max-w-md w-full m-4 relative z-10">
+      <div className="max-w-md w-full m-4 relative z-[30]">
         <div className="backdrop-blur-xl backdrop-filter bg-white/10 rounded-2xl shadow-lg border border-white/20 p-8 hover:shadow-indigo-500/10 transition-all duration-300">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">

@@ -118,7 +118,7 @@ const Navbar = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <Link to="/" className="flex items-center space-x-2">
+              <Link to={isAuthenticated ? "/" : "/"} className="flex items-center space-x-2">
                 <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                   CodeArc
                 </span>
@@ -129,6 +129,20 @@ const Navbar = () => {
             <div className="hidden md:flex items-center space-x-1">
               {isAuthenticated ? (
                 <>
+                  {/* Add Home button here */}
+                  <Link
+                    to="/home"
+                    className={`px-4 py-2 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-500/10 
+                               transition-all duration-200 flex items-center gap-1 text-sm font-medium ${
+                               isActivePath('/') ? 'text-white bg-indigo-500/10' : ''
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Home
+                  </Link>
+                  
                   {Object.entries(navCategories).map(([key, { label, items }]) => (
                     <NavDropdown
                       key={key}
@@ -198,6 +212,19 @@ const Navbar = () => {
                 transition={{ delay: 0.1 }}
                 className="space-y-2"
               >
+                {/* Add Home button to mobile menu */}
+                <Link
+                  to="/"
+                  className="px-4 py-2 rounded-xl text-indigo-300 hover:text-white 
+                           hover:bg-indigo-500/10 transition-all text-sm font-medium flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Home
+                </Link>
+
                 {Object.entries(navCategories).map(([key, { items }]) => (
                   <div key={key} className="space-y-1">
                     {items.map(item => (

@@ -11,6 +11,7 @@ import DirectoryLayout from '../components/Layouts/DirectoryLayout';
 import PublicData from '../components/Layouts/PublicData';
 import SharedSnippet from '../components/SharedSnippet/SharedSnippet';
 import BlogLayout from '../components/Blog/BlogLayout';
+import Landing from '../components/Landing/Landing';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
@@ -20,8 +21,9 @@ const AppRoutes = () => {
       <Navbar />
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/home" />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/home" />} />
         <Route path="/public" element={<PublicData />}>
           <Route path="snippets" element={<SnippetLayout />} />
           <Route path="directories" element={<DirectoryLayout />} />
@@ -32,7 +34,7 @@ const AppRoutes = () => {
         <Route path="/blog/*" element={<BlogLayout />} />
 
         {/* Protected Routes */}
-        <Route path="/" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
+        <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
         <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/directories" element={isAuthenticated ? <DirectoryLayout /> : <Navigate to="/login" />} />
         <Route path="/snippets" element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />} />

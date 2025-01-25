@@ -19,6 +19,7 @@ import {
   FiUpload,
   FiZap
 } from 'react-icons/fi';
+import StarsCanvas from '../Landing/StartBackground';
 
 // Import Modals
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
@@ -345,15 +346,18 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] overflow-hidden">
-      {/* Cosmic Hero Section */}
-      <div className="relative bg-gradient-to-b from-[#0F172A] to-[#030712]">
+    <div className="min-h-screen bg-[#030014] overflow-hidden">
+      {/* Add StarsCanvas only */}
+      <StarsCanvas />
+
+      {/* Cosmic Hero Section - update transparency */}
+      <div className="relative bg-gradient-to-b from-[#0F172A]/80 to-[#030712]/80 z-[25]">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full 
-                         mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse"></div>
+                         mix-blend-multiply filter blur-[128px] opacity-10 animate-pulse"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full 
-                         mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse delay-300"></div>
+                         mix-blend-multiply filter blur-[128px] opacity-10 animate-pulse delay-300"></div>
         </div>
 
         <div className="container mx-auto px-6 py-20 relative z-10">
@@ -373,8 +377,8 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 -mt-20 relative z-20">
+      {/* Main Content - update background transparency */}
+      <div className="container mx-auto px-4 -mt-20 relative z-[25] bg-[#030014]/50">
         {/* Stats Overview */}
         {isAuthenticated && userStats && (
           <motion.div
@@ -663,10 +667,10 @@ const QuickActionButton = ({ icon, title, description, onClick, gradientFrom, gr
 const DirectoryCard = ({ directory, onView }) => (
   <motion.div
     whileHover={{ scale: 1.02 }}
-    className="group border border-indigo-500/20 rounded-xl p-4
-               hover:border-indigo-400/40 transition-all duration-300 
-               bg-gradient-to-r from-indigo-600/5 to-purple-600/5 
-               hover:from-indigo-600/10 hover:to-purple-600/10"
+    className="group border border-indigo-500/10 rounded-xl p-4
+               hover:border-indigo-400/30 transition-all duration-300 
+               bg-gradient-to-r from-indigo-600/3 to-purple-600/3 
+               hover:from-indigo-600/5 hover:to-purple-600/5"
   >
     <div className="flex justify-between items-start">
       <div>
@@ -692,9 +696,9 @@ const DirectoryCard = ({ directory, onView }) => (
 
 // Update the GlassCard component to ensure proper stacking context
 const GlassCard = ({ title, icon, children, action }) => (
-  <div className="backdrop-blur-xl bg-white/[0.02] rounded-3xl border border-white/[0.05]
+  <div className="backdrop-blur-xl bg-white/[0.01] rounded-3xl border border-white/[0.03]
                   p-8 shadow-2xl shadow-black/[0.1] relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5"></div>
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3"></div>
     <div className="flex justify-between items-center mb-6 relative z-10">
       <h2 className="text-xl font-bold flex items-center gap-3 text-white">
         <span className="text-blue-400">{icon}</span>
@@ -711,8 +715,8 @@ const GlassCard = ({ title, icon, children, action }) => (
 const SnippetCard = ({ snippet, onView, onEdit, onShare }) => (
   <motion.div
     whileHover={{ scale: 1.01 }}
-    className="group p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]
-               hover:border-white/[0.1] transition-all duration-300 mb-4"
+    className="group p-4 rounded-2xl bg-white/[0.01] border border-white/[0.03]
+               hover:border-white/[0.08] transition-all duration-300 mb-4"
   >
     <div className="flex justify-between items-start">
       <div>
@@ -777,10 +781,10 @@ const Button = ({ children, onClick, className = '' }) => (
 const GroupCard = ({ group, onView, isJoined = false }) => (
   <motion.div
     whileHover={{ scale: 1.02 }}
-    className="group border border-indigo-500/20 rounded-xl p-4 mb-4
-               hover:border-indigo-400/40 transition-all duration-300 
-               bg-gradient-to-r from-indigo-600/5 to-purple-600/5 
-               hover:from-indigo-600/10 hover:to-purple-600/10"
+    className="group border border-indigo-500/10 rounded-xl p-4 mb-4
+               hover:border-indigo-400/30 transition-all duration-300 
+               bg-gradient-to-r from-indigo-600/3 to-purple-600/3 
+               hover:from-indigo-600/5 hover:to-purple-600/5"
   >
     <div className="flex justify-between items-start">
       <div>
