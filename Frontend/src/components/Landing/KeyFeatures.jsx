@@ -1,8 +1,44 @@
-import React from 'react';
+import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Sphere, Octahedron, Environment } from "@react-three/drei";
+import { MeshStandardMaterial } from 'three';
+
+// Add error boundary component (same as in Hero.jsx)
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
+    }
+
+    return this.props.children; 
+  }
+}
 
 const KeyFeatures = () => {
+  const [load3D, setLoad3D] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoad3D(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const features = [
     {
       title: "Organize Code Snippets",
@@ -65,15 +101,29 @@ const KeyFeatures = () => {
     return `polygon(${points.join(', ')})`;
   };
 
+  const DecorativeCanvas = () => (
+    <ErrorBoundary>
+      <Canvas
+        camera={{ position: [0, 0, 10], far: 10000 }}
+        className="fixed inset-0 w-full h-full pointer-events-none"
+        style={{ position: 'fixed', zIndex: 0 }}
+      >
+        <Suspense fallback={null}>
+          <FeatureDecorative />
+        </Suspense>
+      </Canvas>
+    </ErrorBoundary>
+  );
+
   return (
-    <section className="py-20 px-4 relative overflow-hidden">
+    <section className="py-20 px-4 relative overflow-hidden" style={{ zIndex: 1 }}>
       {/* Background Elements */}
       <div className="absolute inset-0 z-0">
         <div className="absolute -top-48 -left-48 w-96 h-96 bg-indigo-500/20 rounded-full filter blur-3xl animate-blob" />
         <div className="absolute -bottom-48 -right-48 w-96 h-96 bg-violet-500/20 rounded-full filter blur-3xl animate-blob animation-delay-2000" />
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="relative z-10 backdrop-blur-sm bg-[#030014]/50">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -218,7 +268,75 @@ const KeyFeatures = () => {
           </Link>
         </motion.div>
       </div>
+
+      {load3D && <DecorativeCanvas />}
     </section>
+  );
+};
+
+const FeatureDecorative = () => {
+  const ref = useRef();
+
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y += 0.001;
+      // Add floating motion
+      ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.5;
+    }
+  });
+
+  return (
+    <group ref={ref} scale={3} position={[0, 0, -8]}>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 5, 5]} intensity={1} />
+      <pointLight position={[-5, -5, -5]} intensity={1} />
+
+      {/* Left side spheres */}
+      <group position={[-4, 0, 0]}>
+        <mesh position={[0, 2, 0]}>
+          <sphereGeometry args={[0.8, 32, 32]} />
+          <primitive object={new MeshStandardMaterial({
+            color: "#4f46e5",
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 1
+          })} />
+        </mesh>
+        <mesh position={[0, -2, 0]}>
+          <sphereGeometry args={[0.6, 32, 32]} />
+          <primitive object={new MeshStandardMaterial({
+            color: "#6366f1",
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 1
+          })} />
+        </mesh>
+      </group>
+
+      {/* Right side octahedrons */}
+      <group position={[4, 0, 0]}>
+        <mesh position={[0, 2, 0]} rotation={[0, Math.PI / 4, Math.PI / 4]}>
+          <octahedronGeometry args={[0.8]} />
+          <primitive object={new MeshStandardMaterial({
+            color: "#7c3aed",
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 1
+          })} />
+        </mesh>
+        <mesh position={[0, -2, 0]} rotation={[0, -Math.PI / 4, -Math.PI / 4]}>
+          <octahedronGeometry args={[0.6]} />
+          <primitive object={new MeshStandardMaterial({
+            color: "#8b5cf6",
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 1
+          })} />
+        </mesh>
+      </group>
+      
+      <Environment preset="city" />
+    </group>
   );
 };
 

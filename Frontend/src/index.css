@@ -46,6 +46,16 @@
   50% { transform: translateY(-10px); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes placeholder-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
 .animate-blob {
   animation: blob 7s infinite;
 }
@@ -65,6 +75,14 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.placeholder-animate {
+  animation: placeholder-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .animation-delay-2000 {
