@@ -1,0 +1,8 @@
+@font-face {
+  font-family: 'ComicFont';
+  src: url('/fonts/comic.woff2') format('woff2');
+}
+
+.font-comic {
+  font-family: 'ComicFont', sans-serif;
+}
