@@ -3,136 +3,15 @@ import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
 import PropTypes from 'prop-types';
 import { 
   Box, Sphere, TorusKnot, Float, MeshDistortMaterial, 
-  OrbitControls, Environment, Cloud, Stars, SpotLight, Ring,
+  OrbitControls, Environment, Cloud, Stars, SpotLight,
   useProgress, shaderMaterial, Loader,
   Instances, Instance, Preload, AdaptiveDpr, AdaptiveEvents,
-  PerformanceMonitor, Effects, useGLTF
+  PerformanceMonitor // Add this import
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring, animated } from '@react-spring/three';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
-// Add these new geometric elements
-const ComplexSpaceElement = ({ position, scale = 1 }) => {
-  const meshRef = useRef();
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    meshRef.current.rotation.x = Math.sin(time * 0.2) * 0.5;
-    meshRef.current.rotation.z = Math.cos(time * 0.3) * 0.3;
-  });
-
-  return (
-    <Float speed={2} rotationIntensity={1.5} floatIntensity={1.5}>
-      <mesh ref={meshRef} position={position} scale={scale}>
-        <torusKnotGeometry args={[1, 0.3, 128, 16]} />
-        <MeshDistortMaterial
-          color="#4400ff"
-          roughness={0.1}
-          metalness={0.8}
-          distort={0.4}
-          speed={2}
-        />
-      </mesh>
-    </Float>
-  );
-};
-
-// Optimized particle system using instancing
-const OptimizedGalaxyParticles = ({ count = 5000, radius = 10 }) => {
-  const particles = useMemo(() => 
-    [...Array(count)].map((_, i) => {
-      const angle = (i / count) * Math.PI * 20;
-      const spiralRadius = (i / count) * radius;
-      const heightVar = Math.sin(angle * 3) * (radius * 0.05);
-      return {
-        angle,
-        spiralRadius,
-        heightVar,
-        size: Math.random() * 0.03 + 0.02,
-        speed: Math.random() * 0.2 + 0.1,
-        color: new THREE.Color().setHSL((i / count) * 0.3 + 0.5, 0.8, 0.5)
-      };
-    }), [count, radius]);
-
-  const instancedMesh = useRef();
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  useFrame((state) => {
-    const time = state.clock.elapsedTime;
-    particles.forEach((particle, i) => {
-      const { angle, spiralRadius, heightVar, speed } = particle;
-      const currentAngle = angle + time * speed;
-      
-      dummy.position.x = Math.cos(currentAngle) * spiralRadius;
-      dummy.position.z = Math.sin(currentAngle) * spiralRadius;
-      dummy.position.y = heightVar + Math.sin(time * 0.5 + angle) * 0.2;
-      dummy.rotation.z = time * 0.1;
-      dummy.updateMatrix();
-      
-      instancedMesh.current.setMatrixAt(i, dummy.matrix);
-    });
-    instancedMesh.current.instanceMatrix.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh
-      ref={instancedMesh}
-      args={[null, null, count]}
-      frustumCulled={true}
-    >
-      <dodecahedronGeometry args={[0.02, 1]} />
-      <meshPhysicalMaterial
-        color="#ffffff"
-        emissive="#4400ff"
-        emissiveIntensity={0.5}
-        metalness={0.8}
-        roughness={0.2}
-        transparent
-        opacity={0.9}
-        toneMapped={false}
-      />
-    </instancedMesh>
-  );
-};
-
-OptimizedGalaxyParticles.propTypes = {
-  count: PropTypes.number,
-  radius: PropTypes.number
-};
-
-// Create and extend the shader material
-const NebulaShaderMaterial = shaderMaterial(
-  {
-    time: 0,
-    color: new THREE.Color(0.1, 0.3, 0.6),
-  },
-  // vertex shader
-  `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  // fragment shader
-  `
-    uniform float time;
-    uniform vec3 color;
-    varying vec2 vUv;
-    
-    void main() {
-      vec2 uv = vUv;
-      float pattern = fract(sin(uv.x * 10.0 + time) * cos(uv.y * 10.0 - time) * 5.0);
-      gl_FragColor = vec4(color * pattern, pattern * 0.5);
-    }
-  `
-);
-
-// Extend Three.js with our custom shader
-extend({ NebulaShaderMaterial });
-
-// Add this after the existing NebulaShaderMaterial
+// Material definitions
 const NebulaMaterial = shaderMaterial(
   {
     time: 0,
@@ -140,7 +19,7 @@ const NebulaMaterial = shaderMaterial(
     color2: new THREE.Color('#4400ff'),
     fogDensity: 0.3,
   },
-  // vertex shader
+  // Vertex shader
   `
     varying vec2 vUv;
     varying vec3 vPosition;
@@ -150,7 +29,7 @@ const NebulaMaterial = shaderMaterial(
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
-  // fragment shader
+  // Fragment shader - simplified version
   `
     uniform float time;
     uniform vec3 color1;
@@ -160,24 +39,7 @@ const NebulaMaterial = shaderMaterial(
     varying vec3 vPosition;
 
     float noise(vec3 p) {
-      vec3 i = floor(p);
-      vec3 f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      
-      float n = i.x + i.y * 157.0 + 113.0 * i.z;
-      return mix(
-        mix(
-          mix(fract(sin(n + 0.0) * 43758.5453123), fract(sin(n + 1.0) * 43758.5453123), f.x),
-          mix(fract(sin(n + 157.0) * 43758.5453123), fract(sin(n + 158.0) * 43758.5453123), f.x),
-          f.y
-        ),
-        mix(
-          mix(fract(sin(n + 113.0) * 43758.5453123), fract(sin(n + 114.0) * 43758.5453123), f.x),
-          mix(fract(sin(n + 270.0) * 43758.5453123), fract(sin(n + 271.0) * 43758.5453123), f.x),
-          f.y
-        ),
-        f.z
-      );
+      return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453123);
     }
 
     void main() {
@@ -196,488 +58,351 @@ const NebulaMaterial = shaderMaterial(
 
 extend({ NebulaMaterial });
 
-// Add this new component for the central light
-const CentralLight = () => {
-  const lightRef = useRef();
-  const sphereRef = useRef();
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    lightRef.current.intensity = 2 + Math.sin(time) * 0.5;
-    sphereRef.current.scale.setScalar(1 + Math.sin(time * 0.5) * 0.2);
-  });
-
-  return (
-    <group>
-      <pointLight
-        ref={lightRef}
-        position={[0, 0, 0]}
-        intensity={2}
-        distance={100}
-        color="#ffffff"
-        decay={2}
-      >
-        <mesh ref={sphereRef}>
-          <sphereGeometry args={[2, 32, 32]} />
-          <meshBasicMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.8}
-            toneMapped={false}
-          />
-        </mesh>
-      </pointLight>
-    </group>
-  );
-};
-
-// Update NebulaMist for combined colors
-const NebulaMist = () => {
-  const materialRefs = useRef([]);
-  
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
+// Add custom shader material for galaxy particles
+const GalaxyParticleMaterial = shaderMaterial(
+  {
+    time: 0,
+    size: 1.0, // Increased default size
+  },
+  // Vertex shader - Fixed attribute redefinition
+  `
+    uniform float time;
+    uniform float size;
+    varying vec3 vColor;
+    varying float vDistance;
     
-    materialRefs.current.forEach(material => {
-      if (material) {
-        material.time = time;
-        // Combine red and blue with pulsing effect
-        const pulseIntensity = Math.sin(time * 0.5) * 0.5 + 0.5;
-        material.color1 = new THREE.Color(0.8, 0.2, pulseIntensity);
-        material.color2 = new THREE.Color(pulseIntensity * 0.5, 0.2, 0.8);
-      }
-    });
-  });
-
-  return (
-    <group>
-      {[...Array(3)].map((_, i) => (
-        <mesh 
-          key={i} 
-          scale={[200, 200, 200]} 
-          position={[
-            Math.sin(i * Math.PI * 0.67) * 30,
-            i * 20 - 20,
-            Math.cos(i * Math.PI * 0.67) * 30
-          ]}
-        >
-          <sphereGeometry args={[1, 64, 64]} />
-          <nebulaMaterial
-            ref={ref => {
-              if (ref) materialRefs.current[i] = ref;
-            }}
-            transparent
-            depthWrite={false}
-            fogDensity={0.7}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-const FogLayers = () => {
-  return (
-    <group>
-      {[...Array(5)].map((_, i) => (
-        <Cloud
-          key={i}
-          opacity={0.4}
-          speed={0.3}
-          width={200}
-          depth={50}
-          segments={40}
-          position={[0, -10 + i * 15, 0]}
-          color={i % 2 === 0 ? "#ff4444" : "#4444ff"}
-        />
-      ))}
-      {/* Additional white central fog */}
-      <Cloud
-        opacity={0.5}
-        speed={0.2}
-        width={150}
-        depth={60}
-        segments={50}
-        position={[0, 0, 0]}
-        color="#ffffff"
-      />
-    </group>
-  );
-};
-
-const MilkyWayCore = () => {
-  const coreRef = useRef();
-  
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    coreRef.current.rotation.z = time * 0.05;
-  });
-
-  return (
-    <group ref={coreRef}>
-      <mesh>
-        <sphereGeometry args={[3, 32, 32]} />
-        <meshPhysicalMaterial
-          color="#fff"  // Golden yellow core
-          emissive="#fff"  // Dark orange glow
-          emissiveIntensity={2.5}
-          toneMapped={false}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-    </group>
-  );
-};
-
-// Add this new component after MilkyWayCore component
-
-const SatelliteGalaxy = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
-  const groupRef = useRef();
-  
-  const particles = useMemo(() => {
-    const temp = [];
-    const numParticles = 500;
-    
-    for(let i = 0; i < numParticles; i++) {
-      const t = i / numParticles;
-      const angle = 8 * Math.PI * t;
-      const radius = (1 + t * 3) * scale;
-      const x = radius * Math.cos(angle);
-      const z = radius * Math.sin(angle);
-      const y = (Math.random() - 0.5) * scale;
-      const size = Math.random() * 0.05 + 0.02;
+    void main() {
+      vColor = color; // Using built-in color attribute
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mvPosition;
       
-      // Indigo color palette
-      const color = new THREE.Color().setHSL(
-        0.75, // Indigo hue
-        0.8,
-        0.4 + Math.random() * 0.3
+      float distanceFactor = pow(abs(position.x * position.y * position.z) * 0.0015, 0.5);
+      vDistance = distanceFactor;
+      
+      // Increased base size multiplication factor from 300 to 1500
+      gl_PointSize = size * (1500.0 / -mvPosition.z) * (1.0 + distanceFactor);
+    }
+  `,
+  // Fragment shader
+  `
+    varying vec3 vColor;
+    varying float vDistance;
+    
+    void main() {
+      float distanceToCenter = length(gl_PointCoord - 0.5);
+      float strength = 0.05 / distanceToCenter - 0.1;
+      strength = smoothstep(0.0, 1.0, strength);
+      
+      vec3 finalColor = mix(vColor, vec3(1.0), vDistance * 0.5);
+      gl_FragColor = vec4(finalColor, strength);
+    }
+  `
+);
+
+extend({ GalaxyParticleMaterial });
+
+// Move satelliteGalaxies definition here, before the GalaxyParticles component
+const createSatelliteGalaxies = (count) => [
+  { x: 4, y: 1, z: 4, radius: 1, particles: count * 0.15, speed: 0.001, orbitRadius: 6 },
+  { x: -4, y: -1, z: 3, radius: 0.8, particles: count * 0.12, speed: 0.002, orbitRadius: 5 },
+  { x: 3, y: -2, z: -3, radius: 0.6, particles: count * 0.1, speed: 0.0015, orbitRadius: 4 },
+  { x: -3, y: 2, z: -4, radius: 0.7, particles: count * 0.11, speed: 0.0012, orbitRadius: 7 },
+  { x: 5, y: -1, z: -2, radius: 0.5, particles: count * 0.09, speed: 0.0018, orbitRadius: 5.5 },
+  { x: -2, y: 3, z: 5, radius: 0.9, particles: count * 0.13, speed: 0.0008, orbitRadius: 6.5 },
+  { x: 4, y: -2, z: -5, radius: 0.4, particles: count * 0.08, speed: 0.0022, orbitRadius: 4.5 },
+  { x: -5, y: 1, z: 2, radius: 0.75, particles: count * 0.14, speed: 0.0014, orbitRadius: 5.8 }
+];
+
+// Core components
+const GalaxyParticles = ({ count = 180000, particleSize = 0.02 }) => {
+  const points = useRef();
+  const materialRef = useRef();
+  const satelliteGalaxies = useMemo(() => createSatelliteGalaxies(count), [count]);
+  const galaxyRefs = useRef(satelliteGalaxies.map(() => ({ angle: Math.random() * Math.PI * 2 })));
+
+  const particlesPosition = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    
+    const mainGalaxyRadius = 3;
+    let particleIndex = 0;
+
+    // Main galaxy (70% of particles)
+    const mainGalaxyParticles = Math.floor(count * 0.7);
+    for (let i = 0; i < mainGalaxyParticles; i++) {
+      const i3 = particleIndex * 3;
+      
+      const theta = Math.random() * Math.PI * 2;
+      // More particles toward center using exponential distribution
+      const r = Math.pow(Math.random(), 1.5) * mainGalaxyRadius;
+      
+      positions[i3] = r * Math.cos(theta);
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.2;
+      positions[i3 + 2] = r * Math.sin(theta);
+      
+      const distanceFromCenter = Math.sqrt(
+        positions[i3] * positions[i3] + 
+        positions[i3 + 2] * positions[i3 + 2]
       );
       
-      temp.push({ position: [x, y, z], size, color });
+      const color = new THREE.Color();
+      color.setHSL(
+        0.6,
+        0.9,
+        Math.max(0.5, 1 - (distanceFromCenter / mainGalaxyRadius))
+      );
+      
+      colors[i3] = color.r;
+      colors[i3 + 1] = color.g;
+      colors[i3 + 2] = color.b;
+      
+      particleIndex++;
     }
-    return temp;
-  }, [scale]);
+
+    // Satellite galaxies
+    satelliteGalaxies.forEach(galaxy => {
+      const galaxyParticles = Math.floor(galaxy.particles);
+      for (let i = 0; i < galaxyParticles; i++) {
+        const i3 = particleIndex * 3;
+        
+        const theta = Math.random() * Math.PI * 2;
+        const r = Math.pow(Math.random(), 2) * galaxy.radius;
+        
+        positions[i3] = galaxy.x + r * Math.cos(theta);
+        positions[i3 + 1] = galaxy.y + (Math.random() - 0.5) * 0.1;
+        positions[i3 + 2] = galaxy.z + r * Math.sin(theta);
+        
+        const distanceFromGalaxyCenter = Math.sqrt(
+          Math.pow(positions[i3] - galaxy.x, 2) + 
+          Math.pow(positions[i3 + 2] - galaxy.z, 2)
+        );
+        
+        const color = new THREE.Color();
+        color.setHSL(
+          0.55, // Slightly different hue for satellite galaxies
+          0.9,
+          Math.max(0.6, 1 - (distanceFromGalaxyCenter / galaxy.radius))
+        );
+        
+        colors[i3] = color.r;
+        colors[i3 + 1] = color.g;
+        colors[i3 + 2] = color.b;
+        
+        particleIndex++;
+      }
+    });
+    
+    return { positions, colors };
+  }, [count, satelliteGalaxies]);
 
   useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    groupRef.current.rotation.y = time * 0.1;
+    if (points.current) {
+      points.current.rotation.y += 0.0003;
+      
+      // Update satellite galaxy positions
+      const positions = points.current.geometry.attributes.position.array;
+      let particleIndex = Math.floor(count * 0.7) * 3; // Start after main galaxy
+
+      satelliteGalaxies.forEach((galaxy, index) => {
+        // Update galaxy angle
+        const ref = galaxyRefs.current[index];
+        ref.angle += galaxy.speed;
+
+        // Calculate new position
+        const newX = Math.cos(ref.angle) * galaxy.orbitRadius;
+        const newZ = Math.sin(ref.angle) * galaxy.orbitRadius;
+        
+        // Update particles for this galaxy
+        const particleCount = Math.floor(galaxy.particles);
+        for (let i = 0; i < particleCount; i++) {
+          const baseIndex = particleIndex + (i * 3);
+          const localX = positions[baseIndex] - galaxy.x;
+          const localZ = positions[baseIndex + 2] - galaxy.z;
+
+          positions[baseIndex] = newX + localX;
+          positions[baseIndex + 2] = newZ + localZ;
+        }
+
+        // Update galaxy position for next frame
+        galaxy.x = newX;
+        galaxy.z = newZ;
+      });
+
+      points.current.geometry.attributes.position.needsUpdate = true;
+      if (materialRef.current) {
+        materialRef.current.time = state.clock.getElapsedTime();
+      }
+    }
   });
 
   return (
-    <group position={position} rotation={rotation} ref={groupRef}>
-      {particles.map((particle, i) => (
-        <mesh key={i} position={particle.position}>
-          <sphereGeometry args={[particle.size, 6, 6]} />
-          <meshBasicMaterial
-            color={particle.color}
-            transparent
-            opacity={0.8}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-const SpiralArm = ({ rotation = 0, armIndex }) => {
-  const particles = useMemo(() => {
-    const temp = [];
-    const numParticles = 2000;
-    
-    for(let i = 0; i < numParticles; i++) {
-      const t = i / numParticles;
-      const angle = 4 * Math.PI * t + rotation;
-      const radius = 3 + t * 20;
-      const x = radius * Math.cos(angle);
-      const z = radius * Math.sin(angle);
-      const y = (Math.random() - 0.5) * 2;
-      const size = Math.random() * 0.1 + 0.05;
-      const color = new THREE.Color();
-      
-      // More realistic Milky Way colors
-      if (armIndex % 2 === 0) {
-        // Mixture of young blue stars and yellow-white stars
-        color.setHSL(
-          0.6 + Math.random() * 0.1,  // Blue to cyan
-          0.7,
-          0.7 + Math.random() * 0.3
-        );
-      } else {
-        // Mixture of older yellow and orange stars
-        color.setHSL(
-          0.12 + Math.random() * 0.05,  // Yellow-orange range
-          0.8,
-          0.7 + Math.random() * 0.2
-        );
-      }
-      
-      temp.push({ position: [x, y, z], size, color });
-    }
-    return temp;
-  }, [rotation, armIndex]);
-
-  return (
-    <group rotation={[Math.PI / 2, 0, 0]}>
-      {particles.map((particle, i) => (
-        <mesh key={i} position={particle.position}>
-          <sphereGeometry args={[particle.size, 8, 8]} />
-          <meshBasicMaterial
-            color={particle.color}
-            transparent
-            opacity={0.8}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-const DustLanes = () => {
-  return (
-    <group rotation={[Math.PI / 2, 0, 0]}>
-      {[...Array(3)].map((_, i) => (
-        <Cloud
-          key={i}
-          opacity={0.3}
-          speed={0.1}
-          width={25}
-          depth={5}
-          segments={20}
-          position={[0, 0, i * 2]}
-          color="#2a1a0f"  // Darker reddish-brown for dust lanes
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={count}
+          array={particlesPosition.positions}
+          itemSize={3}
         />
-      ))}
-    </group>
-  );
-};
-
-// Add this new component for volumetric lights
-const VolumetricLights = () => {
-  return (
-    <group>
-      <SpotLight
-        distance={40}
-        angle={0.5}
-        attenuation={5}
-        anglePower={5}
-        intensity={2}
-        color="#ff3366"
-        position={[20, 20, 20]}
-      />
-      <SpotLight
-        distance={40}
-        angle={0.5}
-        attenuation={5}
-        anglePower={5}
-        intensity={2}
-        color="#3366ff"
-        position={[-20, -20, -20]}
-      />
-      <SpotLight
-        distance={40}
-        angle={0.5}
-        attenuation={5}
-        anglePower={5}
-        intensity={2}
-        color="#ffffff"
-        position={[0, 30, 0]}
-      />
-    </group>
-  );
-};
-
-// Add this new component for progressive loading
-const ProgressiveLoad = ({ children, priority = 0 }) => {
-  const [shouldRender, setShouldRender] = useState(false);
-  const { gl } = useThree();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShouldRender(true);
-    }, priority * 100);
-    return () => clearTimeout(timer);
-  }, [priority]);
-
-  return shouldRender ? children : null;
-};
-
-// Optimized SpaceScene with performance monitoring
-const SpaceScene = () => {
-  const [dpr, setDpr] = useState(1.5);
-  const [hasError, setHasError] = useState(false);
-  const [quality, setQuality] = useState('low');
-  const sceneRef = useRef();
-
-  // Performance monitoring callback
-  const handlePerformance = useCallback((factor) => {
-    if (factor < 0.7) {
-      setQuality('low');
-      setDpr(1);
-    } else if (factor < 0.9) {
-      setQuality('medium');
-      setDpr(1.5);
-    } else {
-      setQuality('high');
-      setDpr(2);
-    }
-  }, []);
-
-  const particleCount = useMemo(() => ({
-    low: 2000,
-    medium: 3000,
-    high: 5000
-  }), []);
-
-  useEffect(() => {
-    // Reset error state when component mounts
-    setHasError(false);
-  }, []);
-
-  if (hasError) {
-    return (
-      <group>
-        <LoaderScene />
-      </group>
-    );
-  }
-
-  return (
-    <ErrorBoundary onError={() => setHasError(true)}>
-      <PerformanceMonitor onIncline={handlePerformance} onDecline={handlePerformance}>
-        <AdaptiveDpr pixelated />
-        <AdaptiveEvents />
-        
-        <Suspense fallback={<LoaderScene />}>
-          {/* High priority elements */}
-          <ProgressiveLoad priority={0}>
-            <Stars
-              radius={100}
-              depth={50}
-              count={particleCount[quality]}
-              factor={4}
-              saturation={0.5}
-              fade
-              speed={0.5}
-            />
-            <CentralLight />
-            <ambientLight intensity={0.3} />
-          </ProgressiveLoad>
-
-          {/* Medium priority elements */}
-          <ProgressiveLoad priority={1}>
-            <VolumetricLights />
-            <NebulaMist />
-            <MilkyWayCore />
-          </ProgressiveLoad>
-
-          {/* Lower priority elements */}
-          <ProgressiveLoad priority={2}>
-            <FogLayers />
-            <OptimizedGalaxyParticles 
-              count={particleCount[quality]} 
-              radius={15} 
-            />
-          </ProgressiveLoad>
-
-          {/* Lowest priority elements */}
-          <ProgressiveLoad priority={3}>
-            <Instances limit={quality === 'low' ? 4000 : 8000}>
-              <sphereGeometry args={[0.05, 6, 6]} />
-              <meshBasicMaterial toneMapped={false} />
-              {[...Array(4)].map((_, i) => (
-                <SpiralArm key={i} rotation={(Math.PI * 2 * i) / 4} armIndex={i} />
-              ))}
-            </Instances>
-            <DustLanes />
-          </ProgressiveLoad>
-        </Suspense>
-
-        <EffectComposer>
-          <Bloom
-            intensity={quality === 'low' ? 1 : 2}
-            luminanceThreshold={0.2}
-            luminanceSmoothing={0.9}
-            height={quality === 'low' ? 200 : 300}
-          />
-        </EffectComposer>
-
-        <OrbitControls
-          enableZoom={true}
-          enablePan={true}
-          enableRotate={true}
-          minDistance={20}
-          maxDistance={150}
-          autoRotate
-          autoRotateSpeed={0.5}
-          makeDefault
-          dampingFactor={0.05}
-          rotateSpeed={0.5}
+        <bufferAttribute
+          attach="attributes-color"
+          count={count}
+          array={particlesPosition.colors}
+          itemSize={3}
         />
-
-        <Preload all />
-      </PerformanceMonitor>
-    </ErrorBoundary>
+      </bufferGeometry>
+      <galaxyParticleMaterial 
+        ref={materialRef}
+        transparent
+        depthWrite={false}
+        size={particleSize}
+        vertexColors
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
   );
 };
 
-// Create a simple 3D loading indicator
-const LoaderScene = () => {
+GalaxyParticles.propTypes = {
+  count: PropTypes.number,
+  particleSize: PropTypes.number
+};
+
+// Add NebulaMist component definition
+const NebulaMist = () => {
   const meshRef = useRef();
+  const materialRef = useRef();
   
   useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    meshRef.current.rotation.x = time * 0.5;
-    meshRef.current.rotation.y = time * 0.7;
+    if (materialRef.current) {
+      materialRef.current.time = state.clock.getElapsedTime();
+    }
   });
 
   return (
-    <group>
-      <mesh ref={meshRef}>
-        <icosahedronGeometry args={[1, 1]} />
-        <MeshDistortMaterial
-          color="#4400ff"
-          wireframe
-          distort={0.4}
-          speed={2}
-        />
-      </mesh>
-      <pointLight position={[10, 10, 10]} />
-      <ambientLight intensity={0.5} />
-    </group>
+    <mesh ref={meshRef} scale={[50, 50, 50]}>
+      <sphereGeometry args={[1, 32, 32]} />
+      <nebulaMaterial ref={materialRef} transparent={true} depthWrite={false} />
+    </mesh>
   );
 };
 
-// HTML Loader for outside Canvas
-export const HTMLLoader = () => {
+// Add custom blinking stars component
+const BlinkingStars = () => {
+  const starsRef = useRef();
+  const particlesCount = 5000;
+  
+  const positions = useMemo(() => {
+    const pos = new Float32Array(particlesCount * 3);
+    const delays = new Float32Array(particlesCount);
+    
+    for (let i = 0; i < particlesCount; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 100;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 100;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 100;
+      delays[i] = Math.random() * Math.PI * 2; // Random phase offset
+    }
+    
+    return { positions: pos, delays };
+  }, []);
+
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+    const material = starsRef.current.material;
+    
+    // Create blinking effect by modulating size
+    for (let i = 0; i < particlesCount; i++) {
+      const i3 = i * 3;
+      const delay = positions.delays[i];
+      const blink = Math.sin(time * 2 + delay) * 0.5 + 0.5;
+      starsRef.current.geometry.attributes.size.array[i] = blink * 0.05 + 0.02;
+    }
+    starsRef.current.geometry.attributes.size.needsUpdate = true;
+  });
+
+  return (
+    <points ref={starsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={particlesCount}
+          array={positions.positions}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-size"
+          count={particlesCount}
+          array={new Float32Array(particlesCount).fill(0.03)}
+          itemSize={1}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.03}
+        color="#ffffff"
+        sizeAttenuation={true}
+        transparent={true}
+        opacity={0.8}
+        depthWrite={false}
+      />
+    </points>
+  );
+};
+
+// Main Scene Component
+const SpaceScene = () => {
+  const [quality, setQuality] = useState('medium');
+
+  const handlePerformance = useCallback((factor) => {
+    setQuality(factor < 0.7 ? 'low' : factor < 0.9 ? 'medium' : 'high');
+  }, []);
+
+  return (
+    <>
+      <color attach="background" args={['#000000']} />
+      <PerformanceMonitor onIncline={handlePerformance} onDecline={handlePerformance}>
+        <Suspense fallback={null}>
+          <BlinkingStars />
+          <GalaxyParticles count={180000} particleSize={0.02} />
+          <NebulaMist />
+          <OrbitControls
+            enableZoom={true}
+            enablePan={false}
+            enableRotate={true}
+            minDistance={5}
+            maxDistance={20}
+            makeDefault
+          />
+        </Suspense>
+      </PerformanceMonitor>
+    </>
+  );
+};
+
+// Create HTMLLoader component (without export)
+const HTMLLoader = () => {
   const { progress } = useProgress();
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-      <div className="px-6 py-3 rounded-lg backdrop-blur-sm">
-        <div className="text-2xl font-bold text-white">
-          {progress.toFixed(0)}%
-        </div>
+    <div className="w-full h-full flex items-center justify-center bg-black">
+      <div className="text-white text-xl">
+        Loading Scene... {progress.toFixed(0)}%
       </div>
     </div>
   );
 };
 
-const Page3Scene = () => {
-  const containerRef = useRef(null);
+// Update FullscreenButton component
+const FullscreenButton = ({ containerRef }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isSceneReady, setIsSceneReady] = useState(false);
 
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
-    } else {
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement && containerRef.current) {
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else if (document.fullscreenElement) {
       document.exitFullscreen();
     }
-  }, []);
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -689,65 +414,69 @@ const Page3Scene = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <button
+      onClick={toggleFullScreen}
+      className="absolute top-4 right-4 z-10 bg-black/50 text-white px-4 py-2 rounded-lg backdrop-blur-sm hover:bg-black/70 transition-colors"
+      aria-label="Toggle fullscreen"
+    >
+      {isFullscreen ? (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4H4v5h5zm0 0v6m0-6h6m-6 6H4v5h5v-5zm0 0h6m6-6V4h-5v5h5zm0 0v6m0-6h-6m6 6h-5v5h5v-5zm0 0h-6" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0-4l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+        </svg>
+      )}
+    </button>
+  );
+};
+
+FullscreenButton.propTypes = {
+  containerRef: PropTypes.object.isRequired
+};
+
+// Update Page3Scene component
+const Page3Scene = () => {
+  const containerRef = useRef(null);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+      <FullscreenButton containerRef={containerRef} />
       <Canvas
-        camera={{ position: [0, 30, 30], fov: 60 }}
-        dpr={window.devicePixelRatio}
-        performance={{ min: 0.5 }}
+        camera={{ position: [8, 5, 8], fov: 60 }}
+        dpr={[1, 2]}
         gl={{
           antialias: false,
-          alpha: false,
           powerPreference: "high-performance",
+          alpha: false,
           stencil: false,
-          depth: true,
-          precision: "lowp"
-        }}
-        style={{ 
-          opacity: isSceneReady ? 1 : 0,
-          transition: 'opacity 0.5s ease-in-out'
-        }}
-        onCreated={({ gl, scene }) => {
-          // Initialize renderer settings
-          gl.setPixelRatio(window.devicePixelRatio);
-          gl.setClearColor(0x000000, 1);
-          
-          // Mark scene as ready after a short delay
-          requestAnimationFrame(() => {
-            setIsSceneReady(true);
-          });
+          depth: true
         }}
       >
-        <Suspense fallback={<LoaderScene />}>
-          <SpaceScene />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<HTMLLoader />}>
+            <SpaceScene />
+          </Suspense>
+        </ErrorBoundary>
       </Canvas>
-
-      <button
-        onClick={toggleFullscreen}
-        className="absolute top-4 right-4 px-4 py-2 bg-indigo-600/50 hover:bg-indigo-600/70 text-white rounded-lg backdrop-blur-sm transition-colors"
-      >
-        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-      </button>
     </div>
   );
 };
 
-// Add ErrorBoundary component
+// Error Boundary Component
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
     console.error('Scene Error:', error, errorInfo);
-    if (this.props.onError) {
-      this.props.onError(error);
-    }
   }
 
   render() {
@@ -758,4 +487,8 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default Page3Scene;
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired
+};
+
+export { Page3Scene as default, HTMLLoader };
