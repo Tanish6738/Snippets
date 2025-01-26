@@ -8,6 +8,7 @@ import Hero from './Hero'
 const KeyFeatures = lazy(() => import('./KeyFeatures'))
 const Page3 = lazy(() => import('./Page3'))
 const StarsCanvas = lazy(() => import('./StartBackground'))
+const Page4 = lazy(() => import('./Page4'))
 
 // Enhanced loading placeholder
 const LoadingPlaceholder = () => (
@@ -31,7 +32,8 @@ const Landing = () => {
   const [componentsLoaded, setComponentsLoaded] = useState({
     stars: false,
     keyFeatures: false,
-    page3: false
+    page3: false,
+    page4: false
   });
 
   // Handle component loading
@@ -42,7 +44,8 @@ const Landing = () => {
         await Promise.all([
           import('./StartBackground').then(() => setComponentsLoaded(prev => ({ ...prev, stars: true }))),
           import('./KeyFeatures').then(() => setComponentsLoaded(prev => ({ ...prev, keyFeatures: true }))),
-          import('./Page3').then(() => setComponentsLoaded(prev => ({ ...prev, page3: true })))
+          import('./Page3').then(() => setComponentsLoaded(prev => ({ ...prev, page3: true }))),
+          import('./Page4').then(() => setComponentsLoaded(prev => ({ ...prev, page4: true })))
         ]);
         
         // Add a small delay to ensure smooth transition
@@ -82,6 +85,18 @@ const Landing = () => {
           <KeyFeatures />
         </div>
         <Page3 />
+        <Suspense fallback={
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen flex items-center justify-center"
+          >
+            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+          </motion.div>
+        }>
+          <Page4 />
+        </Suspense>
       </div>
     </div>
   );
