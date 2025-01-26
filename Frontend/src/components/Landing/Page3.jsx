@@ -1,20 +1,35 @@
-import React, { Suspense, useRef } from 'react';
+import React, { Suspense, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useInView } from 'react-intersection-observer';
 import { 
   Box, Sphere, Torus, TorusKnot, Float, MeshDistortMaterial, 
-  OrbitControls, Environment, Cloud, Stars, SpotLight, Ring 
+  OrbitControls, Environment, Cloud, Stars, SpotLight, Ring,
+  useProgress,
 } from '@react-three/drei';
 import { Link } from 'react-router-dom';
 
-// Enhanced 3D Models with complex geometries
+// Loading indicator for 3D scenes
+const LoadingIndicator = () => {
+  const { progress } = useProgress();
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-[#030014]/50 backdrop-blur-sm">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-indigo-200">{progress.toFixed(0)}% loaded</p>
+      </div>
+    </div>
+  );
+};
+
+// Optimized 3D Models
 const CollaborationModel = () => {
   const meshRef = useRef();
   const secondaryRef = useRef();
   const orbitRef = useRef();
 
   useFrame((state) => {
+    if (!meshRef.current || !secondaryRef.current || !orbitRef.current) return;
     meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime) * 0.2;
     meshRef.current.rotation.y += 0.01;
     secondaryRef.current.rotation.y -= 0.02;
@@ -146,6 +161,7 @@ const BloggingModel = () => {
   const innerRef = useRef();
 
   useFrame((state) => {
+    if (!meshRef.current || !spiralRef.current || !innerRef.current) return;
     meshRef.current.rotation.y += 0.01;
     meshRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
     spiralRef.current.rotation.y -= 0.02;
@@ -268,56 +284,76 @@ const BloggingModel = () => {
   );
 };
 
-// Enhanced Scene with better lighting and effects
+// Optimized Scene with proper error boundaries
 const Scene = ({ type }) => {
+  const [sceneError, setSceneError] = useState(false);
+
+  if (sceneError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-red-400">
+        Failed to load 3D scene
+      </div>
+    );
+  }
+
   return (
-    <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+    <Canvas
+      camera={{ position: [0, 0, 5], fov: 45 }}
+      onError={() => setSceneError(true)}
+      dpr={[1, 2]} // Optimize for device pixel ratio
+      performance={{ min: 0.5 }} // Allow performance scaling
+    >
       <color attach="background" args={['#030014']} />
       <ambientLight intensity={0.2} />
-      <Environment preset="city" />
       
       <Suspense fallback={null}>
+        <Environment preset="city" />
         {type === "collaboration" ? <CollaborationModel /> : <BloggingModel />}
         
-        {/* Background Effects */}
+        {/* Optimized background effects */}
         <Stars
           radius={50}
           depth={50}
-          count={1000}
+          count={500} // Reduced count for better performance
           factor={4}
           saturation={0}
           fade
           speed={1}
         />
         
-        {/* Atmospheric Clouds */}
         <Cloud
           opacity={0.5}
           speed={0.4}
           width={10}
           depth={1.5}
-          segments={20}
+          segments={10} // Reduced segments for better performance
           color={type === "collaboration" ? "#4f46e5" : "#7c3aed"}
         />
       </Suspense>
+      
       <OrbitControls 
         enableZoom={false}
         enablePan={false}
         maxPolarAngle={Math.PI / 2}
         minPolarAngle={Math.PI / 3}
+        makeDefault
       />
     </Canvas>
   );
 };
 
-// Background Scene Component
+// Optimized Background Scene
 const BackgroundScene = () => (
-  <Canvas className="absolute inset-0 -z-10">
+  <Canvas
+    className="absolute inset-0 -z-10"
+    dpr={[1, 1.5]} // Lower DPR for background
+    camera={{ position: [0, 0, 1] }}
+  >
     <Suspense fallback={null}>
       <Stars
         radius={100}
         depth={50}
-        count={5000}
+        count={2000} // Reduced count for background
         factor={4}
         saturation={0}
         fade
@@ -328,7 +364,7 @@ const BackgroundScene = () => (
         speed={0.2}
         width={50}
         depth={5}
-        segments={20}
+        segments={10} // Reduced segments for background
       />
     </Suspense>
   </Canvas>
@@ -337,8 +373,18 @@ const BackgroundScene = () => (
 const Page3 = () => {
   const [contentRef, inView] = useInView({
     triggerOnce: true,
-    threshold: 0.2,
+    threshold: 0.1,
   });
+
+  // Lazy load 3D components
+  const [showModels, setShowModels] = useState(false);
+  
+  React.useEffect(() => {
+    if (inView) {
+      const timer = setTimeout(() => setShowModels(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [inView]);
 
   const subsections = [
     {
@@ -456,26 +502,24 @@ const Page3 = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right Column: Enhanced 3D Grid */}
+          {/* Optimized right column with 3D models */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.3 }}
             className="grid grid-cols-2 gap-8 h-[600px]"
           >
-            {subsections.map((section, index) => (
+            {showModels && subsections.map((section, index) => (
               <motion.div
                 key={section.title}
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={inView ? { opacity: 1, scale: 1 } : {}}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.5 + index * 0.2 }}
-                className="relative h-full rounded-xl overflow-hidden
-                          backdrop-blur-xl border border-white/10
-                          bg-gradient-to-br from-indigo-500/5 to-violet-500/5
-                          hover:from-indigo-500/10 hover:to-violet-500/10
-                          transition-all duration-500"
+                className="relative h-full rounded-xl overflow-hidden backdrop-blur-xl border border-white/10"
               >
-                <Scene type={index === 0 ? "collaboration" : "blog"} />
+                <Suspense fallback={<LoadingIndicator />}>
+                  <Scene type={index === 0 ? "collaboration" : "blog"} />
+                </Suspense>
               </motion.div>
             ))}
           </motion.div>
