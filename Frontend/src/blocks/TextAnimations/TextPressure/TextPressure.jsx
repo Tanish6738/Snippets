@@ -152,7 +152,7 @@ const TextPressure = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-transparent"
+      className="relative w-full overflow-visible bg-transparent" // Removed h-full and changed overflow-hidden
     >
       <style>{`
         @font-face {
@@ -178,17 +178,19 @@ const TextPressure = ({
 
       <h1
         ref={titleRef}
-        className={`text-pressure-title ${className} ${flex ? 'flex justify-between' : ''
-          } ${stroke ? 'stroke' : ''} uppercase text-center`}
+        className={`text-pressure-title ${className} ${flex ? 'flex justify-between' : ''}
+          ${stroke ? 'stroke' : ''} text-center break-words`} // Added break-words
         style={{
           fontFamily,
           fontSize: fontSize,
-          lineHeight,
-          transform: `scale(1, ${scaleY})`,
-          transformOrigin: 'center top',
+          lineHeight: 1.2, // Fixed line height
+          transform: scale ? `scale(1, ${scaleY})` : 'none', // Conditional transform
+          transformOrigin: 'center center', // Changed from top to center
           margin: 0,
           fontWeight: 100,
           color: stroke ? undefined : textColor,
+          maxWidth: '100%', // Added max-width
+          wordWrap: 'break-word', // Added word wrap
         }}
       >
         {chars.map((char, i) => (

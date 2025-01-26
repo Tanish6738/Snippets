@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber'; // Fix: import useFrame from fiber
 import { MeshDistortMaterial, Float, Environment, Cylinder, OrbitControls, Sphere, Ring, Stars } from '@react-three/drei';
 import { Link } from 'react-router-dom';
+import PixelCard from '../../blocks/Components/PixelCard/PixelCard';
 
 // Add MiniPlanet component for smaller orbiting planets
 const MiniPlanet = ({ radius, angle, speed, color, size = 0.3, reverse = false }) => {
@@ -253,7 +254,7 @@ const BackgroundScene = () => {
   }, []);
 
   return (
-    <div className="w-full h-[80vh] lg:h-full cursor-move relative">
+    <div className="w-full h-full cursor-move relative"> {/* Changed from h-[80vh] to h-full */}
       <Canvas
         camera={{ position: [0, 5, 15], fov: 45 }}
         dpr={[1, 2]}
@@ -309,8 +310,8 @@ const KeyFeatures = () => {
       title: "Organize Code Snippets",
       description: "Easily store and categorize frequently used or complex code snippets in custom directories.",
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
         </svg>
       )
     },
@@ -318,8 +319,8 @@ const KeyFeatures = () => {
       title: "Privacy Controls",
       description: "Set your snippets as public or private and foster collaboration by sharing publicly.",
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H8m4-6V7a4 4 0 00-8 0v4H4v6a2 2 0 002 2h12a2 2 0 002-2v-6h-4z" />
         </svg>
       )
     },
@@ -327,8 +328,8 @@ const KeyFeatures = () => {
       title: "AI-Powered Code Generation",
       description: "Get AI-assisted code suggestions to create, optimize, or debug your snippets effortlessly.",
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
         </svg>
       )
     },
@@ -336,17 +337,8 @@ const KeyFeatures = () => {
       title: "Group Collaboration",
       description: "Collaborate with peers in real-time through shared snippets and group chats.",
       icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )
-    },
-    {
-      title: "Community Blogging System",
-      description: "Network and grow by sharing tutorials, tips, and experiences with the developer community.",
-      icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       )
     }
@@ -367,7 +359,7 @@ const KeyFeatures = () => {
         </h2>
       </motion.div>
 
-      <div className="max-w-8xl mx-auto grid lg:grid-cols-2 gap-12 items-start relative">
+      <div className="max-w-8xl mx-auto grid lg:grid-cols-2 gap-12 items-stretch relative"> {/* Changed from items-start to items-stretch */}
         {/* Features Grid - Left Side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           {features.map((feature, index) => (
@@ -377,98 +369,59 @@ const KeyFeatures = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ scale: 1.02, translateY: -5 }}
-              className="group relative isolate"
             >
-              {/* Decorative Background Elements */}
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                {/* Animated Particles */}
-                <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`absolute w-16 h-16 rounded-full 
-                                bg-gradient-to-br from-indigo-500/10 to-violet-500/10
-                                animate-blob ${i === 1 ? 'animation-delay-2000' : i === 2 ? 'animation-delay-4000' : ''}`}
-                      style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        filter: 'blur(8px)'
-                      }}
-                    />
-                  ))}
-                </div>
-                
-                {/* Glass Effect Border */}
-                <div className="absolute inset-0 rounded-2xl border border-white/10 backdrop-blur-sm" />
-              </div>
-
-              {/* Main Card Content */}
-              <div className="relative p-8 rounded-2xl transition-all duration-500 overflow-hidden
-                            border border-white/[0.1] backdrop-blur-sm
-                            before:absolute before:inset-0 before:bg-gradient-to-b 
-                            before:from-white/[0.03] before:to-transparent before:pointer-events-none">
-                {/* Rainbow Border Effect */}
-                <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-500/50 via-indigo-500/50 to-violet-500/50 
-                              rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500
-                              animate-border-flow blur-sm" />
-
-                {/* Glow Effect */}
-                <div className="absolute inset-[1px] rounded-2xl bg-[#030014] z-[1]" />
-
-                {/* Content Container */}
-                <div className="relative z-[2]">
-                  {/* Icon Container with Floating Effect */}
-                  <div className="relative mb-6">
-                    <motion.div
-                      animate={{
-                        y: [0, -4, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      className="w-16 h-16 rounded-xl relative"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-violet-500/20 rounded-xl
-                                    group-hover:from-indigo-500/30 group-hover:to-violet-500/30 transition-colors duration-500" />
-                      <div className="relative w-full h-full flex items-center justify-center">
-                        <div className="text-indigo-300 group-hover:text-indigo-200 transition-colors duration-500">
-                          {feature.icon}
-                        </div>
+              <PixelCard
+                variant="pink"
+                gap={6}
+                speed={40}
+                colors="#4f46e5,#6366f1,#818cf8"
+                className="w-full h-full min-h-[320px]"
+              >
+                {/* Card Content with absolute positioning */}
+                <div className="absolute inset-0 p-8 z-10">
+                  {/* Icon Container */}
+                  <motion.div
+                    animate={{
+                      y: [0, -4, 0],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="relative mb-6"
+                  >
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-white/5">
+                      <div className="text-indigo-300">
+                        {feature.icon}
                       </div>
-                    </motion.div>
-                  </div>
+                    </div>
+                  </motion.div>
 
-                  {/* Title with Shine Effect */}
-                  <h3 className="text-2xl font-semibold mb-4 relative">
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200 
-                                   group-hover:from-indigo-200 group-hover:to-white transition-all duration-500">
+                  {/* Title */}
+                  <h3 className="text-2xl font-semibold mb-4">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
                       {feature.title}
                     </span>
-                    <div className="absolute inset-0 w-full translate-x-[-100%] group-hover:translate-x-[100%]
-                                  bg-gradient-to-r from-transparent via-white/10 to-transparent
-                                  transition-transform duration-1000" />
                   </h3>
 
-                  <p className="text-indigo-200/70 group-hover:text-indigo-100/90 transition-colors duration-500 
-                               leading-relaxed tracking-wide relative z-10">
+                  {/* Description */}
+                  <p className="text-indigo-200/70 leading-relaxed tracking-wide">
                     {feature.description}
                   </p>
                 </div>
-              </div>
+              </PixelCard>
             </motion.div>
           ))}
         </div>
 
-        {/* 3D Cylinder - Right Side with enhanced container */}
+        {/* 3D Cylinder - Right Side with matched height */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="lg:sticky lg:top-20 h-[600px] rounded-xl overflow-hidden
+          className="lg:sticky lg:top-20 h-full rounded-xl overflow-hidden
                     border border-indigo-500/10 backdrop-blur-sm
                     hover:border-indigo-500/20 transition-all duration-300"
         >

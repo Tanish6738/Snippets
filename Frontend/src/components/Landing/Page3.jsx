@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState } from 'react';
+import React, { Suspense, useRef, useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useInView } from 'react-intersection-observer';
@@ -9,520 +9,304 @@ import {
 } from '@react-three/drei';
 import { Link } from 'react-router-dom';
 
-// Loading indicator for 3D scenes
-const LoadingIndicator = () => {
-  const { progress } = useProgress();
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#030014]/50 backdrop-blur-sm">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-indigo-200">{progress.toFixed(0)}% loaded</p>
-      </div>
-    </div>
-  );
-};
-
-// Optimized 3D Models
-const CollaborationModel = () => {
-  const meshRef = useRef();
-  const secondaryRef = useRef();
-  const orbitRef = useRef();
-
+// Galaxy Particles component for creating spiral galaxy effect
+const GalaxyParticles = ({ count = 5000, radius = 10 }) => {
+  const particles = useRef([]);
+  
   useFrame((state) => {
-    if (!meshRef.current || !secondaryRef.current || !orbitRef.current) return;
-    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime) * 0.2;
-    meshRef.current.rotation.y += 0.01;
-    secondaryRef.current.rotation.y -= 0.02;
-    secondaryRef.current.rotation.z = Math.cos(state.clock.elapsedTime) * 0.2;
-    orbitRef.current.rotation.z += 0.005;
-    orbitRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+    const time = state.clock.elapsedTime;
+    particles.current.forEach((particle, i) => {
+      const angle = (i / count) * Math.PI * 20 + time * 0.1;
+      const spiralRadius = (i / count) * radius;
+      particle.position.x = Math.cos(angle) * spiralRadius;
+      particle.position.z = Math.sin(angle) * spiralRadius;
+      particle.position.y = Math.cos(angle * 2) * (spiralRadius * 0.2);
+      particle.scale.setScalar(Math.random() * 0.5 + 0.5);
+    });
   });
 
   return (
     <group>
-      <Float speed={2} rotationIntensity={2} floatIntensity={1}>
-        {/* Main TorusKnot */}
-        <TorusKnot ref={meshRef} args={[1, 0.3, 128, 16, 2, 3]}>
-          <MeshDistortMaterial
-            color="#4f46e5"
-            envMapIntensity={2}
-            clearcoat={1}
-            clearcoatRoughness={0}
-            metalness={0.8}
-            roughness={0.2}
-            speed={2}
-            distort={0.3}
-            radius={1}
+      {[...Array(count)].map((_, i) => (
+        <mesh key={i} ref={(el) => (particles.current[i] = el)}>
+          <sphereGeometry args={[0.02, 8, 8]} />
+          <meshBasicMaterial
+            color={`hsl(${(i / count) * 360}, 50%, 50%)`}
+            transparent
+            opacity={0.6}
           />
-        </TorusKnot>
-        
-        {/* Orbiting Rings */}
-        <group ref={secondaryRef}>
-          <Ring args={[1.2, 1.4, 64]} rotation-x={Math.PI / 2}>
-            <meshPhongMaterial color="#818cf8" opacity={0.4} transparent />
-          </Ring>
-          <Ring args={[1.4, 1.5, 64]} rotation-x={Math.PI / 3}>
-            <meshPhongMaterial color="#4f46e5" opacity={0.2} transparent />
-          </Ring>
-        </group>
+        </mesh>
+      ))}
+    </group>
+  );
+};
 
-        {/* New Orbital Elements */}
-        <group ref={orbitRef}>
-          {/* Orbital Spheres */}
-          {[...Array(4)].map((_, i) => (
-            <Float key={i} speed={2} rotationIntensity={2} floatIntensity={1}>
-              <mesh
-                position={[
-                  Math.sin((Math.PI * 2 * i) / 4) * 1.8,
-                  Math.cos((Math.PI * 2 * i) / 4) * 1.8,
-                  0
-                ]}
-                scale={0.15}
-              >
-                <sphereGeometry args={[1, 16, 16]} />
-                <MeshDistortMaterial
-                  color="#818cf8"
-                  envMapIntensity={2}
-                  clearcoat={1}
-                  clearcoatRoughness={0}
-                  metalness={0.8}
-                  roughness={0.2}
-                  speed={2}
-                  distort={0.3}
-                  opacity={0.8}
-                  transparent
-                />
-              </mesh>
-            </Float>
-          ))}
+// Enhanced SpaceScene with more complex elements
+const SpaceScene = () => {
+  const centerRef = useRef();
+  const galaxyRef = useRef();
+  const [hovered, setHovered] = useState(false);
 
-          {/* Connecting Lines */}
+  useFrame((state, delta) => {
+    const time = state.clock.getElapsedTime();
+    
+    // Rotate center element
+    centerRef.current.rotation.y += delta * 0.2;
+    centerRef.current.rotation.z = Math.sin(time * 0.5) * 0.2;
+    
+    // Pulse effect on hover
+    const scale = hovered ? 
+      1 + Math.sin(time * 2) * 0.1 : 
+      1 + Math.sin(time) * 0.05;
+    centerRef.current.scale.setScalar(scale);
+    
+    // Galaxy rotation
+    galaxyRef.current.rotation.y += delta * 0.05;
+  });
+
+  return (
+    <>
+      {/* Enhanced background stars with depth */}
+      <Stars
+        radius={100}
+        depth={50}
+        count={8000}
+        factor={4}
+        saturation={0}
+        fade
+        speed={1}
+      />
+
+      {/* Central element */}
+      <group ref={centerRef}>
+        <Float speed={2} rotationIntensity={2} floatIntensity={1}>
+          <TorusKnot
+            ref={galaxyRef}
+            args={[3, 0.8, 256, 32]}
+            onPointerOver={() => setHovered(true)}
+            onPointerOut={() => setHovered(false)}
+          >
+            <MeshDistortMaterial
+              color="#4400ff"
+              roughness={0.1}
+              metalness={1}
+              distort={0.4}
+              speed={2}
+              transparent
+              opacity={0.8}
+            />
+          </TorusKnot>
+
+          {/* Energy rings */}
           {[...Array(3)].map((_, i) => (
-            <mesh key={i} rotation={[0, (Math.PI * 2 * i) / 3, 0]}>
-              <torusGeometry args={[1.5, 0.02, 8, 32]} />
-              <meshPhongMaterial
-                color="#4f46e5"
-                opacity={0.2}
-                transparent
-                depthWrite={false}
-              />
-            </mesh>
-          ))}
-
-          {/* Small Decorative Particles */}
-          {[...Array(12)].map((_, i) => (
-            <Float
+            <Ring
               key={i}
-              speed={3}
-              rotationIntensity={3}
-              floatIntensity={2}
-              position={[
-                Math.sin((Math.PI * 2 * i) / 12) * 2.2,
-                Math.cos((Math.PI * 2 * i) / 12) * 2.2,
-                (Math.sin((Math.PI * 4 * i) / 12)) * 0.5
-              ]}
+              args={[4 + i * 0.5, 4.2 + i * 0.5, 64]}
+              rotation={[Math.PI / 2, 0, 0]}
             >
-              <mesh scale={0.05}>
-                <octahedronGeometry />
-                <MeshDistortMaterial
-                  color="#4f46e5"
-                  envMapIntensity={1.5}
-                  clearcoat={1}
-                  metalness={0.8}
-                  speed={2}
-                  distort={0.2}
-                  opacity={0.7}
-                  transparent
-                />
-              </mesh>
-            </Float>
+              <meshBasicMaterial
+                color="#4400ff"
+                transparent
+                opacity={0.2 - i * 0.05}
+                side={2}
+              />
+            </Ring>
           ))}
-        </group>
-      </Float>
-      
+        </Float>
+      </group>
+
+      {/* Spiral galaxy particles */}
+      <GalaxyParticles count={3000} radius={15} />
+
+      {/* Atmospheric elements */}
+      <group>
+        {[...Array(3)].map((_, i) => (
+          <Cloud
+            key={i}
+            opacity={0.3}
+            speed={0.4}
+            width={20}
+            depth={1.5}
+            segments={20}
+            position={[
+              Math.cos((i / 3) * Math.PI * 2) * 10,
+              Math.sin((i / 3) * Math.PI * 2) * 5,
+              Math.sin((i / 3) * Math.PI * 2) * 10
+            ]}
+          />
+        ))}
+      </group>
+
       {/* Enhanced lighting */}
       <SpotLight
         position={[10, 10, 10]}
         angle={0.3}
         penumbra={1}
         intensity={2}
-        color="#4f46e5"
+        color="#ffffff"
         castShadow
       />
-      <pointLight position={[5, 5, 5]} intensity={0.8} color="#818cf8" />
-      <pointLight position={[-5, -5, -5]} intensity={0.5} color="#4f46e5" />
-    </group>
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#4400ff" />
+      <Environment preset="night" />
+    </>
   );
 };
 
-const BloggingModel = () => {
+// Create a simple 3D loading indicator
+const LoaderScene = () => {
   const meshRef = useRef();
-  const spiralRef = useRef();
-  const innerRef = useRef();
-
+  
   useFrame((state) => {
-    if (!meshRef.current || !spiralRef.current || !innerRef.current) return;
-    meshRef.current.rotation.y += 0.01;
-    meshRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
-    spiralRef.current.rotation.y -= 0.02;
-    spiralRef.current.rotation.z += 0.01;
-    innerRef.current.rotation.z -= 0.03;
-    innerRef.current.rotation.x = Math.sin(state.clock.elapsedTime) * 0.2;
+    if (meshRef.current) {
+      meshRef.current.rotation.x = meshRef.current.rotation.y += 0.01;
+    }
   });
 
   return (
     <group>
-      <Float speed={2} rotationIntensity={1.5} floatIntensity={1}>
-        <group ref={meshRef}>
-          {/* Larger spiral effect */}
-          <group ref={spiralRef}>
-            {[...Array(5)].map((_, i) => (
-              <Torus
-                key={i}
-                args={[1.2 + i * 0.15, 0.15, 32, 32]} // Increased radius and thickness
-                rotation={[0, 0, (i * Math.PI) / 5]}
-                scale={1.2 - i * 0.15} // Increased overall scale
-              >
-                <MeshDistortMaterial
-                  color={`hsl(${280 + i * 15}, 70%, 60%)`}
-                  envMapIntensity={2}
-                  clearcoat={1}
-                  clearcoatRoughness={0}
-                  metalness={0.8}
-                  roughness={0.2}
-                  speed={2}
-                  distort={0.3} // Increased distortion
-                  opacity={0.9 - i * 0.15} // Adjusted opacity
-                  transparent
-                />
-              </Torus>
-            ))}
-          </group>
-          
-          {/* Larger central element */}
-          <group ref={innerRef}>
-            {/* Larger dodecahedron */}
-            <mesh scale={0.8}> {/* Increased from 0.3 to 0.8 */}
-              <dodecahedronGeometry args={[1, 1]} />
-              <MeshDistortMaterial
-                color="#7c3aed"
-                envMapIntensity={3}
-                clearcoat={1}
-                clearcoatRoughness={0}
-                metalness={0.9}
-                roughness={0.1}
-                speed={3}
-                distort={0.4}
-                radius={1.2} // Increased radius
-              />
-            </mesh>
-
-            {/* Larger geometric frame */}
-            {[0, 1, 2, 3].map((i) => (
-              <group key={i} rotation={[0, (Math.PI * i) / 2, 0]}>
-                <mesh position={[0, 0, 0.8]} scale={0.8}> {/* Increased position and scale */}
-                  <torusGeometry args={[0.6, 0.04, 16, 32]} /> {/* Increased size */}
-                  <MeshDistortMaterial
-                    color="#9f7aea"
-                    envMapIntensity={2}
-                    clearcoat={1}
-                    clearcoatRoughness={0}
-                    metalness={0.9}
-                    roughness={0.1}
-                    speed={2}
-                    distort={0.2}
-                    opacity={0.8}
-                    transparent
-                  />
-                </mesh>
-              </group>
-            ))}
-
-            {/* Larger floating particles */}
-            {[...Array(8)].map((_, i) => (
-              <Float key={i} speed={2} rotationIntensity={3} floatIntensity={2}>
-                <mesh
-                  position={[
-                    Math.sin((Math.PI * 2 * i) / 8) * 1.2, // Increased orbit radius
-                    Math.cos((Math.PI * 2 * i) / 8) * 1.2,
-                    0
-                  ]}
-                  scale={0.1} // Increased from 0.05 to 0.1
-                >
-                  <octahedronGeometry args={[1, 0]} />
-                  <MeshDistortMaterial
-                    color={`hsl(${280 + i * 15}, 70%, 60%)`}
-                    envMapIntensity={2}
-                    clearcoat={1}
-                    clearcoatRoughness={0}
-                    metalness={0.8}
-                    roughness={0.2}
-                    speed={3}
-                    distort={0.3}
-                    opacity={0.9}
-                    transparent
-                  />
-                </mesh>
-              </Float>
-            ))}
-          </group>
-        </group>
-      </Float>
-
-      {/* Adjusted lighting positions for larger model */}
-      <SpotLight
-        position={[-15, 15, 15]}
-        angle={0.3}
-        penumbra={1}
-        intensity={2}
-        color="#7c3aed"
-        castShadow
-      />
-      <pointLight position={[8, 8, 8]} intensity={0.8} color="#9f7aea" />
-      <pointLight position={[-8, -8, -8]} intensity={0.5} color="#7c3aed" />
+      <mesh ref={meshRef}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#4400ff" wireframe />
+      </mesh>
+      <pointLight position={[10, 10, 10]} />
+      <ambientLight intensity={0.5} />
     </group>
   );
 };
 
-// Optimized Scene with proper error boundaries
-const Scene = ({ type }) => {
-  const [sceneError, setSceneError] = useState(false);
-
-  if (sceneError) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-red-400">
-        Failed to load 3D scene
-      </div>
-    );
-  }
-
+// HTML Loader for outside Canvas
+const HTMLLoader = () => {
+  const { progress } = useProgress();
   return (
-    <Canvas
-      camera={{ position: [0, 0, 5], fov: 45 }}
-      onError={() => setSceneError(true)}
-      dpr={[1, 2]} // Optimize for device pixel ratio
-      performance={{ min: 0.5 }} // Allow performance scaling
-    >
-      <color attach="background" args={['#030014']} />
-      <ambientLight intensity={0.2} />
-      
-      <Suspense fallback={null}>
-        <Environment preset="city" />
-        {type === "collaboration" ? <CollaborationModel /> : <BloggingModel />}
-        
-        {/* Optimized background effects */}
-        <Stars
-          radius={50}
-          depth={50}
-          count={500} // Reduced count for better performance
-          factor={4}
-          saturation={0}
-          fade
-          speed={1}
-        />
-        
-        <Cloud
-          opacity={0.5}
-          speed={0.4}
-          width={10}
-          depth={1.5}
-          segments={10} // Reduced segments for better performance
-          color={type === "collaboration" ? "#4f46e5" : "#7c3aed"}
-        />
-      </Suspense>
-      
-      <OrbitControls 
-        enableZoom={false}
-        enablePan={false}
-        maxPolarAngle={Math.PI / 2}
-        minPolarAngle={Math.PI / 3}
-        makeDefault
-      />
-    </Canvas>
+    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+      <div className="px-6 py-3 rounded-lg backdrop-blur-sm">
+        <div className="text-2xl font-bold text-white">
+          {progress.toFixed(0)}%
+        </div>
+      </div>
+    </div>
   );
 };
 
-// Optimized Background Scene
-const BackgroundScene = () => (
-  <Canvas
-    className="absolute inset-0 -z-10"
-    dpr={[1, 1.5]} // Lower DPR for background
-    camera={{ position: [0, 0, 1] }}
-  >
-    <Suspense fallback={null}>
-      <Stars
-        radius={100}
-        depth={50}
-        count={2000} // Reduced count for background
-        factor={4}
-        saturation={0}
-        fade
-        speed={0.5}
-      />
-      <Cloud
-        opacity={0.2}
-        speed={0.2}
-        width={50}
-        depth={5}
-        segments={10} // Reduced segments for background
-      />
-    </Suspense>
-  </Canvas>
-);
-
 const Page3 = () => {
-  const [contentRef, inView] = useInView({
-    triggerOnce: true,
+  const [ref, inView] = useInView({
     threshold: 0.1,
+    triggerOnce: true,
   });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
 
-  // Lazy load 3D components
-  const [showModels, setShowModels] = useState(false);
-  
-  React.useEffect(() => {
-    if (inView) {
-      const timer = setTimeout(() => setShowModels(true), 500);
-      return () => clearTimeout(timer);
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen();
+    } else {
+      document.exitFullscreen();
     }
-  }, [inView]);
+  }, []);
 
-  const subsections = [
-    {
-      title: "Group Collaboration",
-      description: "Create or join groups to work on shared snippets and communicate in real-time.",
-      icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )
-    },
-    {
-      title: "Community Blogging",
-      description: "Contribute to the knowledge pool by publishing blogs on tips, tutorials, or development stories.",
-      icon: (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
-        </svg>
-      )
-    }
-  ];
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   return (
-    <section className="py-20 px-4 relative overflow-hidden">
-      {/* Enhanced Background */}
-      <div className="absolute inset-0 z-0">
-        <BackgroundScene />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#030014]/50 via-[#030014]/80 to-[#030014]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto relative z-10" ref={contentRef}>
-        {/* Section Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-20"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold relative inline-block">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
-              Collaborate. Share. Grow Together.
-            </span>
-            {/* Animated Underline */}
-            <motion.div
-              className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
-              initial={{ scaleX: 0 }}
-              animate={inView ? { scaleX: 1 } : {}}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            />
-          </h2>
-        </motion.div>
-
-        {/* Two-column Layout */}
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left Column: Content */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="space-y-8"
-          >
-            {subsections.map((section, index) => (
-              <motion.div
-                key={section.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: 0.4 + index * 0.2 }}
-                className="group relative"
-              >
-                <div className="p-6 rounded-xl backdrop-blur-xl
-                              border border-white/10 
-                              bg-gradient-to-br from-white/[0.05] to-white/[0.02]
-                              hover:border-indigo-500/50 hover:from-indigo-500/10 hover:to-violet-500/10
-                              transition-all duration-500">
-                  <h3 className="text-2xl font-semibold mb-3 text-white group-hover:text-indigo-200 
-                               transition-colors duration-300">
-                    {section.title}
-                  </h3>
-                  <p className="text-indigo-200/70 group-hover:text-indigo-100/90">
-                    {section.description}
+    <section className="h-screen w-full bg-black flex flex-col">
+      <h2 className="text-4xl font-bold text-white text-center py-8">
+        Collaborate With Others
+      </h2>
+      
+      <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Left Section */}
+        <div className="lg:w-1/2 h-full flex items-center justify-center p-8 border-r border-indigo-900/30">
+          <div className="max-w-xl space-y-8 text-white">
+            <div className="space-y-6">
+              <h3 className="text-4xl font-semibold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent leading-tight">
+                Collaborate. Share.<br />Grow Together.
+              </h3>
+              
+              <div className="space-y-8">
+                <div className="space-y-3">
+                  <h4 className="text-2xl font-semibold text-indigo-300">
+                    Group Collaboration
+                  </h4>
+                  <p className="text-lg text-gray-300 leading-relaxed">
+                    Create or join groups to work on shared snippets and communicate in real-time.
                   </p>
                 </div>
-              </motion.div>
-            ))}
+                
+                <div className="space-y-3">
+                  <h4 className="text-2xl font-semibold text-indigo-300">
+                    Community Blogging
+                  </h4>
+                  <p className="text-lg text-gray-300 leading-relaxed">
+                    Contribute to the knowledge pool by publishing blogs on tips, tutorials, or development stories.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* CTA Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.8 }}
-            >
-              <Link
-                to="/community"
-                className="group relative inline-flex items-center px-8 py-3 rounded-xl text-white
-                         bg-gradient-to-r from-indigo-500 to-violet-500 
-                         transform hover:scale-105 transition-all duration-300
-                         shadow-[0_0_15px_rgba(99,102,241,0.25)]
-                         hover:shadow-[0_0_25px_rgba(99,102,241,0.35)]
-                         overflow-hidden"
-              >
-                <span className="relative z-10">Join the Community</span>
-                <svg
-                  className="w-5 h-5 ml-2 relative z-10 transform group-hover:translate-x-1 transition-transform duration-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 
-                              translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          {/* Optimized right column with 3D models */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="grid grid-cols-2 gap-8 h-[600px]"
+        {/* Right Section */}
+        <div className="lg:w-1/2 h-full relative">
+          <div 
+            ref={containerRef} 
+            className={`${
+              isFullscreen 
+                ? 'fixed inset-0 z-50' 
+                : 'absolute inset-0'
+            } bg-black`}
           >
-            {showModels && subsections.map((section, index) => (
-              <motion.div
-                key={section.title}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.5 + index * 0.2 }}
-                className="relative h-full rounded-xl overflow-hidden backdrop-blur-xl border border-white/10"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={inView ? { opacity: 1 } : {}}
+              transition={{ duration: 1 }}
+              className="w-full h-full"
+              ref={ref}
+            >
+              <Canvas
+                camera={{ position: [0, 0, 20], fov: 60 }}
+                dpr={[1, 2]}
+                performance={{ min: 0.5 }}
               >
-                <Suspense fallback={<LoadingIndicator />}>
-                  <Scene type={index === 0 ? "collaboration" : "blog"} />
+                <Suspense fallback={<LoaderScene />}>
+                  <SpaceScene />
+                  <OrbitControls
+                    enableZoom={true}
+                    enablePan={true}
+                    enableRotate={true}
+                    zoomSpeed={0.5}
+                    panSpeed={0.5}
+                    rotateSpeed={0.5}
+                    minDistance={10}
+                    maxDistance={50}
+                  />
                 </Suspense>
-              </motion.div>
-            ))}
-          </motion.div>
+              </Canvas>
+
+              {/* Controls and overlays */}
+              <Suspense fallback={<HTMLLoader />}>
+                <div className="absolute inset-0 pointer-events-none" />
+              </Suspense>
+
+              <div className="absolute bottom-4 left-4 text-xs text-indigo-300/70 space-y-1 pointer-events-none bg-black/20 p-2 rounded-lg backdrop-blur-sm">
+                <p>🖱️ Left Click + Drag to Rotate</p>
+                <p>🖱️ Right Click + Drag to Pan</p>
+                <p>🖱️ Scroll to Zoom</p>
+              </div>
+
+              <button
+                onClick={toggleFullscreen}
+                className="absolute top-4 right-4 px-4 py-2 bg-indigo-600/50 hover:bg-indigo-600/70 text-white rounded-lg backdrop-blur-sm transition-colors"
+              >
+                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              </button>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

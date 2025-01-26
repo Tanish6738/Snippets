@@ -34,12 +34,13 @@ function useMousePositionRef(containerRef) {
 
     const handleMouseMove = (ev) => updatePosition(ev.clientX, ev.clientY);
     const handleTouchMove = (ev) => {
+      ev.preventDefault();
       const touch = ev.touches[0];
       updatePosition(touch.clientX, touch.clientY);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("touchmove", handleTouchMove);
@@ -52,10 +53,10 @@ function useMousePositionRef(containerRef) {
 const VariableProximity = forwardRef((props, ref) => {
   const {
     label,
-    fromFontVariationSettings,
-    toFontVariationSettings,
+    fromFontVariationSettings = "'wght' 400, 'opsz' 9",
+    toFontVariationSettings = "'wght' 1000, 'opsz' 40",
     containerRef,
-    radius = 50,
+    radius = 100,
     falloff = "linear",
     className = "",
     onClick,
@@ -64,7 +65,6 @@ const VariableProximity = forwardRef((props, ref) => {
   } = props;
 
   const letterRefs = useRef([]);
-  const interpolatedSettingsRef = useRef([]);
   const mousePositionRef = useMousePositionRef(containerRef);
 
   const parsedSettings = useMemo(() => {
@@ -88,99 +88,73 @@ const VariableProximity = forwardRef((props, ref) => {
     }));
   }, [fromFontVariationSettings, toFontVariationSettings]);
 
-  const calculateDistance = (x1, y1, x2, y2) =>
-    Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-
-  const calculateFalloff = (distance) => {
-    const norm = Math.min(Math.max(1 - distance / radius, 0), 1);
-    switch (falloff) {
-      case "exponential": return norm ** 2;
-      case "gaussian": return Math.exp(-((distance / (radius / 2)) ** 2) / 2);
-      case "linear":
-      default: return norm;
-    }
-  };
-
   useAnimationFrame(() => {
     if (!containerRef?.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
 
-    letterRefs.current.forEach((letterRef, index) => {
+    letterRefs.current.forEach((letterRef) => {
       if (!letterRef) return;
 
       const rect = letterRef.getBoundingClientRect();
       const letterCenterX = rect.left + rect.width / 2 - containerRect.left;
       const letterCenterY = rect.top + rect.height / 2 - containerRect.top;
 
-      const distance = calculateDistance(
-        mousePositionRef.current.x,
-        mousePositionRef.current.y,
-        letterCenterX,
-        letterCenterY
+      const distance = Math.sqrt(
+        Math.pow(mousePositionRef.current.x - letterCenterX, 2) +
+        Math.pow(mousePositionRef.current.y - letterCenterY, 2)
       );
 
-      if (distance >= radius) {
-        letterRef.style.fontVariationSettings = fromFontVariationSettings;
-        return;
+      let intensity = Math.max(0, 1 - distance / radius);
+      
+      if (falloff === "exponential") {
+        intensity = intensity * intensity;
+      } else if (falloff === "gaussian") {
+        intensity = Math.exp(-Math.pow(distance / (radius / 2), 2) / 2);
       }
 
-      const falloffValue = calculateFalloff(distance);
-      const newSettings = parsedSettings
+      const settings = parsedSettings
         .map(({ axis, fromValue, toValue }) => {
-          const interpolatedValue = fromValue + (toValue - fromValue) * falloffValue;
-          return `'${axis}' ${interpolatedValue}`;
+          const value = fromValue + (toValue - fromValue) * intensity;
+          return `'${axis}' ${Math.round(value)}`;
         })
         .join(", ");
 
-      interpolatedSettingsRef.current[index] = newSettings;
-      letterRef.style.fontVariationSettings = newSettings;
+      letterRef.style.fontVariationSettings = settings;
     });
   });
 
-  const words = label.split(" ");
-  let letterIndex = 0;
-
   return (
-    <span
+    <motion.span
       ref={ref}
       onClick={onClick}
       style={{
-        display: "inline",
+        display: "inline-block",
         fontFamily: '"Roboto Flex", sans-serif',
+        lineHeight: 1.2,
         ...style,
       }}
       className={className}
       {...restProps}
     >
-      {words.map((word, wordIndex) => (
-        <span
-          key={wordIndex}
-          className="inline-block whitespace-nowrap"
-        >
-          {word.split("").map((letter) => {
-            const currentLetterIndex = letterIndex++;
-            return (
-              <motion.span
-                key={currentLetterIndex}
-                ref={(el) => { letterRefs.current[currentLetterIndex] = el; }}
-                style={{
-                  display: "inline-block",
-                  fontVariationSettings:
-                    interpolatedSettingsRef.current[currentLetterIndex],
-                }}
-                aria-hidden="true"
-              >
-                {letter}
-              </motion.span>
-            );
-          })}
-          {wordIndex < words.length - 1 && (
-            <span className="inline-block">&nbsp;</span>
-          )}
+      {label.split(" ").map((word, wordIndex, words) => (
+        <span key={wordIndex} className="inline-block whitespace-nowrap">
+          {word.split("").map((letter, letterIndex) => (
+            <motion.span
+              key={`${wordIndex}-${letterIndex}`}
+              ref={el => letterRefs.current.push(el)}
+              style={{
+                display: "inline-block",
+                fontVariationSettings: fromFontVariationSettings,
+                transition: "font-variation-settings 0.05s ease-out",
+              }}
+            >
+              {letter}
+            </motion.span>
+          ))}
+          {wordIndex < words.length - 1 && " "}
         </span>
       ))}
-      <span className="sr-only">{label}</span>
-    </span>
+    </motion.span>
   );
 });
 

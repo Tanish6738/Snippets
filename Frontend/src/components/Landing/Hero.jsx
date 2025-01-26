@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Canvas, useFrame } from "@react-three/fiber"
 import { Points, PointMaterial, Float, MeshDistortMaterial, Environment, OrbitControls, PerspectiveCamera } from "@react-three/drei"
 import * as random from "maath/random/dist/maath-random.esm"
+import TextPressure from '../../blocks/TextAnimations/TextPressure/TextPressure'
+import VariableProximity from '../../blocks/TextAnimations/VariableProximity/VariableProximity'
+import BlurText from '../../blocks/TextAnimations/BlurText/BlurText'
 
 // Add interactive behavior hook
 const useInteractivity = (ref, intensity = 1) => {
@@ -600,41 +603,51 @@ const ParticleCanvas = ({ children }) => (
   </Canvas>
 );
 
+// Update the section content layout
 const Hero = () => {
-  const [activeImage, setActiveImage] = useState('home')
-  const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [activeSection, setActiveSection] = useState('home')
   const [hoveredButton, setHoveredButton] = useState(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [activeElement, setActiveElement] = useState(null);
+  const containerRef = useRef(null);
+  const headlineRef = useRef(null);
 
-  const images = {
-    home: '/home.png',
-    group: '/group.png',
-    blog: '/blog.png'
+  const sections = {
+    home: {
+      title: "Code Repository",
+      description: "Your personal code sanctuary. Organize, manage, and access your snippets with powerful search and tagging capabilities. Experience seamless code management.",
+      color: "from-blue-500 to-indigo-500",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    group: {
+      title: "AI Assistance",
+      description: "Harness the power of AI to enhance your coding workflow. Get intelligent code suggestions, automated documentation, and smart code completion in real-time.",
+      color: "from-violet-500 to-purple-500",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      )
+    },
+    blog: {
+      title: "Community Hub",
+      description: "Connect with fellow developers, share your expertise, and discover new coding practices. Join discussions, contribute to projects, and grow together.",
+      color: "from-indigo-500 to-blue-500",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
+        </svg>
+      )
+    }
   };
 
-  // Preload images
-  useEffect(() => {
-    const preloadImages = async () => {
-      const promises = Object.values(images).map((src) => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = resolve;
-          img.onerror = reject;
-        });
-      });
-
-      await Promise.all(promises);
-      setImagesLoaded(true);
-    };
-
-    preloadImages();
-  }, []);
-
-  const handleImageChange = (newImage) => {
+  const handleSectionChange = (newSection) => {
     setIsTransitioning(true)
-    setActiveImage(newImage)
+    setActiveSection(newSection)
     setTimeout(() => setIsTransitioning(false), 800)
   }
 
@@ -662,14 +675,18 @@ const Hero = () => {
       label: 'Blog',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 a0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
         </svg>
       )
     }
   ];
 
+  const handleAnimationComplete = () => {
+    console.log('Headline animation completed!');
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-20">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-24"> {/* Increased padding */}
       {/* Decorative elements with interaction */}
       <div className="fixed left-[-5%] top-[15%] w-96 h-96 opacity-70 
                     hover:opacity-90 transition-opacity duration-300
@@ -725,16 +742,31 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto space-y-8 mb-12 relative"
+          className="max-w-5xl mx-auto space-y-12 mb-20 relative" // Increased spacing
         >
-          {/* Headline with shimmer effect on hover */}
-          <motion.h1 
-            whileHover={{ scale: 1.02 }}
-            className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-indigo-200 cursor-default
-                     hover:bg-gradient-to-r hover:from-indigo-200 hover:via-white hover:to-white transition-all duration-300"
+          {/* Updated Headline with VariableProximity */}
+          <div 
+            ref={headlineRef}
+            style={{ 
+              position: 'relative',
+              width: '100%',
+              minHeight: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            Redefining Code Sharing and Collaboration for Developers
-          </motion.h1>
+            <BlurText
+              text="Redefining Code Sharing and Collaboration for Developers"
+              delay={200}
+              animateBy="words"
+              direction="top"
+              onAnimationComplete={handleAnimationComplete}
+              className="text-6xl sm:text-7xl md:text-8xl font-bold text-white text-center"
+              threshold={0.5}
+              rootMargin="50px"
+            />
+          </div>
           
           <p className="text-lg sm:text-xl text-indigo-200/80 max-w-3xl mx-auto leading-relaxed">
             Store, organize, and share code snippets with ease. Leverage AI to generate smarter code, 
@@ -772,120 +804,312 @@ const Hero = () => {
           </div>
         </motion.div>
 
-        {/* Image Switcher Buttons */}
-        <div className="flex gap-4 mb-8 relative">
-          {buttons.map((button) => (
-            <motion.button
-              key={button.id}
-              onClick={() => handleImageChange(button.id)}
-              onHoverStart={() => setHoveredButton(button.id)}
-              onHoverEnd={() => setHoveredButton(null)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`relative px-6 py-2 rounded-lg transition-all duration-300 flex items-center gap-2
-                overflow-hidden
-                ${activeImage === button.id
-                  ? 'bg-indigo-500/20 text-white border-indigo-500'
-                  : 'text-indigo-300 hover:text-white hover:bg-indigo-500/10'
-                } border border-indigo-500/30
-                before:absolute before:inset-0 before:rounded-lg
-                before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent
-                before:translate-x-[-200%] hover:before:translate-x-[200%]
-                before:transition-transform before:duration-[700ms]`}
-            >
-              <motion.span
-                animate={{ 
-                  rotate: hoveredButton === button.id ? 360 : 0,
-                  scale: activeImage === button.id ? 1.1 : 1
-                }}
-                transition={{ duration: 0.3 }}
-                className="relative z-10"
+        {/* Enhanced Section Navigation */}
+        <div className="flex flex-col items-center w-full gap-16 mt-20"> {/* Increased gap and margin */}
+          {/* Section Tabs */}
+          <div className="flex gap-6 p-1.5 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
+            {buttons.map((button) => (
+              <motion.button
+                key={button.id}
+                onClick={() => handleSectionChange(button.id)}
+                onHoverStart={() => setHoveredButton(button.id)}
+                onHoverEnd={() => setHoveredButton(null)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`
+                  relative px-8 py-3 rounded-xl flex items-center gap-3
+                  transition-all duration-300 
+                  ${activeSection === button.id
+                    ? 'bg-gradient-to-r from-indigo-500/20 to-violet-500/20 text-white shadow-lg shadow-indigo-500/10'
+                    : 'text-indigo-200 hover:text-white hover:bg-white/5'
+                  }
+                `}
               >
-                {button.icon}
-              </motion.span>
-              <span className="relative z-10">{button.label}</span>
-              
-              {/* Active indicator dot */}
-              {activeImage === button.id && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="w-1.5 h-1.5 rounded-full bg-indigo-500 relative z-10"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Platform Mockup with 3D Effects */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative"
-        >
-          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-indigo-500/10 aspect-video
-                        hover:shadow-indigo-500/20 transition-all duration-500 group">
-            
-            {/* Transition Effect */}
-            {isTransitioning && (
-              <div className="absolute inset-0 z-20">
-                <ParticleCanvas>
-                  <ParticleTransition isTransitioning={true} />
-                </ParticleCanvas>
-              </div>
-            )}
-
-            {/* Hover Effect */}
-            <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <ParticleCanvas>
-                <ParticleTransition isTransitioning={false} />
-              </ParticleCanvas>
-            </div>
-
-            {/* Base Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/10 to-transparent z-[5]" />
-            
-            {/* Images */}
-            {imagesLoaded && Object.entries(images).map(([key, src]) => (
-              <motion.div
-                key={key}
-                className="absolute inset-0 w-full h-full"
-                initial={{ opacity: 0 }}
-                animate={{ 
-                  opacity: activeImage === key ? 1 : 0,
-                  scale: activeImage === key ? 1 : 1.1
-                }}
-                transition={{ 
-                  duration: 0.5,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  backgroundImage: `url(${src})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 to-indigo-500/0
-                           group-hover:from-indigo-500/10 group-hover:to-indigo-500/0"
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.div>
+                <motion.span
+                  animate={{ 
+                    rotate: hoveredButton === button.id ? 360 : 0,
+                    scale: activeSection === button.id ? 1.1 : 1
+                  }}
+                  transition={{ duration: 0.4 }}
+                  className="relative text-lg"
+                >
+                  {button.icon}
+                </motion.span>
+                <span className="relative font-medium">{button.label}</span>
+                
+                {activeSection === button.id && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-indigo-500/20"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </motion.button>
             ))}
-            
-            {/* Loading State */}
-            {!imagesLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#030014]">
-                <ParticleCanvas>
-                  <ParticleTransition isTransitioning={true} />
-                </ParticleCanvas>
-              </div>
-            )}
           </div>
-        </motion.div>
+
+          {/* Enhanced Content Display */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="w-full max-w-6xl"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mx-auto max-w-7xl px-4">
+              {/* Code Repository Section */}
+              <motion.div
+                className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            ${activeSection === 'home' 
+                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
+                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
+                            }`}
+                onClick={() => handleSectionChange('home')}
+                whileHover={{ scale: activeSection === 'home' ? 1.02 : 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                  <motion.div
+                    className="mb-8 p-6 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500
+                               shadow-lg shadow-indigo-500/20 relative
+                               before:absolute before:inset-0 before:rounded-full 
+                               before:bg-gradient-to-r before:from-white/20 before:to-transparent
+                               before:animate-pulse"
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <div className="w-8 h-8 relative z-10">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                    </div>
+                  </motion.div>
+
+                  <div className="space-y-8 text-center relative z-10 max-w-lg">
+                    <div className="h-auto min-h-[120px] flex items-center justify-center mb-6">
+                      <TextPressure
+                        text="Code Repository"
+                        textColor="white"
+                        className={`bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent 
+                                   font-bold tracking-tight whitespace-normal overflow-visible
+                                   ${activeSection === 'home' ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'}
+                                   drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]`}
+                        width={true}
+                        weight={true}
+                        italic={false}
+                        scale={false}
+                        minFontSize={activeSection === 'home' ? 32 : 24}
+                      />
+                    </div>
+                    
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: activeSection === 'home' ? 1 : 0.8, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className={`text-white/90 leading-relaxed font-medium
+                                 ${activeSection === 'home' ? 'text-lg' : 'text-sm line-clamp-2'}
+                                 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]`}
+                    >
+                      Your personal code sanctuary. Organize, manage, and access your snippets with powerful search and tagging capabilities.
+                    </motion.p>
+
+                    {activeSection === 'home' && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-8 px-8 py-3 rounded-lg 
+                                  bg-gradient-to-r from-blue-500 to-indigo-500
+                                  text-white font-semibold text-lg
+                                  shadow-lg shadow-indigo-500/30
+                                  hover:shadow-xl hover:shadow-indigo-500/40
+                                  transition-all duration-300
+                                  transform hover:scale-105"
+                      >
+                        Learn More →
+                      </motion.button>
+                    )}
+                  </div>
+
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10" />
+                    <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* AI Assistance Section */}
+              <motion.div
+                className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            ${activeSection === 'group' 
+                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
+                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
+                            }`}
+                onClick={() => handleSectionChange('group')}
+                whileHover={{ scale: activeSection === 'group' ? 1.02 : 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                  <motion.div
+                    className="mb-8 p-6 rounded-full bg-gradient-to-r from-violet-500 to-purple-500
+                               shadow-lg shadow-indigo-500/20 relative
+                               before:absolute before:inset-0 before:rounded-full 
+                               before:bg-gradient-to-r before:from-white/20 before:to-transparent
+                               before:animate-pulse"
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <div className="w-8 h-8 relative z-10">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                    </div>
+                  </motion.div>
+
+                  <div className="space-y-8 text-center relative z-10 max-w-lg">
+                    <div className="h-auto min-h-[120px] flex items-center justify-center mb-6">
+                      <TextPressure
+                        text="AI Assistance"
+                        textColor="white"
+                        className={`bg-gradient-to-r from-violet-500 to-purple-500 bg-clip-text text-transparent 
+                                   font-bold tracking-tight whitespace-normal overflow-visible
+                                   ${activeSection === 'group' ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'}
+                                   drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]`}
+                        width={true}
+                        weight={true}
+                        italic={false}
+                        scale={false}
+                        minFontSize={activeSection === 'group' ? 32 : 24}
+                      />
+                    </div>
+                    
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: activeSection === 'group' ? 1 : 0.8, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className={`text-white/90 leading-relaxed font-medium
+                                 ${activeSection === 'group' ? 'text-lg' : 'text-sm line-clamp-2'}
+                                 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]`}
+                    >
+                      Harness the power of AI to enhance your coding workflow. Get intelligent code suggestions, automated documentation, and smart code completion in real-time.
+                    </motion.p>
+
+                    {activeSection === 'group' && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-8 px-8 py-3 rounded-lg 
+                                  bg-gradient-to-r from-violet-500 to-purple-500
+                                  text-white font-semibold text-lg
+                                  shadow-lg shadow-indigo-500/30
+                                  hover:shadow-xl hover:shadow-indigo-500/40
+                                  transition-all duration-300
+                                  transform hover:scale-105"
+                      >
+                        Learn More →
+                      </motion.button>
+                    )}
+                  </div>
+
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10" />
+                    <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Community Hub Section */}
+              <motion.div
+                className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            ${activeSection === 'blog' 
+                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
+                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
+                            }`}
+                onClick={() => handleSectionChange('blog')}
+                whileHover={{ scale: activeSection === 'blog' ? 1.02 : 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                  <motion.div
+                    className="mb-8 p-6 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500
+                               shadow-lg shadow-indigo-500/20 relative
+                               before:absolute before:inset-0 before:rounded-full 
+                               before:bg-gradient-to-r before:from-white/20 before:to-transparent
+                               before:animate-pulse"
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <div className="w-8 h-8 relative z-10">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 a0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
+                      </svg>
+                    </div>
+                  </motion.div>
+
+                  <div className="space-y-8 text-center relative z-10 max-w-lg">
+                    <div className="h-auto min-h-[120px] flex items-center justify-center mb-6">
+                      <TextPressure
+                        text="Community Hub"
+                        textColor="white"
+                        className={`bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text text-transparent 
+                                   font-bold tracking-tight whitespace-normal overflow-visible
+                                   ${activeSection === 'blog' ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'}
+                                   drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]`}
+                        width={true}
+                        weight={true}
+                        italic={false}
+                        scale={false}
+                        minFontSize={activeSection === 'blog' ? 32 : 24}
+                      />
+                    </div>
+                    
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: activeSection === 'blog' ? 1 : 0.8, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className={`text-white/90 leading-relaxed font-medium
+                                 ${activeSection === 'blog' ? 'text-lg' : 'text-sm line-clamp-2'}
+                                 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]`}
+                    >
+                      Connect with fellow developers, share your expertise, and discover new coding practices. Join discussions, contribute to projects, and grow together.
+                    </motion.p>
+
+                    {activeSection === 'blog' && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-8 px-8 py-3 rounded-lg 
+                                  bg-gradient-to-r from-indigo-500 to-blue-500
+                                  text-white font-semibold text-lg
+                                  shadow-lg shadow-indigo-500/30
+                                  hover:shadow-xl hover:shadow-indigo-500/40
+                                  transition-all duration-300
+                                  transform hover:scale-105"
+                      >
+                        Learn More →
+                      </motion.button>
+                    )}
+                  </div>
+
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10" />
+                    <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Add gradient overlay for better text readability */}
