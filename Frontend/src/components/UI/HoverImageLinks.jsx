@@ -1,47 +1,16 @@
 import { useMotionValue, motion, useSpring, useTransform } from "framer-motion";
 import React, { useRef } from "react";
 import { FiArrowRight } from "react-icons/fi";
+import PropTypes from 'prop-types';
 
-export const HoverImageLinks = () => {
-  return (
-    <section className="bg-neutral-950 p-4 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <Link
-          heading="About"
-          subheading="Learn what we do here"
-          imgSrc="/imgs/random/11.jpg"
-          href="#"
-        />
-        <Link
-          heading="Clients"
-          subheading="We work with great people"
-          imgSrc="/imgs/random/6.jpg"
-          href="#"
-        />
-        <Link
-          heading="Portfolio"
-          subheading="Our work speaks for itself"
-          imgSrc="/imgs/random/4.jpg"
-          href="#"
-        />
-        <Link
-          heading="Careers"
-          subheading="We want cool people"
-          imgSrc="/imgs/random/5.jpg"
-          href="#"
-        />
-        <Link
-          heading="Fun"
-          subheading="Incase you're bored"
-          imgSrc="/imgs/random/10.jpg"
-          href="#"
-        />
-      </div>
-    </section>
-  );
-};
-
-const Link = ({ heading, imgSrc, subheading, href }) => {
+const Link = ({ 
+  heading, 
+  imgSrc, 
+  subheading, 
+  href,
+  className = "",
+  imageClassName = ""
+}) => {
   const ref = useRef(null);
 
   const x = useMotionValue(0);
@@ -76,7 +45,7 @@ const Link = ({ heading, imgSrc, subheading, href }) => {
       onMouseMove={handleMouseMove}
       initial="initial"
       whileHover="whileHover"
-      className="group relative flex items-center justify-between border-b-2 border-neutral-700 py-4 transition-colors duration-500 hover:border-neutral-50 md:py-8"
+      className={`group relative flex items-center justify-between border-b-2 border-neutral-700 py-4 transition-colors duration-500 hover:border-neutral-50 md:py-8 ${className}`}
     >
       <div>
         <motion.span
@@ -123,7 +92,7 @@ const Link = ({ heading, imgSrc, subheading, href }) => {
         }}
         transition={{ type: "spring" }}
         src={imgSrc}
-        className="absolute z-0 h-24 w-32 rounded-lg object-cover md:h-48 md:w-64"
+        className={`absolute z-0 h-24 w-32 rounded-lg object-cover md:h-48 md:w-64 ${imageClassName}`}
         alt={`Image representing a link for ${heading}`}
       />
 
@@ -146,3 +115,53 @@ const Link = ({ heading, imgSrc, subheading, href }) => {
     </motion.a>
   );
 };
+
+Link.propTypes = {
+  heading: PropTypes.string.isRequired,
+  imgSrc: PropTypes.string.isRequired,
+  subheading: PropTypes.string.isRequired,
+  href: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  imageClassName: PropTypes.string
+};
+
+export const HoverImageLinks = ({ 
+  links,
+  className = "bg-neutral-950 p-4 md:p-8",
+  containerClassName = "mx-auto max-w-5xl"
+}) => {
+  return (
+    <section className={className}>
+      <div className={containerClassName}>
+        {links.map((link, index) => (
+          <Link
+            key={index}
+            heading={link.heading}
+            subheading={link.subheading}
+            imgSrc={link.imgSrc}
+            href={link.href}
+            className={link.className}
+            imageClassName={link.imageClassName}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+HoverImageLinks.propTypes = {
+  links: PropTypes.arrayOf(
+    PropTypes.shape({
+      heading: PropTypes.string.isRequired,
+      subheading: PropTypes.string.isRequired,
+      imgSrc: PropTypes.string.isRequired,
+      href: PropTypes.string.isRequired,
+      className: PropTypes.string,
+      imageClassName: PropTypes.string
+    })
+  ).isRequired,
+  className: PropTypes.string,
+  containerClassName: PropTypes.string
+};
+
+export default HoverImageLinks;

@@ -2,8 +2,11 @@ import React, { Suspense, lazy, useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion, useScroll, useTransform, frame, cancelFrame } from 'framer-motion'
 import Lenis from '@studio-freight/lenis'  // Updated import
 import Page3 from './Page3'
+import { HoverImageLinks } from '../UI/HoverImageLinks'
 // Eager load critical components
 import Hero from './Hero'
+import FAQ from './FAQ'  // Add this import
+import Footer from './Footer'  // Add this import if not already present
 
 // Lazy load non-critical components
 const KeyFeatures = lazy(() => import('./KeyFeatures'))
@@ -57,6 +60,8 @@ const Landing = () => {
     page3: false,
     page4: false
   });
+
+  
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -179,6 +184,12 @@ const Landing = () => {
             <Page4 />
           </SectionWrapper>
         </Suspense>
+
+        <SectionWrapper delay={0.8}>
+          <FAQ />
+        </SectionWrapper>
+
+        <Footer />
       </div>
 
       {/* Scroll progress indicator */}

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useVelocity, useSpring } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import TiltedCard from '../../blocks/Components/TiltedCard/TiltedCard';
 import Squares from '../../blocks/Backgrounds/Squares/Squares';
@@ -37,6 +37,7 @@ const InteractiveBackground = () => {
 
 const Page4 = () => {
   const containerRef = useRef();
+  const velocityTextRef = useRef(null);
   const [contentRef, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -47,16 +48,30 @@ const Page4 = () => {
     offset: ["start end", "end start"]
   });
 
+  // Velocity text effect with adjusted ranges
+  const velocityScrollProgress = useScroll({
+    target: velocityTextRef,
+    offset: ["start end", "end start"],
+  }).scrollYProgress;
+
+  const scrollVelocity = useVelocity(velocityScrollProgress);
+  const skewX = useSpring(
+    useTransform(scrollVelocity, [-0.5, 0.5], ["45deg", "-45deg"]),
+    { mass: 3, stiffness: 400, damping: 50 }
+  );
+  const x = useSpring(
+    useTransform(velocityScrollProgress, [0, 1], [0, -2000]),
+    { mass: 3, stiffness: 400, damping: 50 }
+  );
+
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
 
   return (
-    <section ref={containerRef} className="relative min-h-screen py-20 overflow-hidden">
-      {/* Interactive Background */}
+    <section ref={containerRef} className="relative min-h-screen py-10 overflow-hidden">
       <InteractiveBackground />
 
-      {/* Content Container with spacing for background interaction */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10" ref={contentRef}>
-        {/* Section title with reduced bottom margin */}
+        {/* Section title */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -76,10 +91,10 @@ const Page4 = () => {
           </h2>
         </motion.div>
 
-        {/* Testimonials grid with spacing for background interaction */}
+        {/* Testimonials grid - added margin bottom */}
         <motion.div 
           style={{ y }} 
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-32"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-40"
         >
           {testimonials.map((testimonial, index) => (
             <motion.div
@@ -111,8 +126,15 @@ const Page4 = () => {
           ))}
         </motion.div>
 
-        {/* Add space at the bottom for background interaction */}
-        <div className="h-32 md:h-64" />
+        {/* Velocity Text Section - adjusted top margin */}
+        <div ref={velocityTextRef} className="relative overflow-hidden mt-20 mb-10">
+          <motion.p
+            style={{ skewX, x }}
+            className="whitespace-nowrap text-3xl md:text-5xl font-black uppercase leading-[0.85] text-white/90 py-8"
+          >
+            Join Our Developer Community Today • Start Building • Create Together • Join Our Developer Community Today • Start Building • Create Together • Join Our Developer Community Today • Start Building • Create Together
+          </motion.p>
+        </div>
       </div>
     </section>
   );
