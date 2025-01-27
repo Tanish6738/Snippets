@@ -603,6 +603,52 @@ const ParticleCanvas = ({ children }) => (
   </Canvas>
 );
 
+// Add this common transition config
+const sectionTransition = {
+  layout: {
+    duration: 0.8,
+    ease: [0.43, 0.13, 0.23, 0.96] // Custom easing for smoother motion
+  },
+  initial: { 
+    scale: 0.96,
+    opacity: 0.5,
+    filter: "blur(4px)",
+    transition: {
+      duration: 0.4,
+      ease: [0.43, 0.13, 0.23, 0.96]
+    }
+  },
+  animate: (isActive) => ({
+    scale: isActive ? 1 : 0.96,
+    opacity: isActive ? 1 : 0.7,
+    filter: `blur(${isActive ? 0 : 2}px)`,
+    transition: {
+      duration: 0.6,
+      ease: [0.43, 0.13, 0.23, 0.96],
+      opacity: { duration: 0.4 },
+      filter: { duration: 0.4 }
+    }
+  }),
+  exit: { 
+    scale: 0.96,
+    opacity: 0.5,
+    filter: "blur(4px)",
+    transition: {
+      duration: 0.4,
+      ease: [0.43, 0.13, 0.23, 0.96]
+    }
+  },
+  whileHover: {
+    scale: 1.02,
+    opacity: 1,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.3,
+      ease: [0.43, 0.13, 0.23, 0.96]
+    }
+  }
+};
+
 // Update the section content layout
 const Hero = () => {
   const [activeSection, setActiveSection] = useState('home')
@@ -639,17 +685,25 @@ const Hero = () => {
       color: "from-indigo-500 to-blue-500",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 a0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
         </svg>
       )
     }
   };
 
   const handleSectionChange = (newSection) => {
-    setIsTransitioning(true)
-    setActiveSection(newSection)
-    setTimeout(() => setIsTransitioning(false), 800)
-  }
+    setIsTransitioning(true);
+    
+    // First trigger exit animations
+    setTimeout(() => {
+      setActiveSection(newSection);
+      
+      // Then trigger enter animations
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 300);
+    }, 300);
+  };
 
   const buttons = [
     { 
@@ -849,27 +903,51 @@ const Hero = () => {
           </div>
 
           {/* Enhanced Content Display */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="w-full max-w-6xl"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mx-auto max-w-7xl px-4">
+          <AnimatePresence mode="wait">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 mx-auto max-w-7xl px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
               {/* Code Repository Section */}
               <motion.div
+                layout
+                layoutId={`section-home`}  initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={sectionTransition}
+                custom={activeSection === 'home'}
                 className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            transform-gpu perspective-1000 // Add for better performance
                             ${activeSection === 'home' 
-                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
-                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
-                            }`}
+                              ? 'col-span-2 md:col-span-2 z-10' 
+                              : 'col-span-1'}`}
                 onClick={() => handleSectionChange('home')}
-                whileHover={{ scale: activeSection === 'home' ? 1.02 : 1.05 }}
-                transition={{ duration: 0.3 }}
+                whileHover="whileHover"
+                layoutTransition={{
+                  type: "spring",
+                  bounce: 0.2,
+                  duration: 0.8
+                }}
               >
-                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
-                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
-                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                <motion.div
+                  layout
+                  className="relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                             bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                             border border-white/10 shadow-2xl shadow-indigo-500/10
+                             transition-shadow duration-300 ease-out "
+                  transition={{
+                    layout: { 
+                      duration: 0.8,
+                      ease: [0.43, 0.13, 0.23, 0.96]
+                    }
+                  }}
+                  style={{
+                    backfaceVisibility: "hidden" // Prevent flickering during transitions
+                  }}
+                >
                   <motion.div
                     className="mb-8 p-6 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500
                                shadow-lg shadow-indigo-500/20 relative
@@ -937,23 +1015,46 @@ const Hero = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10" />
                     <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* AI Assistance Section */}
               <motion.div
+                layout
+                layoutId={`section-group`}  initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={sectionTransition}
+                custom={activeSection === 'group'}
                 className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            transform-gpu perspective-1000 // Add for better performance
                             ${activeSection === 'group' 
-                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
-                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
-                            }`}
+                              ? 'col-span-2 md:col-span-2 z-10' 
+                              : 'col-span-1'}`}
                 onClick={() => handleSectionChange('group')}
-                whileHover={{ scale: activeSection === 'group' ? 1.02 : 1.05 }}
-                transition={{ duration: 0.3 }}
+                whileHover="whileHover"
+                layoutTransition={{
+                  type: "spring",
+                  bounce: 0.2,
+                  duration: 0.8
+                }}
               >
-                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
-                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
-                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                <motion.div
+                  layout
+                  className="relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                             bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                             border border-white/10 shadow-2xl shadow-indigo-500/10
+                             transition-shadow duration-300 ease-out"
+                  transition={{
+                    layout: { 
+                      duration: 0.8,
+                      ease: [0.43, 0.13, 0.23, 0.96]
+                    }
+                  }}
+                  style={{
+                    backfaceVisibility: "hidden" // Prevent flickering during transitions
+                  }}
+                >
                   <motion.div
                     className="mb-8 p-6 rounded-full bg-gradient-to-r from-violet-500 to-purple-500
                                shadow-lg shadow-indigo-500/20 relative
@@ -1021,23 +1122,46 @@ const Hero = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10" />
                     <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* Community Hub Section */}
               <motion.div
+                layout
+                layoutId={`section-blog`}  initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={sectionTransition}
+                custom={activeSection === 'blog'}
                 className={`relative rounded-2xl overflow-hidden cursor-pointer
+                            transform-gpu perspective-1000 // Add for better performance
                             ${activeSection === 'blog' 
-                              ? 'col-span-2 md:col-span-2 scale-105 z-10' 
-                              : 'col-span-1 filter blur-[0.5px] hover:blur-none transition-all duration-300'
-                            }`}
+                              ? 'col-span-2 md:col-span-2 z-10' 
+                              : 'col-span-1'}`}
                 onClick={() => handleSectionChange('blog')}
-                whileHover={{ scale: activeSection === 'blog' ? 1.02 : 1.05 }}
-                transition={{ duration: 0.3 }}
+                whileHover="whileHover"
+                layoutTransition={{
+                  type: "spring",
+                  bounce: 0.2,
+                  duration: 0.8
+                }}
               >
-                <div className={`relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
-                 bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
-                 border border-white/10 shadow-2xl shadow-indigo-500/10`}>
+                <motion.div
+                  layout
+                  className="relative min-h-[500px] w-full flex flex-col items-center justify-center p-8 md:p-12 
+                             bg-gradient-to-b from-black/40 to-black/20 backdrop-blur-xl
+                             border border-white/10 shadow-2xl shadow-indigo-500/10
+                             transition-shadow duration-300 ease-out"
+                  transition={{
+                    layout: { 
+                      duration: 0.8,
+                      ease: [0.43, 0.13, 0.23, 0.96]
+                    }
+                  }}
+                  style={{
+                    backfaceVisibility: "hidden" // Prevent flickering during transitions
+                  }}
+                >
                   <motion.div
                     className="mb-8 p-6 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500
                                shadow-lg shadow-indigo-500/20 relative
@@ -1105,10 +1229,10 @@ const Hero = () => {
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-blue-500/10" />
                     <div className="absolute inset-0 bg-gradient-radial from-white/5 via-transparent to-transparent" />
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 

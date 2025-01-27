@@ -2,6 +2,7 @@ import React, { Suspense, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Page3Scene, { HTMLLoader } from './Page3Scene';
+import AnimatedProximityText from '../UI/AnimatedProximityText';
 
 const FeatureCard = ({ title, description, delay }) => (
   <motion.div 
@@ -48,7 +49,12 @@ const Page3 = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl font-bold text-white text-center py-8"
             >
-              Collaborate With Others
+              <AnimatedProximityText 
+                text="Collaborate With Others"
+                radius={200}
+                fromWeight={400}
+                toWeight={800}
+              />
             </motion.h2>
             
             <div className="flex-1 flex flex-col lg:flex-row">
@@ -61,12 +67,29 @@ const Page3 = () => {
                 >
                   <div className="space-y-6">
                     <h3 className="text-4xl font-semibold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent leading-tight">
-                      Collaborate. Share.<br />Grow Together.
+                      <AnimatedProximityText 
+                        text="Collaborate. Share. Grow Together."
+                        radius={250}
+                        fromWeight={400}
+                        toWeight={900}
+                      />
                     </h3>
                     
                     <div className="space-y-8">
                       {features.map((feature, index) => (
-                        <FeatureCard key={index} {...feature} />
+                        <FeatureCard 
+                          key={index} 
+                          {...feature}
+                          title={
+                            <AnimatedProximityText 
+                              text={feature.title}
+                              radius={100}
+                              fromWeight={400}
+                              toWeight={600}
+                              className="text-indigo-300"
+                            />
+                          }
+                        />
                       ))}
                     </div>
                   </div>

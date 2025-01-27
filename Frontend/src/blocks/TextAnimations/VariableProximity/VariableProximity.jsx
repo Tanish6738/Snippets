@@ -53,11 +53,11 @@ function useMousePositionRef(containerRef) {
 const VariableProximity = forwardRef((props, ref) => {
   const {
     label,
-    fromFontVariationSettings = "'wght' 400, 'opsz' 9",
-    toFontVariationSettings = "'wght' 1000, 'opsz' 40",
+    fromFontVariationSettings = "'wght' 400",
+    toFontVariationSettings = "'wght' 1000",
     containerRef,
     radius = 100,
-    falloff = "linear",
+    falloff = "exponential",
     className = "",
     onClick,
     style,
@@ -65,6 +65,7 @@ const VariableProximity = forwardRef((props, ref) => {
   } = props;
 
   const letterRefs = useRef([]);
+  const interpolatedSettingsRef = useRef([]);
   const mousePositionRef = useMousePositionRef(containerRef);
 
   const parsedSettings = useMemo(() => {
@@ -88,11 +89,19 @@ const VariableProximity = forwardRef((props, ref) => {
     }));
   }, [fromFontVariationSettings, toFontVariationSettings]);
 
+  useEffect(() => {
+    letterRefs.current.forEach((letterRef) => {
+      if (letterRef) {
+        letterRef.style.fontVariationSettings = fromFontVariationSettings;
+      }
+    });
+  }, [fromFontVariationSettings]);
+
   useAnimationFrame(() => {
     if (!containerRef?.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
 
-    letterRefs.current.forEach((letterRef) => {
+    letterRefs.current.forEach((letterRef, index) => {
       if (!letterRef) return;
 
       const rect = letterRef.getBoundingClientRect();
@@ -120,6 +129,7 @@ const VariableProximity = forwardRef((props, ref) => {
         .join(", ");
 
       letterRef.style.fontVariationSettings = settings;
+      interpolatedSettingsRef.current[index] = settings;
     });
   });
 

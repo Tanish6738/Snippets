@@ -1,5 +1,6 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react'
-import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react'
+import { AnimatePresence, motion, useScroll, useTransform, frame, cancelFrame } from 'framer-motion'
+import Lenis from '@studio-freight/lenis'  // Updated import
 import Page3 from './Page3'
 // Eager load critical components
 import Hero from './Hero'
@@ -49,12 +50,36 @@ const Landing = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const { scrollYProgress } = useScroll();
+  const lenisRef = useRef(null);
   const [componentsLoaded, setComponentsLoaded] = useState({
     stars: false,
     keyFeatures: false,
     page3: false,
     page4: false
   });
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1,
+      infinite: false,
+    })
+
+    function raf(time) {
+      lenis.raf(time)
+      requestAnimationFrame(raf)
+    }
+
+    requestAnimationFrame(raf)
+
+    return () => {
+      lenis.destroy()
+    }
+  }, [])
 
   useEffect(() => {
     let totalProgress = 0;
