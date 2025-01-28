@@ -1,0 +1,23 @@
+body {
+  cursor: none;
+}
+
+/* Show default cursor for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  body {
+    cursor: auto;
+  }
+  
+  .custom-cursor {
+    display: none;
+  }
+}
+
+.custom-cursor-wrapper,
+.custom-cursor-wrapper *,
+.custom-cursor-wrapper *:hover,
+.custom-cursor-wrapper *:active,
+.custom-cursor-wrapper *:focus,
+.custom-cursor-wrapper *[style*="cursor"] {
+  cursor: none !important;
+}

@@ -26,7 +26,7 @@ const footerLinks = [
 
 const FAQ = () => {
   return (
-    <section className="relative py-20">
+    <section className="relative ">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
