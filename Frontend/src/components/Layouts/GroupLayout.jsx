@@ -10,10 +10,18 @@ import {
   FaBars,
   FaArrowLeft,
   FaPaperPlane,
-  FaSpinner 
+  FaSpinner,
+  FaCode
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import AddMemberModal from '../Modals/GroupModals/AddMemberModal';
+import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
+import BulkCreateSnippetModal from '../Modals/SnippetModals/BulkCreateSnippetModal';
+import EditSnippetDetailsModal from '../Modals/SnippetModals/EditSnippetDetailsModal';
+import ExportSnippetModal from '../Modals/SnippetModals/ExportSnippetModal';
+import CreateDirectoryModal from '../Modals/DirectoryModals/CreateDirectoryModal';
+import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails';
+import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
 
@@ -40,6 +48,17 @@ const GroupLayout = () => {
   const [groupData, setGroupData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [isCreateSnippetModalOpen, setCreateSnippetModalOpen] = useState(false);
+  const [isBulkCreateSnippetModalOpen, setBulkCreateSnippetModalOpen] = useState(false);
+  const [isEditSnippetModalOpen, setEditSnippetModalOpen] = useState(false);
+  const [isExportSnippetModalOpen, setExportSnippetModalOpen] = useState(false);
+  const [isCreateDirectoryModalOpen, setCreateDirectoryModalOpen] = useState(false);
+  const [isEditDirectoryModalOpen, setEditDirectoryModalOpen] = useState(false);
+  const [isExportDirectoryModalOpen, setExportDirectoryModalOpen] = useState(false);
+  const [selectedSnippet, setSelectedSnippet] = useState(null);
+  const [selectedDirectory, setSelectedDirectory] = useState(null);
+  const [directories, setDirectories] = useState([]);
+  const [snippets, setSnippets] = useState([]);
 
   // Check for mobile viewport
   useEffect(() => {
@@ -162,6 +181,27 @@ const GroupLayout = () => {
       error: fetchError
     });
   }, [isLoading, groupData, members, fetchError]);
+
+  // Fetch snippets and directories
+  useEffect(() => {
+    const fetchGroupContent = async () => {
+      try {
+        const [snippetsRes, directoriesRes] = await Promise.all([
+          axios.get(`/api/groups/${groupId}/snippets`),
+          axios.get(`/api/groups/${groupId}/directories`)
+        ]);
+
+        setSnippets(snippetsRes.data || []);
+        setDirectories(directoriesRes.data || []);
+      } catch (err) {
+        console.error('Error fetching group content:', err);
+      }
+    };
+
+    if (groupId) {
+      fetchGroupContent();
+    }
+  }, [groupId]);
 
   // Modified loading condition
   if (isInitialLoading) {
@@ -377,12 +417,32 @@ const GroupLayout = () => {
             ) : (
               <div className="space-y-2">
                 {!isSidebarCollapsed && (
-                  <button className="w-full px-4 py-2 bg-indigo-500/20 
-                                   hover:bg-indigo-500/30 text-indigo-300 
-                                   rounded-lg flex items-center gap-2">
-                    <FaPlus className="w-3 h-3" />
-                    <span>New Snippet</span>
-                  </button>
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => setCreateSnippetModalOpen(true)}
+                      className="w-full px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 
+                                text-indigo-300 rounded-lg flex items-center gap-2"
+                    >
+                      <FaPlus className="w-3 h-3" />
+                      <span>New Snippet</span>
+                    </button>
+                    <button 
+                      onClick={() => setBulkCreateSnippetModalOpen(true)}
+                      className="w-full px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 
+                                text-indigo-300 rounded-lg flex items-center gap-2"
+                    >
+                      <FaPlus className="w-3 h-3" />
+                      <span>Bulk Create Snippets</span>
+                    </button>
+                    <button 
+                      onClick={() => setCreateDirectoryModalOpen(true)}
+                      className="w-full px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 
+                                text-indigo-300 rounded-lg flex items-center gap-2"
+                    >
+                      <FaFolder className="w-3 h-3" />
+                      <span>New Directory</span>
+                    </button>
+                  </div>
                 )}
                 {/* File tree would go here */}
               </div>
@@ -475,7 +535,22 @@ const GroupLayout = () => {
                           transition-all duration-300">
               {/* Main content... */}
               <div className="text-indigo-300">
-                Select a snippet or directory to view
+                {directories.map(directory => (
+                  <div key={directory._id} 
+                       className="flex items-center gap-3 p-3 hover:bg-indigo-500/10 rounded-lg cursor-pointer"
+                       onClick={() => setSelectedDirectory(directory)}>
+                    <FaFolder />
+                    <span>{directory.name}</span>
+                  </div>
+                ))}
+                {snippets.map(snippet => (
+                  <div key={snippet._id}
+                       className="flex items-center gap-3 p-3 hover:bg-indigo-500/10 rounded-lg cursor-pointer"
+                       onClick={() => setSelectedSnippet(snippet)}>
+                    <FaCode />
+                    <span>{snippet.title}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </motion.div>
@@ -504,6 +579,68 @@ const GroupLayout = () => {
         groupId={groupId}
         onMemberAdded={handleMemberAdded}
         currentMembers={members} // Make sure members array is properly structured
+      />
+
+      {/* Snippet Modals */}
+      <CreateSnippetModal
+        isOpen={isCreateSnippetModalOpen}
+        onClose={() => setCreateSnippetModalOpen(false)}
+        onSnippetCreated={(snippet) => {
+          // Handle newly created snippet
+          console.log('New snippet created:', snippet);
+        }}
+      />
+
+      <BulkCreateSnippetModal
+        isOpen={isBulkCreateSnippetModalOpen}
+        onClose={() => setBulkCreateSnippetModalOpen(false)}
+        onSnippetsCreated={(snippets) => {
+          // Handle newly created snippets
+          console.log('New snippets created:', snippets);
+        }}
+      />
+
+      <EditSnippetDetailsModal
+        isOpen={isEditSnippetModalOpen}
+        onClose={() => setEditSnippetModalOpen(false)}
+        snippet={selectedSnippet}
+        onSnippetUpdated={(updatedSnippet) => {
+          // Handle updated snippet
+          console.log('Snippet updated:', updatedSnippet);
+        }}
+      />
+
+      <ExportSnippetModal
+        isOpen={isExportSnippetModalOpen}
+        onClose={() => setExportSnippetModalOpen(false)}
+        itemId={selectedSnippet?._id}
+        itemType="snippet"
+      />
+
+      {/* Directory Modals */}
+      <CreateDirectoryModal
+        isOpen={isCreateDirectoryModalOpen}
+        onClose={() => setCreateDirectoryModalOpen(false)}
+        onDirectoryCreated={(directory) => {
+          // Handle newly created directory
+          console.log('New directory created:', directory);
+        }}
+      />
+
+      <EditDirectoryDetails
+        isOpen={isEditDirectoryModalOpen}
+        onClose={() => setEditDirectoryModalOpen(false)}
+        directoryId={selectedDirectory?._id}
+        onDirectoryUpdated={(updatedDirectory) => {
+          // Handle updated directory
+          console.log('Directory updated:', updatedDirectory);
+        }}
+      />
+
+      <ExportDirectoryModal
+        isOpen={isExportDirectoryModalOpen}
+        onClose={() => setExportDirectoryModalOpen(false)}
+        directoryId={selectedDirectory?._id}
       />
     </div>
   );

@@ -24,7 +24,9 @@ import {
     updateMemberPermissions,
     getGroupContent,
     searchGroupContent,
-    getGroupStats
+    getGroupStats,
+    getGroupSnippets,   // Add this
+    getGroupDirectories // Add this
 } from '../controllers/group.controller.js';
 
 const groupRouter = express.Router();
@@ -70,5 +72,11 @@ groupRouter.put('/:id/members/:userId/permissions', authMiddleware, updateMember
 groupRouter.get('/:id/content', authMiddleware, getGroupContent);
 groupRouter.get('/:id/search', authMiddleware, searchGroupContent);
 groupRouter.get('/:id/stats', authMiddleware, getGroupStats);
+
+// Get all snippets in a group
+groupRouter.get('/:id/snippets', authMiddleware, getGroupSnippets);
+
+// Get all directories in a group
+groupRouter.get('/:id/directories', authMiddleware, getGroupDirectories);
 
 export default groupRouter;

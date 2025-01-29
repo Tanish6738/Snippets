@@ -449,3 +449,83 @@ export const getGroupStats = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Add these new controller functions
+
+export const getGroupSnippets = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id)
+            .populate({
+                path: 'snippets.snippetId',
+                select: 'title content programmingLanguage description createdAt updatedAt'
+            });
+
+        if (!group) {
+            return res.status(404).json({ error: "Group not found" });
+        }
+
+        // Check if user has access to group
+        const isMember = group.members.some(member => 
+            member.userId.toString() === req.user._id.toString()
+        );
+
+        if (!isMember && group.settings?.visibility !== 'public') {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        // Map to return only the snippet data
+        const snippets = group.snippets.map(item => ({
+            ...item.snippetId.toObject(),
+            addedBy: item.addedBy,
+            addedAt: item.addedAt
+        }));
+
+        res.json(snippets);
+
+    } catch (error) {
+        console.error('getGroupSnippets error:', error);
+        res.status(500).json({ 
+            error: "Failed to fetch group snippets",
+            message: error.message
+        });
+    }
+};
+
+export const getGroupDirectories = async (req, res) => {
+    try {
+        const group = await Group.findById(req.params.id)
+            .populate({
+                path: 'directories.directoryId',
+                select: 'name path level metadata createdAt updatedAt'
+            });
+
+        if (!group) {
+            return res.status(404).json({ error: "Group not found" });
+        }
+
+        // Check if user has access to group
+        const isMember = group.members.some(member => 
+            member.userId.toString() === req.user._id.toString()
+        );
+
+        if (!isMember && group.settings?.visibility !== 'public') {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        // Map to return only the directory data
+        const directories = group.directories.map(item => ({
+            ...item.directoryId.toObject(),
+            addedBy: item.addedBy,
+            addedAt: item.addedAt
+        }));
+
+        res.json(directories);
+
+    } catch (error) {
+        console.error('getGroupDirectories error:', error);
+        res.status(500).json({ 
+            error: "Failed to fetch group directories",
+            message: error.message
+        });
+    }
+};
