@@ -809,4 +809,160 @@ const GroupCard = ({ group, onView, isJoined = false }) => (
   </motion.div>
 );
 
+const fetchGroupContent = async () => {
+  try {
+    console.log('Fetching content for group:', groupId);
+    
+    const [snippetsRes, directoriesRes] = await Promise.all([
+      axios.get(`/api/groups/${groupId}/snippets`),
+      axios.get(`/api/groups/${groupId}/directories`)
+    ]);
+
+    console.log('Group snippets:', snippetsRes.data);
+    console.log('Group directories:', directoriesRes.data);
+    
+    setSnippets(snippetsRes.data);
+    setDirectories(directoriesRes.data);
+
+    // Build directory structure
+    const structure = buildDirectoryTree(directoriesRes.data, snippetsRes.data);
+    console.log('Built directory structure:', structure);
+    setDirectoryStructure(structure);
+
+  } catch (error) {
+    console.error('Error fetching group content:', error);
+    setFetchError(error.message);
+  }
+};
+
+const FileTreeNode = ({ item, level = 0, onSelect }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const isDirectory = item.type === 'directory';
+  const hasChildren = isDirectory && (
+    (item.children?.length > 0) || (item.directSnippets?.length > 0)
+  );
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onSelect(item);
+  };
+
+  const handleExpandClick = (e) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <div className="select-none">
+      <div
+        className={`
+          flex items-center py-1.5 px-2 
+          hover:bg-indigo-500/10 rounded-lg 
+          cursor-pointer
+          ${level > 0 ? `ml-${level * 4}` : ''}
+        `}
+        onClick={handleClick}
+      >
+        <span className="w-4 h-4 flex items-center justify-center mr-1">
+          {hasChildren && (
+            <button
+              onClick={handleExpandClick}
+              className="text-indigo-400/75 hover:text-indigo-300"
+            >
+              {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+            </button>
+          )}
+        </span>
+
+        <span className="w-5 h-5 flex items-center justify-center mr-2">
+          {isDirectory ? (
+            isExpanded ? (
+              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
+            ) : (
+              <FaFolder className="w-4 h-4 text-indigo-400/90" />
+            )
+          ) : (
+            <FaCode className="w-4 h-4 text-indigo-300/90" />
+          )}
+        </span>
+
+        <span className="text-sm text-indigo-200/90 font-medium flex-1">
+          {item.name || item.title}
+        </span>
+
+        {isDirectory && (
+          <span className="text-xs text-indigo-400">
+            {item.directSnippets?.length || 0} snippets
+          </span>
+        )}
+      </div>
+
+      {isExpanded && hasChildren && (
+        <div>
+          {item.children?.map((child) => (
+            <FileTreeNode
+              key={child._id}
+              item={{ ...child, type: 'directory' }}
+              level={level + 1}
+              onSelect={onSelect}
+            />
+          ))}
+          
+          {item.directSnippets?.map((snippet) => (
+            <FileTreeNode
+              key={snippet._id}
+              item={{ ...snippet, type: 'snippet' }}
+              level={level + 1}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SnippetList = ({ snippets }) => {
+  if (!snippets?.length) {
+    return (
+      <div className="text-indigo-400 text-sm p-4 text-center">
+        No snippets found
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 md:gap-4">
+      {snippets.map(snippet => (
+        <div 
+          key={`snippet-${snippet._id}`}
+          className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+                   hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FaCode className="text-indigo-400" />
+              <span className="text-white">{snippet.title}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-indigo-400">
+                {snippet.programmingLanguage}
+              </span>
+              <span className="text-xs text-indigo-400/60">
+                {new Date(snippet.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+          {snippet.description && (
+            <p className="mt-2 text-sm text-indigo-300/70">
+              {snippet.description}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default Home;

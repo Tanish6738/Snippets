@@ -44,22 +44,32 @@ export const getAllGroups = async (req, res) => {
 
         const groups = await Group.find(query)
             .populate('members.userId', 'username email')
+            .populate({
+                path: 'snippets.snippetId',
+                select: 'title content programmingLanguage'
+            })
             .sort(sort)
             .lean();
 
         const response = {
-            groups: groups,
+            groups: groups.map(group => ({
+                ...group,
+                snippetCount: group.snippets.filter(s => s.snippetId).length
+            })),
             total: groups.length,
             hasMore: groups.length === parseInt(limit)
         };
 
-        // Set cache control headers
         res.set('Cache-Control', 'no-cache');
         res.set('Pragma', 'no-cache');
         
         res.json(response);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('getAllGroups error:', error);
+        res.status(500).json({ 
+            error: "Failed to fetch groups",
+            message: error.message
+        });
     }
 };
 
@@ -458,14 +468,18 @@ export const getGroupSnippets = async (req, res) => {
         const group = await Group.findById(req.params.id)
             .populate({
                 path: 'snippets.snippetId',
-                select: 'title content programmingLanguage description createdAt updatedAt'
+                select: 'title content programmingLanguage description createdAt updatedAt tags visibility createdBy',
+                populate: {
+                    path: 'createdBy',
+                    select: 'username email'
+                }
             });
 
         if (!group) {
             return res.status(404).json({ error: "Group not found" });
         }
 
-        // Check if user has access to group
+        // Check access permissions
         const isMember = group.members.some(member => 
             member.userId.toString() === req.user._id.toString()
         );
@@ -474,13 +488,16 @@ export const getGroupSnippets = async (req, res) => {
             return res.status(403).json({ error: "Access denied" });
         }
 
-        // Map to return only the snippet data
-        const snippets = group.snippets.map(item => ({
-            ...item.snippetId.toObject(),
-            addedBy: item.addedBy,
-            addedAt: item.addedAt
-        }));
+        // Map snippets and filter out any null references
+        const snippets = group.snippets
+            .filter(item => item.snippetId)
+            .map(item => ({
+                ...item.snippetId.toObject(),
+                addedAt: item.addedAt,
+                addedBy: item.addedBy
+            }));
 
+        console.log(`Found ${snippets.length} snippets for group ${group._id}`);
         res.json(snippets);
 
     } catch (error) {

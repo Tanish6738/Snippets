@@ -53,6 +53,11 @@ export const createSnippet = async (req, res) => {
             await directory.addSnippet(snippet);
         }
 
+        // If groupId is provided, add snippet to group
+        if (req.body.groupId) {
+            await addSnippetToGroup(snippet._id, req.body.groupId, req.user._id);
+        }
+
         const populatedSnippet = await Snippet.findById(snippet._id)
             .populate('createdBy', 'username email')
             .populate('directory.current')
@@ -576,4 +581,22 @@ export const getUserSnippets = async (req, res) => {
             message: error.message 
         });
     }
+};
+
+const addSnippetToGroup = async (snippetId, groupId, userId) => {
+    const group = await Group.findById(groupId);
+    if (!group) {
+        throw new Error("Group not found");
+    }
+
+    if (!group.snippets.some(s => s.snippetId.equals(snippetId))) {
+        group.snippets.push({
+            snippetId,
+            addedBy: userId,
+            addedAt: new Date()
+        });
+        await group.save();
+        console.log(`Added snippet ${snippetId} to group ${groupId}`);
+    }
+    return group;
 };

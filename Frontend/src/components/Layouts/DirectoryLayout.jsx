@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { 
   FaFolder, 
   FaFolderOpen, 
@@ -9,7 +10,11 @@ import {
   FaPlus,
   FaTrash,
   FaEdit,
-  FaSearch
+  FaSearch,
+  FaSpinner,
+  FaCode,
+  FaFileCode,
+  FaDatabase
 } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
@@ -332,82 +337,169 @@ const SnippetList = ({ snippets }) => {
   );
 };
 
+SnippetList.propTypes = {
+  snippets: PropTypes.arrayOf(PropTypes.shape({
+    _id: PropTypes.string,
+    title: PropTypes.string.isRequired,
+    programmingLanguage: PropTypes.string,
+    tags: PropTypes.arrayOf(PropTypes.string),
+    createdAt: PropTypes.string,
+    versionHistory: PropTypes.array
+  }))
+};
+
 // Fix the MainContent component to include unique keys
 const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
+  const [loading, setLoading] = useState(false);
+
+  // Log received data for debugging
+  useEffect(() => {
+    console.log('Directory data:', directory);
+    console.log('Selected snippet:', selectedSnippet);
+  }, [directory, selectedSnippet]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin text-indigo-500">
+          <FaSpinner size={24} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!directory && !selectedSnippet) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-indigo-400">Select a directory or snippet to view</p>
+      </div>
+    );
+  }
+
   if (selectedSnippet) {
     return <SnippetDetails snippet={selectedSnippet} />;
   }
 
-  if (!directory) {
-    return (
-      <div className="text-center text-indigo-300 mt-10">
-        Select a directory to view its contents
-      </div>
-    );
-  }
+  // Filter items based on search term
+  const filteredSnippets = directory.allSnippets?.filter(snippet =>
+    !searchTerm || snippet.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
-  // Filter snippets and directories based on search term
-  const filteredSnippets = searchItems(directory.directSnippets || [], searchTerm);
-  const filteredDirectories = searchItems(directory.children || [], searchTerm);
-
-  const hasResults = filteredSnippets.length > 0 || filteredDirectories.length > 0;
-  const isSearching = Boolean(searchTerm);
-
-  if (isSearching && !hasResults) {
-    return (
-      <div className="text-center text-indigo-300 mt-10">
-        No results found for "{searchTerm}"
-      </div>
-    );
-  }
+  const filteredDirectories = directory.children?.filter(dir =>
+    !searchTerm || dir.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {!isSearching && <DirectoryStats directory={directory} />}
-      
-      {/* Show filtered results count when searching */}
-      {isSearching && (
-        <div className="text-indigo-300 mb-4">
-          Found {filteredSnippets.length + filteredDirectories.length} results for "{searchTerm}"
-        </div>
-      )}
-      
-      {filteredSnippets.length > 0 && (
-        <div className="space-y-3 md:space-y-4">
-          <h3 className="text-lg font-semibold text-white">
-            {isSearching ? 'Matching Snippets' : 'Snippets'}
-          </h3>
-          <SnippetList snippets={filteredSnippets} />
-        </div>
-      )}
-      
-      {filteredDirectories.length > 0 && (
-        <div className="space-y-3 md:space-y-4">
-          <h3 className="text-lg font-semibold text-white">
-            {isSearching ? 'Matching Directories' : 'Subdirectories'}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {filteredDirectories.map(child => (
-              <div 
-                key={child._id || `dir-${child.name}`}
-                className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
-                           hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <FaFolder className="text-indigo-400" />
-                  <span className="text-white">{child.name}</span>
-                </div>
-                <div className="mt-2 text-xs text-indigo-400">
-                  {child.snippets?.length || 0} snippets
-                </div>
-              </div>
-            ))}
+    <div className="space-y-6">
+      {/* Directory Stats */}
+      {!searchTerm && (
+        <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+          <div className="flex items-center gap-3 mb-4">
+            <FaFolderOpen className="text-2xl text-indigo-400" />
+            <div>
+              <h2 className="text-xl font-bold text-white">{directory.name}</h2>
+              <p className="text-sm text-indigo-400">{directory.path}</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatBox 
+              label="Total Snippets" 
+              value={directory.metadata?.snippetCount || 0} 
+              icon={<FaCode />} 
+            />
+            <StatBox 
+              label="Subdirectories" 
+              value={directory.metadata?.subDirectoryCount || 0} 
+              icon={<FaFolder />} 
+            />
+            <StatBox 
+              label="Direct Snippets" 
+              value={directory.directSnippets?.length || 0} 
+              icon={<FaFileCode />} 
+            />
+            <StatBox 
+              label="Size" 
+              value={formatBytes(directory.metadata?.totalSize || 0)} 
+              icon={<FaDatabase />} 
+            />
           </div>
         </div>
       )}
+
+      {/* Content Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Snippets Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <FaCode className="text-indigo-400" />
+            {searchTerm ? 'Matching Snippets' : 'Snippets'}
+          </h3>
+          <SnippetList snippets={filteredSnippets} />
+        </div>
+
+        {/* Subdirectories Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <FaFolder className="text-indigo-400" />
+            {searchTerm ? 'Matching Directories' : 'Subdirectories'}
+          </h3>
+          <DirectoryList directories={filteredDirectories} />
+        </div>
+      </div>
     </div>
   );
 };
+
+// Add these helper components:
+const StatBox = ({ label, value, icon }) => (
+  <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+    <div className="flex items-center gap-2 text-indigo-400 mb-1">
+      {icon}
+      <span className="text-xs uppercase">{label}</span>
+    </div>
+    <div className="text-xl font-semibold text-white">{value}</div>
+  </div>
+);
+
+StatBox.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.element.isRequired
+};
+
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+const DirectoryList = ({ directories }) => (
+  <div className="space-y-2">
+    {directories.map(dir => (
+      <div 
+        key={dir._id}
+        className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20
+                 hover:bg-indigo-500/10 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FaFolder className="text-indigo-400" />
+            <span className="text-white font-medium">{dir.name}</span>
+          </div>
+          <span className="text-xs text-indigo-400">
+            {dir.snippets?.length || 0} snippets
+          </span>
+        </div>
+      </div>
+    ))}
+    {directories.length === 0 && (
+      <p className="text-center text-indigo-400 py-4">No subdirectories found</p>
+    )}
+  </div>
+);
 
 // Update the DirectoryLayout component main render
 const DirectoryLayout = () => {
