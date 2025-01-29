@@ -838,7 +838,7 @@ const Hero = () => {
                        before:from-indigo-500/0 before:via-white/25 before:to-indigo-500/0
                        before:animate-shimmer before:bg-[length:200%_100%]"
             >
-              <span className="relative z-10">Get Started for Free</span>
+              <span className="relative z-10 magnet-target">Get Started for Free</span>
             </Link>
             <Link 
               to="/features" 
