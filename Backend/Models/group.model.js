@@ -67,18 +67,38 @@ const groupSchema = new mongoose.Schema({
 
 // Initialize root directory on group creation
 groupSchema.pre('save', async function(next) {
-    if (!this.rootDirectory) {
+    // Only create root directory if it's a new group and no rootDirectory exists
+    if (this.isNew && !this.rootDirectory) {
         const Directory = mongoose.model('Directory');
-        const rootDir = new Directory({
-            name: `${this.name}-root`,
-            path: '/',
-            createdBy: this.createdBy,
-            isRoot: true,
-            level: 0,
-            visibility: 'group'
-        });
-        await rootDir.save();
-        this.rootDirectory = rootDir._id;
+        try {
+            // Check if root directory already exists for this group
+            const existingRoot = await Directory.findOne({
+                groupId: this._id,
+                isRoot: true
+            });
+
+            if (!existingRoot) {
+                const rootDir = new Directory({
+                    name: `${this.name}-root`,
+                    path: '/',
+                    createdBy: this.createdBy,
+                    isRoot: true,
+                    level: 0,
+                    visibility: 'group',
+                    groupId: this._id
+                });
+                await rootDir.save();
+                this.rootDirectory = rootDir._id;
+                this.directories.push({
+                    directoryId: rootDir._id,
+                    addedBy: this.createdBy,
+                    addedAt: new Date()
+                });
+                console.log('Created root directory for group:', this.name);
+            }
+        } catch (error) {
+            console.error('Error creating root directory:', error);
+        }
     }
     next();
 });

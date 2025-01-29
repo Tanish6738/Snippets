@@ -11,7 +11,9 @@ import {
   FaArrowLeft,
   FaPaperPlane,
   FaSpinner,
-  FaCode
+  FaCode,
+  FaChevronDown,
+  FaFolderOpen
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import AddMemberModal from '../Modals/GroupModals/AddMemberModal';
@@ -26,15 +28,12 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
 
 const GroupLayout = () => {
-  const { groupId } = useParams();
+  const { groupId } = useParams(); // Get groupId from URL params
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Add state for received group details
-  const [receivedGroupDetails, setReceivedGroupDetails] = useState(
-    location.state?.groupDetails || null
-  );
+  const receivedGroupDetails = location.state?.groupDetails;
 
+  // Add state for received group details
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isChatOpen, setChatOpen] = useState(false);
@@ -45,9 +44,6 @@ const GroupLayout = () => {
   const [isAddMemberModalOpen, setAddMemberModalOpen] = useState(false);
   const [members, setMembers] = useState([]);
   const mainContentRef = useRef(null);
-  const [groupData, setGroupData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
   const [isCreateSnippetModalOpen, setCreateSnippetModalOpen] = useState(false);
   const [isBulkCreateSnippetModalOpen, setBulkCreateSnippetModalOpen] = useState(false);
   const [isEditSnippetModalOpen, setEditSnippetModalOpen] = useState(false);
@@ -59,6 +55,14 @@ const GroupLayout = () => {
   const [selectedDirectory, setSelectedDirectory] = useState(null);
   const [directories, setDirectories] = useState([]);
   const [snippets, setSnippets] = useState([]);
+  const [directoryStructure, setDirectoryStructure] = useState(null);
+  const [currentDirectory, setCurrentDirectory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [groupData, setGroupData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   // Check for mobile viewport
   useEffect(() => {
@@ -76,61 +80,74 @@ const GroupLayout = () => {
   }, []);
 
   // Enhanced group data fetching with better state management
-  useEffect(() => {
-    const fetchGroupData = async () => {
-      try {
-        console.log('Starting group data fetch for ID:', groupId);
-        setIsLoading(true);
-        setFetchError(null);
-
-        // If we have received group details and they match the groupId, use them
-        if (receivedGroupDetails && receivedGroupDetails._id === groupId) {
-          console.log('Using received group details');
-          setGroupData(receivedGroupDetails);
-          setMembers(receivedGroupDetails.members || []);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Otherwise fetch from API
-        const { data } = await axios.get(`/api/groups/${groupId}`, {
-          params: {
-            includeMembers: true
-          }
-        });
-
-        console.log('Group data fetched:', data);
-        setGroupData(data);
-        setMembers(data.members?.map(member => ({
-          userId: member.userId,
-          role: member.role,
-          permissions: member.permissions
-        })) || []);
-
-      } catch (err) {
-        const errorMessage = err.response?.data?.error || err.message || 'Failed to load group data';
-        console.error('Group fetch error:', {
-          message: errorMessage,
-          status: err.response?.status,
-          error: err
-        });
-        setFetchError(errorMessage);
-        setGroupData(null);
-        
-        // Navigate back if group not found
-        if (err.response?.status === 404) {
-          navigate('/groups');
-        }
-      } finally {
+  const fetchGroupData = async () => {
+    if (!groupId) {
+      console.log('No groupId provided, skipping fetch');
+      setIsLoading(false);
+      return;
+    }
+  
+    try {
+      console.log('Starting group data fetch for ID:', groupId);
+      setIsLoading(true);
+      setFetchError(null);
+  
+      // If we have received group details from navigation state, use that first
+      if (receivedGroupDetails) {
+        console.log('Using cached group details:', receivedGroupDetails);
+        setGroupData(receivedGroupDetails);
+        setMembers(receivedGroupDetails.members || []);
+        console.log('Members set from cache:', receivedGroupDetails.members);
         setIsLoading(false);
+        return;
       }
-    };
-
+  
+      // Otherwise fetch from API
+      const timestamp = new Date().toISOString();
+      console.log(`Making API request at ${timestamp}`);
+  
+      const response = await axios.get(`/api/groups/${groupId}`);
+      console.log('API Response received:', response.data);
+      
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+  
+      console.log('Setting group data:', response.data);
+      setGroupData(response.data);
+      console.log('Setting members:', response.data.members);
+      setMembers(response.data.members || []);
+  
+    } catch (err) {
+      const errorDetail = {
+        message: err.response?.data?.error || err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        timestamp: new Date().toISOString()
+      };
+      console.error('Error fetching group data:', errorDetail);
+      setFetchError(errorDetail.message);
+      
+      // If we have receivedGroupDetails as fallback, use it
+      if (receivedGroupDetails) {
+        console.log('Falling back to received group details');
+        setGroupData(receivedGroupDetails);
+        setMembers(receivedGroupDetails.members || []);
+      }
+    } finally {
+      console.log('Fetch operation completed');
+      setIsLoading(false);
+    }
+  };
+  
+  // Update the useEffect for fetchGroupData
+  useEffect(() => {
     if (groupId) {
+      console.log('GroupId changed, triggering fetch:', groupId);
       fetchGroupData();
     }
-  }, [groupId, receivedGroupDetails, navigate]);
-
+  }, [groupId, receivedGroupDetails]);
+  
   const handleMemberAdded = async () => {
     try {
         console.log('Refreshing members list after add');
@@ -139,7 +156,7 @@ const GroupLayout = () => {
 
         const response = await axios.get(`/api/groups/${groupId}`);
         
-        if (!response.data) {
+        if (!response.data) {z
             throw new Error('No data received from server');
         }
 
@@ -186,44 +203,89 @@ const GroupLayout = () => {
   useEffect(() => {
     const fetchGroupContent = async () => {
       try {
+        if (!groupId || !groupData) {
+          console.log('Waiting for groupData to be available...');
+          return;
+        }
+
+        setIsLoading(true);
+        
         const [snippetsRes, directoriesRes] = await Promise.all([
           axios.get(`/api/groups/${groupId}/snippets`),
           axios.get(`/api/groups/${groupId}/directories`)
         ]);
 
+        // Add null check for groupData
+        const rootDirectory = {
+          _id: 'root',
+          name: groupData?.name || 'Root Directory', // Add fallback value
+          type: 'directory',
+          children: directoriesRes.data || [],
+          directSnippets: snippetsRes.data || [],
+          allSnippets: snippetsRes.data || []
+        };
+
+        setDirectoryStructure(rootDirectory);
         setSnippets(snippetsRes.data || []);
         setDirectories(directoriesRes.data || []);
+        
+        if (!currentDirectory) {
+          setCurrentDirectory(rootDirectory);
+        }
+
       } catch (err) {
         console.error('Error fetching group content:', err);
+        setFetchError(err.message || 'Failed to fetch group content');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    if (groupId) {
+    if (groupId && groupData) { // Add condition to check both groupId and groupData
       fetchGroupContent();
     }
-  }, [groupId]);
+  }, [groupId, groupData, refreshTrigger]); // Add groupData to dependencies
+
+  const refreshContent = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleItemCreated = async () => {
+    await fetchGroupContent();
+  };
 
   // Modified loading condition
   if (isInitialLoading) {
-    console.log('Showing initial loading spinner');
+    console.log('Rendering loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
                     flex items-center justify-center">
-        <FaSpinner className="animate-spin text-indigo-500" size={40} />
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-indigo-500 mx-auto mb-4" size={40} />
+          <p className="text-indigo-300">Loading group data...</p>
+          <p className="text-xs text-indigo-400 mt-2">Group ID: {groupId}</p>
+        </div>
       </div>
     );
   }
 
   if (fetchError) {
-    console.log('Showing error state:', fetchError);
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
                     flex items-center justify-center">
-        <div className="text-red-400 text-center">
-          <p className="text-xl mb-4">{fetchError}</p>
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{fetchError}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg"
+            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg text-indigo-300"
           >
             Retry
           </button>
@@ -233,18 +295,17 @@ const GroupLayout = () => {
   }
 
   // Early return if no group data
-  if (!groupData) {
-    console.log('No group data available');
+  if (!groupData && !isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
                     flex items-center justify-center">
-        <div className="text-indigo-400 text-center">
-          <p className="text-xl mb-4">Group not found</p>
+        <div className="text-center">
+          <p className="text-indigo-400 mb-4">Group not found</p>
           <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg"
+            onClick={() => navigate('/groups')}
+            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg text-indigo-300"
           >
-            Retry
+            Return to Groups
           </button>
         </div>
       </div>
@@ -444,7 +505,22 @@ const GroupLayout = () => {
                     </button>
                   </div>
                 )}
-                {/* File tree would go here */}
+                <div className="space-y-4">
+                  {directoryStructure && (
+                    <FileTreeNode
+                      item={directoryStructure}
+                      onSelect={(item) => {
+                        if (item.type === 'snippet') {
+                          setSelectedSnippet(item);
+                          setCurrentDirectory(null);
+                        } else {
+                          setCurrentDirectory(item);
+                          setSelectedSnippet(null);
+                        }
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -517,41 +593,16 @@ const GroupLayout = () => {
               ${!isMobile && isChatOpen ? 'mr-96' : ''}
               relative
             `}>
-            {/* Refresh Indicator */}
-            {refreshing && (
-              <motion.div 
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                className="absolute top-0 left-0 right-0 h-0.5">
-                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 animate-shimmer" />
-              </motion.div>
-            )}
-            
             <div className="bg-gradient-to-br from-[#0B1120]/90 to-[#0D1428]/90 
                           backdrop-blur-2xl h-full 
                           rounded-2xl p-6 md:p-8
                           border border-indigo-500/10
-                          shadow-2xl shadow-indigo-500/5
-                          transition-all duration-300">
-              {/* Main content... */}
-              <div className="text-indigo-300">
-                {directories.map(directory => (
-                  <div key={directory._id} 
-                       className="flex items-center gap-3 p-3 hover:bg-indigo-500/10 rounded-lg cursor-pointer"
-                       onClick={() => setSelectedDirectory(directory)}>
-                    <FaFolder />
-                    <span>{directory.name}</span>
-                  </div>
-                ))}
-                {snippets.map(snippet => (
-                  <div key={snippet._id}
-                       className="flex items-center gap-3 p-3 hover:bg-indigo-500/10 rounded-lg cursor-pointer"
-                       onClick={() => setSelectedSnippet(snippet)}>
-                    <FaCode />
-                    <span>{snippet.title}</span>
-                  </div>
-                ))}
-              </div>
+                          shadow-2xl shadow-indigo-500/5">
+              <MainContent 
+                directory={currentDirectory}
+                selectedSnippet={selectedSnippet}
+                searchTerm={debouncedSearchTerm}
+              />
             </div>
           </motion.div>
         </div>
@@ -585,10 +636,11 @@ const GroupLayout = () => {
       <CreateSnippetModal
         isOpen={isCreateSnippetModalOpen}
         onClose={() => setCreateSnippetModalOpen(false)}
-        onSnippetCreated={(snippet) => {
-          // Handle newly created snippet
-          console.log('New snippet created:', snippet);
+        onSnippetCreated={async (snippet) => {
+          await handleItemCreated();
+          setCreateSnippetModalOpen(false);
         }}
+        group={groupData} // Pass the group data
       />
 
       <BulkCreateSnippetModal
@@ -598,6 +650,7 @@ const GroupLayout = () => {
           // Handle newly created snippets
           console.log('New snippets created:', snippets);
         }}
+        group={groupData} // Pass the group data
       />
 
       <EditSnippetDetailsModal
@@ -621,10 +674,11 @@ const GroupLayout = () => {
       <CreateDirectoryModal
         isOpen={isCreateDirectoryModalOpen}
         onClose={() => setCreateDirectoryModalOpen(false)}
-        onDirectoryCreated={(directory) => {
-          // Handle newly created directory
-          console.log('New directory created:', directory);
+        onDirectoryCreated={async (directory) => {
+          await handleItemCreated();
+          setCreateDirectoryModalOpen(false);
         }}
+        groupId={groupId}
       />
 
       <EditDirectoryDetails
@@ -646,17 +700,229 @@ const GroupLayout = () => {
   );
 };
 
-// Add these styles to your global CSS
-const globalStyles = `
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
+const FileTreeNode = ({ item, level = 0, onSelect }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
 
-.animate-shimmer {
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-`;
+  const isDirectory = item.type === 'directory';
+  const hasChildren = isDirectory && 
+    (item.children?.length > 0 || item.directSnippets?.length > 0);
+
+  return (
+    <div className="select-none">
+      <div
+        className={`
+          flex items-center py-1.5 px-2 
+          hover:bg-indigo-500/10 rounded-lg 
+          cursor-pointer
+          ${level > 0 ? `ml-${level * 4}` : ''}
+        `}
+        onClick={() => onSelect(item)}
+      >
+        <span className="w-4 h-4 flex items-center justify-center mr-1">
+          {hasChildren && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="text-indigo-400/75 hover:text-indigo-300"
+            >
+              {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
+            </button>
+          )}
+        </span>
+
+        <span className="w-5 h-5 flex items-center justify-center mr-2">
+          {isDirectory ? (
+            isExpanded ? (
+              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
+            ) : (
+              <FaFolder className="w-4 h-4 text-indigo-400/90" />
+            )
+          ) : (
+            <FaCode className="w-4 h-4 text-indigo-300/90" />
+          )}
+        </span>
+
+        <span className="text-sm text-indigo-200/90 font-medium flex-1">
+          {item.name || item.title}
+        </span>
+      </div>
+
+      {isExpanded && hasChildren && (
+        <div>
+          {/* Add key prop using directory _id for children */}
+          {item.children?.map((child) => (
+            <FileTreeNode
+              key={`dir-${child._id}`} // Added unique key with prefix
+              item={{ ...child, type: 'directory' }}
+              level={level + 1}
+              onSelect={onSelect}
+            />
+          ))}
+          
+          {/* Add key prop using snippet _id for snippets */}
+          {item.directSnippets?.map((snippet) => (
+            <FileTreeNode
+              key={`snip-${snippet._id}`} // Added unique key with prefix
+              item={{ ...snippet, type: 'snippet' }}
+              level={level + 1}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SnippetContent = ({ snippet }) => (
+  <div className="space-y-4">
+    <div className="flex justify-between items-center">
+      <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+        {snippet.title}
+      </h2>
+      <div className="flex gap-2">
+        <button className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+          Edit
+        </button>
+        <button className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+          Export
+        </button>
+      </div>
+    </div>
+    
+    <div className="bg-[#0B1120] rounded-xl border border-indigo-500/20 p-4 overflow-x-auto">
+      <pre className="text-indigo-100">
+        <code>{snippet.content}</code>
+      </pre>
+    </div>
+  </div>
+);
+
+const DirectoryStats = ({ directory }) => (
+  <div className="flex justify-between items-center bg-indigo-500/10 p-4 rounded-lg">
+    <div className="text-indigo-300">
+      <h3 className="text-lg font-semibold">{directory.name}</h3>
+      <p className="text-sm">{directory.metadata?.snippetCount} snippets</p>
+      <p className="text-sm">{directory.metadata?.subDirectoryCount} subdirectories</p>
+    </div>
+  </div>
+);
+
+const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
+  if (!directory && !selectedSnippet) {
+    return (
+      <div className="text-center text-indigo-300 mt-10">
+        Select a directory or snippet to view its contents
+      </div>
+    );
+  }
+
+  if (selectedSnippet) {
+    return <SnippetContent snippet={selectedSnippet} />;
+  }
+
+  // Helper function to search items
+  const searchItems = (items, term) => {
+    if (!term) return items;
+    return items.filter(item => 
+      item.name?.toLowerCase().includes(term.toLowerCase()) ||
+      item.title?.toLowerCase().includes(term.toLowerCase())
+    );
+  };
+
+  const filteredSnippets = searchItems(directory.directSnippets || [], searchTerm);
+  const filteredDirectories = searchItems(directory.children || [], searchTerm);
+
+  const hasResults = filteredSnippets.length > 0 || filteredDirectories.length > 0;
+  const isSearching = Boolean(searchTerm);
+
+  if (isSearching && !hasResults) {
+    return (
+      <div className="text-center text-indigo-300 mt-10">
+        No results found for "{searchTerm}"
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {!isSearching && (
+        <DirectoryStats 
+          directory={{
+            ...directory,
+            metadata: {
+              snippetCount: directory.directSnippets?.length || 0,
+              subDirectoryCount: directory.children?.length || 0
+            }
+          }} 
+        />
+      )}
+
+      {filteredSnippets.length > 0 && (
+        <div className="space-y-3 md:space-y-4">
+          <h3 className="text-lg font-semibold text-white">
+            {isSearching ? 'Matching Snippets' : 'Snippets'}
+          </h3>
+          <SnippetList snippets={filteredSnippets} />
+        </div>
+      )}
+
+      {filteredDirectories.length > 0 && (
+        <div className="space-y-3 md:space-y-4">
+          <h3 className="text-lg font-semibold text-white">
+            {isSearching ? 'Matching Directories' : 'Subdirectories'}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {filteredDirectories.map(child => (
+              <div 
+                key={child._id}
+                className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+                         hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <FaFolder className="text-indigo-400" />
+                  <span className="text-white">{child.name}</span>
+                </div>
+                <div className="mt-2 text-xs text-indigo-400">
+                  {child.directSnippets?.length || 0} snippets
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Add missing SnippetList component
+const SnippetList = ({ snippets }) => (
+  <div className="grid grid-cols-1 gap-3 md:gap-4">
+    {snippets.map(snippet => (
+      <div 
+        key={snippet._id}
+        className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
+                 hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FaCode className="text-indigo-400" />
+            <span className="text-white">{snippet.title}</span>
+          </div>
+          <span className="text-xs text-indigo-400">
+            {snippet.programmingLanguage}
+          </span>
+        </div>
+        {snippet.description && (
+          <p className="mt-2 text-sm text-indigo-300/70">
+            {snippet.description}
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 export default GroupLayout;

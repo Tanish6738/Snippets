@@ -2,6 +2,7 @@ import Group from "../Models/group.model.js";
 import Activity from "../Models/activity.model.js";
 import { validationResult } from "express-validator";
 import mongoose from 'mongoose'; // Add this import
+import Directory from "../Models/directory.model.js";  // Add this line
 
 // Create new group
 export const createGroup = async (req, res) => {
@@ -494,16 +495,14 @@ export const getGroupSnippets = async (req, res) => {
 export const getGroupDirectories = async (req, res) => {
     try {
         const group = await Group.findById(req.params.id)
-            .populate({
-                path: 'directories.directoryId',
-                select: 'name path level metadata createdAt updatedAt'
-            });
-
+            .populate('directories.directoryId')
+            .populate('rootDirectory');
+        
         if (!group) {
             return res.status(404).json({ error: "Group not found" });
         }
 
-        // Check if user has access to group
+        // Check access permissions
         const isMember = group.members.some(member => 
             member.userId.toString() === req.user._id.toString()
         );
@@ -512,20 +511,27 @@ export const getGroupDirectories = async (req, res) => {
             return res.status(403).json({ error: "Access denied" });
         }
 
-        // Map to return only the directory data
-        const directories = group.directories.map(item => ({
-            ...item.directoryId.toObject(),
-            addedBy: item.addedBy,
-            addedAt: item.addedAt
-        }));
+        // Get all directories associated with the group
+        const directories = await Directory.find({
+            groupId: group._id
+        }).sort('path');
 
+        // If no directories exist but group has a rootDirectory, something went wrong
+        if (directories.length === 0 && group.rootDirectory) {
+            const rootDir = await Directory.findById(group.rootDirectory);
+            if (rootDir) {
+                return res.json([rootDir]);
+            }
+        }
+
+        // Return found directories
         res.json(directories);
 
     } catch (error) {
         console.error('getGroupDirectories error:', error);
         res.status(500).json({ 
             error: "Failed to fetch group directories",
-            message: error.message
+            message: error.message 
         });
     }
 };

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useUser } from '../Context/UserContext';
 import Navbar from '../components/User/Navbar';
 import Home from '../components/User/Home';
@@ -39,7 +39,14 @@ const AppRoutes = () => {
         <Route path="/directories" element={isAuthenticated ? <DirectoryLayout /> : <Navigate to="/login" />} />
         <Route path="/snippets" element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />} />
         <Route path="/groups" element={isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />} />
-        <Route path="/groups/:groupId" element={isAuthenticated ? <GroupLayout /> : <Navigate to="/login" />} />
+        <Route 
+          path="/groups/:groupId" 
+          element={
+            isAuthenticated ? 
+            <GroupLayout /> : 
+            <Navigate to="/login" />
+          } 
+        />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" />} />

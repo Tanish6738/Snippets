@@ -308,20 +308,19 @@ const Home = () => {
 
   const handleViewGroup = (group) => {
     if (!group?._id) {
-      console.error('Invalid group data:', group);
+      console.error('No group ID available');
       return;
     }
     
     try {
-      // Navigate to the specific group route with state
+      // Navigate to the group route with the group ID and group data
       navigate(`/groups/${group._id}`, {
         state: {
-          groupId: group._id,
-          groupDetails: group // Pass the full group object
+          groupDetails: group // Pass full group object as state
         }
       });
     } catch (error) {
-      console.error('Group navigation error:', error);
+      console.error('Error navigating to group:', error);
     }
   };
 

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from '../../../Config/Axios';
 import { FiFolder } from 'react-icons/fi';
 
-const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
+const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated, group }) => {
   const location = useLocation();
   const [formData, setFormData] = useState({
     title: '',
@@ -29,16 +29,30 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
     }
   }, [isOpen, location.state]);
 
-  // Add directories fetch effect
+  // Update directories fetch effect to filter by group
   useEffect(() => {
     const fetchDirectories = async () => {
       if (!isOpen) return;
       
       setIsLoadingDirectories(true);
       try {
-        const response = await axios.get('/api/directories');
+        const response = group ? 
+          await axios.get(`/api/groups/${group._id}/directories`) :
+          await axios.get('/api/directories');
+
         const directories = response.data.directories || response.data || [];
         setAvailableDirectories(directories);
+        
+        // If we have directories and no directory is selected, select the root
+        if (directories.length > 0 && !formData.directoryId) {
+          const rootDir = directories.find(dir => dir.isRoot);
+          if (rootDir) {
+            setFormData(prev => ({
+              ...prev,
+              directoryId: rootDir._id
+            }));
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch directories:', error);
         setError('Failed to load directories');
@@ -48,7 +62,7 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
     };
 
     fetchDirectories();
-  }, [isOpen]);
+  }, [isOpen, group]);
 
   const [error, setError] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -276,9 +290,12 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
                     value={formData.visibility}
                     onChange={handleChange}
                   >
-                    <option value="private">Private</option>
-                    <option value="public">Public</option>
-                    <option value="shared">Shared</option>
+                    <option className='text-violet '
+                     value="private">Private</option>
+                    <option className='text-violet '
+                     value="public">Public</option>
+                    <option className='text-violet '
+                     value="shared">Shared</option>
                   </select>
                 </div>
 
@@ -296,12 +313,13 @@ const CreateSnippetModal = ({ isOpen, onClose, onSnippetCreated }) => {
                       onChange={handleChange}
                       disabled={isLoadingDirectories}
                     >
-                      <option value="">Select a directory</option>
+                      <option className='text-violet '
+                       value="">Select a directory</option>
                       {availableDirectories.map(dir => (
                         <option 
                           key={dir._id} 
                           value={dir._id}
-                          className="text-sm"
+                          className="text-sm text-violet-800"
                         >
                           {dir.path ? `${dir.path}/${dir.name}` : dir.name}
                           {dir.allSnippets?.length > 0 && ` (${dir.allSnippets.length} snippets)`}
