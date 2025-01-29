@@ -1,6 +1,8 @@
 import express from 'express';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { createGroupValidation } from '../middlewares/groupValidation.middleware.js';
+import { body } from 'express-validator';
+import mongoose from 'mongoose'; // Add this import
 
 import {
     createGroup,
@@ -38,8 +40,14 @@ groupRouter.get('/get/:id', authMiddleware, getGroup);
 groupRouter.put('/:id', authMiddleware, updateGroup);
 groupRouter.delete('/:id', authMiddleware, deleteGroup);
 
+// Add validation middleware for member management
+const memberValidation = [
+    body('userId').isMongoId(),
+    body('role').isIn(['member', 'admin', 'moderator'])
+];
+
 // Member management routes
-groupRouter.post('/:id/members', authMiddleware, addMember);
+groupRouter.post('/:id/members', [authMiddleware, memberValidation], addMember);
 groupRouter.delete('/:id/members/:userId', authMiddleware, removeMember);
 
 // Snippet management routes

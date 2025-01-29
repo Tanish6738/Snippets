@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, query } from "express-validator";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { checkGroupPermission } from "../middlewares/groupPermissions.middleware.js";
 
 import {
     createDirectory,
@@ -26,9 +27,12 @@ directoryRouter.get('/tree', getDirectoryTree);
 
 // Create directory with validation
 directoryRouter.post('/', [
+    authMiddleware,
+    checkGroupPermission('create_directory'),
     body('name').trim().notEmpty().withMessage('Directory name is required'),
     body('visibility').isIn(['public', 'private', 'shared']).optional(),
-    body('parentId').optional()
+    body('parentId').optional(),
+    body('groupId').optional()
 ], createDirectory);
 
 // Get all directories with optional query params

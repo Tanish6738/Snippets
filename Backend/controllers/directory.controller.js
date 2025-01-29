@@ -15,6 +15,12 @@ export const createDirectory = async (req, res) => {
             createdBy: req.user._id
         };
 
+        // If creating in group context
+        if (req.group) {
+            directoryData.groupId = req.group._id;
+            directoryData.visibility = 'group';
+        }
+
         if (req.body.parentId) {
             const parent = await Directory.findById(req.body.parentId);
             if (!parent || !parent.isAccessibleBy(req.user._id)) {

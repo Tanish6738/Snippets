@@ -307,30 +307,22 @@ const Home = () => {
   };
 
   const handleViewGroup = (group) => {
-    console.log('Selected group details:', {
-      id: group._id,
-      name: group.name,
-      description: group.description,
-      members: group.members,
-      snippets: group.snippets,
-      directories: group.directories,
-      settings: group.settings
-    });
-
-    navigate('/groups', {
-      state: {
-        selectedGroup: group,
-        groupDetails: {
-          id: group._id,
-          name: group.name,
-          description: group.description,
-          members: group.members || [],
-          snippets: group.snippets || [],
-          directories: group.directories || [],
-          settings: group.settings || {}
+    if (!group?._id) {
+      console.error('Invalid group data:', group);
+      return;
+    }
+    
+    try {
+      // Navigate to the specific group route with state
+      navigate(`/groups/${group._id}`, {
+        state: {
+          groupId: group._id,
+          groupDetails: group // Pass the full group object
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Group navigation error:', error);
+    }
   };
 
   // Enhanced loading state

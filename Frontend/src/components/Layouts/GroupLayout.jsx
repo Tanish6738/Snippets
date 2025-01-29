@@ -7,14 +7,26 @@ import {
   FaChevronLeft,
   FaPlus,
   FaSearch,
-  FaCog,
   FaBars,
   FaArrowLeft,
-  FaPaperPlane 
+  FaPaperPlane,
+  FaSpinner 
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import AddMemberModal from '../Modals/GroupModals/AddMemberModal';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import axios from '../../Config/Axios';
 
 const GroupLayout = () => {
+  const { groupId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Add state for received group details
+  const [receivedGroupDetails, setReceivedGroupDetails] = useState(
+    location.state?.groupDetails || null
+  );
+
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isChatOpen, setChatOpen] = useState(false);
@@ -22,7 +34,12 @@ const GroupLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAddMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [members, setMembers] = useState([]);
   const mainContentRef = useRef(null);
+  const [groupData, setGroupData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   // Check for mobile viewport
   useEffect(() => {
@@ -39,30 +56,160 @@ const GroupLayout = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Add touch handlers for mobile gestures
-  const handleTouchStart = (e) => {
-    setTouchStart(e.touches[0].clientX);
-  };
+  // Enhanced group data fetching with better state management
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      try {
+        console.log('Starting group data fetch for ID:', groupId);
+        setIsLoading(true);
+        setFetchError(null);
 
-  const handleTouchMove = (e) => {
-    if (!touchStart) return;
-    
-    const currentTouch = e.touches[0].clientX;
-    const diff = touchStart - currentTouch;
+        // If we have received group details and they match the groupId, use them
+        if (receivedGroupDetails && receivedGroupDetails._id === groupId) {
+          console.log('Using received group details');
+          setGroupData(receivedGroupDetails);
+          setMembers(receivedGroupDetails.members || []);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Otherwise fetch from API
+        const { data } = await axios.get(`/api/groups/${groupId}`, {
+          params: {
+            includeMembers: true
+          }
+        });
 
-    // Swipe left closes sidebar
-    if (diff > 50 && isSidebarOpen) {
-      setSidebarOpen(false);
+        console.log('Group data fetched:', data);
+        setGroupData(data);
+        setMembers(data.members?.map(member => ({
+          userId: member.userId,
+          role: member.role,
+          permissions: member.permissions
+        })) || []);
+
+      } catch (err) {
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to load group data';
+        console.error('Group fetch error:', {
+          message: errorMessage,
+          status: err.response?.status,
+          error: err
+        });
+        setFetchError(errorMessage);
+        setGroupData(null);
+        
+        // Navigate back if group not found
+        if (err.response?.status === 404) {
+          navigate('/groups');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (groupId) {
+      fetchGroupData();
     }
-    // Swipe right opens sidebar
-    if (diff < -50 && !isSidebarOpen) {
-      setSidebarOpen(true);
-    }
-  };
+  }, [groupId, receivedGroupDetails, navigate]);
 
-  const handleTouchEnd = () => {
-    setTouchStart(null);
-  };
+  const handleMemberAdded = async () => {
+    try {
+        console.log('Refreshing members list after add');
+        setIsLoading(true);
+        setFetchError(null);
+
+        const response = await axios.get(`/api/groups/${groupId}`);
+        
+        if (!response.data) {
+            throw new Error('No data received from server');
+        }
+
+        console.log('Updated group data received:', {
+            groupId,
+            memberCount: response.data.members?.length,
+        });
+
+        setGroupData(response.data);
+        setMembers(response.data.members || []);
+
+    } catch (err) {
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to refresh members';
+        console.error('Error refreshing members:', {
+            message: errorMessage,
+            status: err.response?.status,
+            error: err
+        });
+        setFetchError(errorMessage);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+  // Add debug logs for loading state
+  useEffect(() => {
+    console.log('Loading state changed:', isLoading);
+  }, [isLoading]);
+
+  // Modified loading check
+  const isInitialLoading = isLoading && !groupData;
+
+  // Add debug logs for state changes
+  useEffect(() => {
+    console.log('Group state updated:', {
+      isLoading,
+      hasGroupData: !!groupData,
+      membersCount: members.length,
+      error: fetchError
+    });
+  }, [isLoading, groupData, members, fetchError]);
+
+  // Modified loading condition
+  if (isInitialLoading) {
+    console.log('Showing initial loading spinner');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+                    flex items-center justify-center">
+        <FaSpinner className="animate-spin text-indigo-500" size={40} />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    console.log('Showing error state:', fetchError);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+                    flex items-center justify-center">
+        <div className="text-red-400 text-center">
+          <p className="text-xl mb-4">{fetchError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return if no group data
+  if (!groupData) {
+    console.log('No group data available');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+                    flex items-center justify-center">
+        <div className="text-indigo-400 text-center">
+          <p className="text-xl mb-4">Group not found</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120]">
@@ -78,7 +225,9 @@ const GroupLayout = () => {
         >
           <FaBars size={18} />
         </button>
-        <h1 className="text-lg font-semibold text-indigo-300 mx-auto">Group Name</h1>
+        <h1 className="text-lg font-semibold text-indigo-300 mx-auto">
+          {groupData.name}
+        </h1>
         <button
           onClick={() => setChatOpen(true)}
           className="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg
@@ -124,7 +273,7 @@ const GroupLayout = () => {
             <div className="flex items-center justify-between">
               {!isSidebarCollapsed && (
                 <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                  Group Name
+                  {groupData.name}
                 </h2>
               )}
               <button
@@ -191,14 +340,39 @@ const GroupLayout = () => {
             {activeTab === 'members' ? (
               <div className="space-y-2">
                 {!isSidebarCollapsed && (
-                  <button className="w-full px-4 py-2 bg-indigo-500/20 
-                                   hover:bg-indigo-500/30 text-indigo-300 
-                                   rounded-lg flex items-center gap-2">
+                  <button 
+                    onClick={() => setAddMemberModalOpen(true)}
+                    className="w-full px-4 py-2 bg-indigo-500/20 
+                              hover:bg-indigo-500/30 text-indigo-300 
+                              rounded-lg flex items-center gap-2"
+                  >
                     <FaPlus className="w-3 h-3" />
                     <span>Invite Member</span>
                   </button>
                 )}
-                {/* Member list would go here */}
+                
+                <div className="space-y-2 mt-4">
+                  {members.map((member) => (
+                    <div 
+                      key={member.userId._id}
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg
+                                bg-indigo-500/10 hover:bg-indigo-500/20"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-indigo-500/30 
+                                    flex items-center justify-center text-indigo-300">
+                        {member.userId.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-indigo-200 truncate">
+                          {member.userId.username}
+                        </div>
+                        <div className="text-xs text-indigo-400">
+                          {member.role}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -323,6 +497,14 @@ const GroupLayout = () => {
           <FaComments size={20} />
         </motion.button>
       )}
+
+      <AddMemberModal 
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setAddMemberModalOpen(false)}
+        groupId={groupId}
+        onMemberAdded={handleMemberAdded}
+        currentMembers={members} // Make sure members array is properly structured
+      />
     </div>
   );
 };

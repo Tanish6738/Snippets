@@ -6,10 +6,10 @@ const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
-    avatar: { type: String, default: null }, // URL for profile picture
+    avatar: { type: String, default: null }, 
     bio: { type: String, default: null, maxlength: 200 },
-    roles: { type: [String], default: ['user'] }, // e.g., admin, user
-    isVerified: { type: Boolean, default: false }, // Email verification status
+    roles: { type: [String], default: ['user'] },
+    isVerified: { type: Boolean, default: false }, 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     groups: [{
@@ -37,7 +37,10 @@ const UserSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Like'
         }]
-    }
+    },
+    tokens: [{
+        token: { type: String, required: true }
+    }]
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {

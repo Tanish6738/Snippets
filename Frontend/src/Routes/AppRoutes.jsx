@@ -38,9 +38,8 @@ const AppRoutes = () => {
         <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/directories" element={isAuthenticated ? <DirectoryLayout /> : <Navigate to="/login" />} />
         <Route path="/snippets" element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />} />
-        <Route path="/groups" element={isAuthenticated ? <GroupLayout /> : <Navigate to="/login" />}>
-          <Route index element={<Home />} />
-        </Route>
+        <Route path="/groups" element={isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />} />
+        <Route path="/groups/:groupId" element={isAuthenticated ? <GroupLayout /> : <Navigate to="/login" />} />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" />} />

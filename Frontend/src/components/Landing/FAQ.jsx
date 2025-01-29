@@ -35,7 +35,7 @@ const FAQ = () => {
         className="text-center mb-16"
       >
         <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
-          Frequently Asked Questions
+          Frequently Used Links
         </h2>
         <p className="mt-4 text-lg text-gray-400">
           Everything you need to know about our platform

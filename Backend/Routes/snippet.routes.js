@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { body, query } from "express-validator";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { checkGroupPermission } from "../middlewares/groupPermissions.middleware.js";
 
 import {
     createSnippet,
@@ -28,13 +29,16 @@ snippetRouter.use(authMiddleware);
 // Create snippet
 snippetRouter.post("/",
     [
+        authMiddleware,
+        checkGroupPermission('create_snippet'),
         body("title").trim().isLength({ min: 1 }).withMessage('Title is required'),
         body("content").notEmpty().withMessage('Content is required'),
         body("programmingLanguage").trim().notEmpty().withMessage('Programming language is required'),
         body("tags").isArray().optional(),
         body("visibility").isIn(['public', 'private', 'shared']).optional(),
         body("description").optional(),
-        body("directoryId").optional()
+        body("directoryId").optional(),
+        body("groupId").optional()
     ],
     createSnippet
 );

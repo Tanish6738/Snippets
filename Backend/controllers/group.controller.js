@@ -1,6 +1,7 @@
 import Group from "../Models/group.model.js";
 import Activity from "../Models/activity.model.js";
 import { validationResult } from "express-validator";
+import mongoose from 'mongoose'; // Add this import
 
 // Create new group
 export const createGroup = async (req, res) => {
@@ -17,8 +18,10 @@ export const createGroup = async (req, res) => {
         });
 
         await group.save();
+        console.log('Group created:', group); // Add logging
         res.status(201).json(group);
     } catch (error) {
+        console.error('Create group error:', error); // Add logging
         res.status(400).json({ error: error.message });
     }
 };
@@ -62,18 +65,46 @@ export const getAllGroups = async (req, res) => {
 // Get group by ID
 export const getGroupById = async (req, res) => {
     try {
-        const group = await Group.findById(req.params.id)
+        const { id } = req.params;
+        
+        // Validate group ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid group ID format" });
+        }
+
+        // Find group and populate necessary fields
+        const group = await Group.findById(id)
             .populate('members.userId', 'username email')
-            .populate('snippets')
-            .populate('directories');
+            .populate({
+                path: 'snippets.snippetId',
+                select: 'title description'
+            })
+            .populate({
+                path: 'directories.directoryId',
+                select: 'name path'
+            })
+            .lean();
 
         if (!group) {
             return res.status(404).json({ error: "Group not found" });
         }
 
+        // Check if user has access to group
+        const isMember = group.members.some(member => 
+            member.userId._id.toString() === req.user._id.toString()
+        );
+
+        if (!isMember && group.settings?.visibility !== 'public') {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
         res.json(group);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('getGroupById error:', error);
+        res.status(500).json({ 
+            error: "Failed to fetch group",
+            message: error.message
+        });
     }
 };
 
@@ -146,41 +177,33 @@ export const addMember = async (req, res) => {
             return res.status(404).json({ error: "Group not found" });
         }
 
-        if (!group.isMemberAllowed(req.user._id, 'admin')) {
-            return res.status(403).json({ error: "Not authorized to add members" });
-        }
-
-        const { userId, role = 'member' } = req.body;
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        await group.addMember(userId, role);
+        const { userId, role = 'member', permissions } = req.body;
         
-        await User.findByIdAndUpdate(userId, {
-            $push: {
-                groups: {
-                    groupId: group._id,
-                    role
-                }
-            }
+        // Check if user is already a member
+        if (group.members.some(member => member.userId.toString() === userId)) {
+            return res.status(400).json({ error: "User is already a member" });
+        }
+
+        // Add member with specified role and permissions
+        group.members.push({
+            userId,
+            role,
+            permissions: permissions || [
+                'create_snippet',
+                'edit_snippet',
+                'create_directory',
+                'edit_directory'
+            ]
         });
 
-        await Activity.logActivity({
-            userId: req.user._id,
-            action: 'create',
-            targetType: 'group',
-            targetId: group._id,
-            metadata: {
-                action: 'add_member',
-                memberRole: role
-            },
-            relatedUsers: [userId]
-        });
+        await group.save();
 
-        res.json(group);
+        const updatedGroup = await Group.findById(group._id)
+            .populate('members.userId', 'username email');
+
+        res.json(updatedGroup);
     } catch (error) {
+        console.error('Add member error:', error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -313,8 +336,11 @@ export const addMessage = async (req, res) => {
             metadata: { messageType: 'chat' }
         });
 
+        console.log('Message added to group chat:', content); // Add logging
+
         res.status(201).json(group.chat.messages[group.chat.messages.length - 1]);
     } catch (error) {
+        console.error('Add message error:', error); // Add logging
         res.status(400).json({ error: error.message });
     }
 };

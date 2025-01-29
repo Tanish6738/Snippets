@@ -91,6 +91,7 @@ groupSchema.methods.addMessage = async function(senderId, content, attachments =
         attachments
     };
     this.chat.messages.push(message);
+    console.log('Message added:', message); // Add logging
     return this.save();
 };
 
@@ -101,6 +102,7 @@ groupSchema.methods.addSnippet = async function(snippetId, userId) {
             snippetId,
             addedBy: userId
         });
+        console.log('Snippet added:', snippetId); // Add logging
         await this.save();
     }
     return this;
@@ -113,6 +115,7 @@ groupSchema.methods.addDirectory = async function(directoryId, userId) {
             directoryId,
             addedBy: userId
         });
+        console.log('Directory added:', directoryId); // Add logging
         await this.save();
     }
     return this;
@@ -125,13 +128,15 @@ groupSchema.methods.addMember = async function(userId, role = 'member') {
             ? ['create_snippet', 'edit_snippet', 'delete_snippet', 
                'create_directory', 'edit_directory', 'delete_directory',
                'invite_members', 'remove_members', 'manage_roles']
-            : ['create_snippet', 'edit_snippet', 'create_directory'];
+            : ['create_snippet', 'edit_snippet', 'create_directory', 
+               'edit_directory', 'delete_snippet', 'delete_directory'];
 
         this.members.push({
             userId,
             role,
             permissions: defaultPermissions
         });
+        console.log('Member added:', userId); // Add logging
         await this.save();
     }
     return this;

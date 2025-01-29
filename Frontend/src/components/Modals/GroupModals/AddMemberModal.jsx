@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from '../../../Config/Axios';
 import { FaSearch, FaSpinner, FaUserPlus, FaTimes } from 'react-icons/fa';
 
-const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
+const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded, currentMembers = [] }) => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -11,85 +11,198 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
   const [addingMembers, setAddingMembers] = useState(false);
   const [error, setError] = useState('');
 
+  // Add validation for props
+  useEffect(() => {
+    if (isOpen && (!groupId || !Array.isArray(currentMembers))) {
+      console.error('Invalid props:', { groupId, currentMembers });
+      onClose();
+      return;
+    }
+  }, [isOpen, groupId, currentMembers]);
+
   // Fetch available users on modal open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && groupId) {
+      console.log('AddMemberModal opened for group:', {
+        groupId,
+        currentMembers: currentMembers?.length || 0
+      });
+      
+      if (!currentMembers) {
+        console.warn('No current members provided');
+        return;
+      }
+
       fetchUsers();
     }
-  }, [isOpen]);
+  }, [isOpen, groupId, currentMembers]);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const { data } = await axios.get('/api/users/all');
-      // Filter out users already in the group
-      const availableUsers = data.filter(user => 
-        !user.groups?.some(g => g.groupId === groupId)
-      );
-      setUsers(availableUsers);
-      setFilteredUsers(availableUsers);
-    } catch (err) {
-      setError('Failed to load users');
-      console.error('Error fetching users:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Add debug logs for state changes
+  useEffect(() => {
+    console.log('AddMemberModal state:', {
+      isOpen,
+      groupId,
+      currentMemberCount: currentMembers?.length,
+      selectedUserCount: selectedUsers.length,
+      loading,
+      addingMembers
+    });
+  }, [isOpen, groupId, currentMembers, selectedUsers, loading, addingMembers]);
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
+  // Debounced search function
+  const debouncedSearch = useCallback((query) => {
+    console.log('Performing search with query:', query);
     const filtered = users.filter(user =>
       user.username.toLowerCase().includes(query.toLowerCase()) ||
       user.email.toLowerCase().includes(query.toLowerCase())
     );
+    console.log('Search results:', filtered);
     setFilteredUsers(filtered);
+  }, [users]);
+
+  // Use effect for search debouncing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      debouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, debouncedSearch]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedUsers([]);
+      setSearchQuery('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  // Update fetchUsers to properly filter existing members
+  const fetchUsers = async () => {
+    try {
+        console.log('Starting user fetch');
+        setLoading(true);
+        setError('');
+        
+        const response = await axios.get(`/api/users/available-for-group/${groupId}`);
+        
+        if (!response.data) {
+            throw new Error('No data received from server');
+        }
+
+        const availableUsers = response.data;
+        console.log('Available users:', {
+            count: availableUsers.length,
+            users: availableUsers
+        });
+        
+        setUsers(availableUsers);
+        setFilteredUsers(availableUsers);
+
+    } catch (err) {
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to load users';
+        console.error('User fetch error:', {
+            message: errorMessage,
+            status: err.response?.status,
+            data: err.response?.data
+        });
+        setError(errorMessage);
+        setUsers([]);
+        setFilteredUsers([]);
+    } finally {
+        setLoading(false);
+        console.log('User fetch completed');
+    }
+  };
+
+  // Fix for continuous loading animation
+  useEffect(() => {
+    let timeoutId;
+    if (loading) {
+      console.log('Loading timeout started');
+      timeoutId = setTimeout(() => {
+        console.warn('Loading taking too long, forcing state update');
+        setLoading(false);
+      }, 10000); // 10 second timeout
+    }
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        console.log('Loading timeout cleared');
+      }
+    };
+  }, [loading]);
+
+  const handleSearch = (query) => {
+    console.log('Searching users with query:', query);
+    setSearchQuery(query);
   };
 
   const toggleUserSelection = (userId) => {
-    setSelectedUsers(prev =>
-      prev.includes(userId)
+    console.log('Toggling user selection:', userId);
+    setSelectedUsers(prev => {
+      const newSelection = prev.includes(userId)
         ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+        : [...prev, userId];
+      console.log('Updated selection:', newSelection);
+      return newSelection;
+    });
   };
 
+  // Update handleSubmit to ensure proper payload structure
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedUsers.length) return;
+    if (!selectedUsers.length) {
+        console.log('No users selected, skipping submit');
+        return;
+    }
 
     try {
-      setAddingMembers(true);
-      setError('');
-
-      // Add members sequentially
-      for (const userId of selectedUsers) {
-        await axios.post(`/api/groups/${groupId}/members`, {
-          userId,
-          role: 'member'
+        setAddingMembers(true);
+        setError('');
+        console.log('Starting member addition:', {
+            groupId,
+            selectedUsers,
+            count: selectedUsers.length
         });
 
-        // Log activity for each added member
-        await axios.post('/api/activities', {
-          action: 'create',
-          targetType: 'group',
-          targetId: groupId,
-          metadata: {
-            action: 'add_member',
-            memberRole: 'member'
-          },
-          relatedUsers: [userId]
-        });
-      }
+        // Add members one at a time with error handling
+        for (const userId of selectedUsers) {
+            try {
+                await axios.post(`/api/groups/${groupId}/members`, {
+                    userId,
+                    role: 'member',
+                    permissions: [
+                        'create_snippet',
+                        'edit_snippet',
+                        'create_directory',
+                        'edit_directory'
+                    ]
+                });
+                console.log(`Successfully added member: ${userId}`);
+            } catch (err) {
+                console.error(`Failed to add member ${userId}:`, err);
+                throw err;
+            }
+        }
 
-      onMemberAdded();
-      onClose();
+        console.log('All members added successfully');
+        await onMemberAdded();
+        onClose();
+
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add members');
+        const errorMsg = err.response?.data?.error || 'Failed to add members';
+        console.error('Member addition error:', {
+            message: errorMsg,
+            response: err.response?.data,
+            error: err
+        });
+        setError(errorMsg);
     } finally {
-      setAddingMembers(false);
+        setAddingMembers(false);
     }
-  };
+};
 
   if (!isOpen) return null;
 
@@ -143,9 +256,19 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded }) => {
                   <FaSpinner className="animate-spin mx-auto mb-2" size={24} />
                   <p>Loading users...</p>
                 </div>
+              ) : error ? (
+                <div className="p-8 text-center text-red-400">
+                  <p>{error}</p>
+                  <button 
+                      onClick={fetchUsers}
+                      className="mt-4 px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg"
+                  >
+                      Retry
+                  </button>
+                </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="p-8 text-center text-indigo-400">
-                  No users found
+                  {searchQuery ? 'No users found matching your search' : 'No users available'}
                 </div>
               ) : (
                 <div className="max-h-[300px] overflow-y-auto">

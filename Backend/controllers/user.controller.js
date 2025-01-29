@@ -1,6 +1,8 @@
 import User from "../Models/user.model.js";
 import bcrypt from "bcrypt";
 import { validationResult } from "express-validator";
+import mongoose from 'mongoose';
+import Group from "../Models/group.model.js"; // Add Group model import
 
 // User Registration
 export const createUser = async (req, res) => {
@@ -38,12 +40,15 @@ export const createUser = async (req, res) => {
         const userObject = user.toObject();
         delete userObject.password;
 
+        console.log('User registered:', userObject); // Add logging
+
         res.status(201).json({ 
             message: "User registered successfully",
             user: userObject,
             token 
         });
     } catch (error) {
+        console.error('Registration error:', error); // Add logging
         res.status(500).json({ 
             error: "Registration failed",
             message: error.message 
@@ -78,6 +83,8 @@ export const loginUser = async (req, res) => {
         // Remove password from response
         const userObject = user.toObject();
         delete userObject.password;
+
+        console.log('User logged in:', userObject); // Add logging
         
         res.json({ 
             message: "Login successful",
@@ -85,6 +92,7 @@ export const loginUser = async (req, res) => {
             token 
         });
     } catch (error) {
+        console.error('Login error:', error); // Add logging
         res.status(500).json({ 
             error: "Login failed",
             message: error.message 
@@ -219,12 +227,15 @@ export const toggleFavorite = async (req, res) => {
 
         if (action === 'add') {
             await req.user.addToFavorites(snippetId);
+            console.log('Added to favorites:', snippetId); // Add logging
         } else if (action === 'remove') {
             await req.user.removeFromFavorites(snippetId);
+            console.log('Removed from favorites:', snippetId); // Add logging
         }
 
         res.json({ message: "Favorites updated successfully" });
     } catch (error) {
+        console.error('Toggle favorite error:', error); // Add logging
         res.status(400).json({ error: error.message });
     }
 };
@@ -236,5 +247,51 @@ export const getUserDirectoryTree = async (req, res) => {
         res.json(directoryTree);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+// Add this new controller function
+export const getAvailableUsersForGroup = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        
+        // Validate groupId
+        if (!mongoose.Types.ObjectId.isValid(groupId)) {
+            return res.status(400).json({ 
+                error: "Invalid group ID format"
+            });
+        }
+
+        // Get the group and populate members
+        const group = await Group.findById(groupId)
+            .populate('members.userId', '_id');
+
+        if (!group) {
+            return res.status(404).json({ 
+                error: "Group not found"
+            });
+        }
+
+        // Get current member IDs
+        const memberIds = group.members.map(member => member.userId._id);
+
+        // Find users not in the group
+        const users = await User.find({
+            _id: { $nin: memberIds }
+        })
+        .select('username email')
+        .sort('username')
+        .lean();
+
+        console.log(`Found ${users.length} available users`);
+
+        res.json(users);
+
+    } catch (error) {
+        console.error('getAvailableUsersForGroup error:', error);
+        res.status(500).json({ 
+            error: "Failed to get available users",
+            message: error.message
+        });
     }
 };
