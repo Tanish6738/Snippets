@@ -417,29 +417,22 @@ export const getGroupContent = async (req, res) => {
             return res.status(404).json({ error: "Group or root directory not found" });
         }
 
-        // Use aggregation to get complete directory tree with snippets
         const directoryTree = await Directory.aggregate([
-            // Start from group's root directory
             { $match: { _id: group.rootDirectory } },
-            
-            // Graph lookup to get all subdirectories
             {
                 $graphLookup: {
                     from: "directories",
                     startWith: "$_id",
                     connectFromField: "_id",
                     connectToField: "parentId",
-                    as: "allDescendants",
+                    as: "descendants",
                     depthField: "level"
                 }
             },
             {
                 $addFields: {
                     allDirIds: {
-                        $concatArrays: [
-                            ["$_id"],
-                            "$allDescendants._id"
-                        ]
+                        $concatArrays: [ ["$_id"], "$descendants._id" ]
                     }
                 }
             },
@@ -452,29 +445,14 @@ export const getGroupContent = async (req, res) => {
                 }
             },
             {
-                $addFields: {
-                    directories: "$allDescendants",
-                    snippets: {
-                        $filter: {
-                            input: "$allSnippets",
-                            as: "snippet",
-                            cond: { 
-                                $eq: ["$$snippet.directory.current", "$_id"]
-                            }
-                        }
-                    }
-                }
-            },
-            {
                 $project: {
                     _id: 1,
                     name: 1,
                     path: 1,
                     level: 1,
-                    parentId: 1,
-                    directories: {
+                    descendants: {
                         $map: {
-                            input: "$directories",
+                            input: "$descendants",
                             as: "dir",
                             in: {
                                 _id: "$$dir._id",
@@ -485,69 +463,27 @@ export const getGroupContent = async (req, res) => {
                                 snippets: {
                                     $filter: {
                                         input: "$allSnippets",
-                                        as: "snippet",
-                                        cond: { 
-                                            $eq: ["$$snippet.directory.current", "$$dir._id"]
-                                        }
+                                        as: "snip",
+                                        cond: { $eq: ["$$snip.directory.current", "$$dir._id"] }
                                     }
                                 }
                             }
                         }
                     },
-                    snippets: 1
+                    snippets: {
+                        $filter: {
+                            input: "$allSnippets",
+                            as: "snip",
+                            cond: { $eq: ["$$snip.directory.current", "$_id"] }
+                        }
+                    }
                 }
             }
         ]);
 
-        if (!directoryTree.length) {
-            return res.status(404).json({ error: "Directory tree not found" });
-        }
-
-        // Build hierarchical tree structure
-        const buildTree = (directories, parentId = null) => {
-            return directories
-                .filter(dir => String(dir.parentId) === String(parentId))
-                .map(dir => ({
-                    ...dir,
-                    children: buildTree(directories, dir._id),
-                    directSnippets: dir.snippets || [],
-                    allSnippets: [...(dir.snippets || []), 
-                        ...directories
-                            .filter(d => isDescendant(d, dir))
-                            .flatMap(d => d.snippets || [])
-                    ]
-                }));
-        };
-
-        const isDescendant = (dir, potentialAncestor) => {
-            let current = dir;
-            while (current.parentId) {
-                if (String(current.parentId) === String(potentialAncestor._id)) {
-                    return true;
-                }
-                current = directoryTree[0].directories
-                    .find(d => String(d._id) === String(current.parentId));
-                if (!current) break;
-            }
-            return false;
-        };
-
-        // Build final tree structure
-        const tree = {
-            ...directoryTree[0],
-            children: buildTree(directoryTree[0].directories),
-            directSnippets: directoryTree[0].snippets || [],
-            allSnippets: directoryTree[0].allSnippets || []
-        };
-
-        res.json(tree);
-
+        res.json(directoryTree[0]);
     } catch (error) {
-        console.error('getGroupContent error:', error);
-        res.status(500).json({ 
-            error: "Failed to fetch group content",
-            message: error.message 
-        });
+        res.status(500).json({ error: error.message });
     }
 };
 

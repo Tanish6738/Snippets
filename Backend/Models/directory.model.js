@@ -35,7 +35,8 @@ const directorySchema = new mongoose.Schema({
     level: { type: Number, default: 0 },
     isRoot: { type: Boolean, default: false },
     allSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
-    directSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }]
+    directSnippets: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Snippet' }],
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' }
 }, { timestamps: true });
 
 directorySchema.index({ name: 'text', path: 'text' });
