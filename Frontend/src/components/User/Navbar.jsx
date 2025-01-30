@@ -29,9 +29,10 @@ const Navbar = () => {
     tools: {
       label: 'Developer Tools',
       items: [
-        { to: '/snippets', label: 'Code Snippets' },
-        { to: '/directories', label: 'Directories' },
-        { to: '/groups', label: 'Groups' },
+        { to : "/public", label: "All content" },
+        // { to: '/snippets', label: 'Code Snippets' },
+        // { to: '/directories', label: 'Directories' },
+        // { to: '/groups', label: 'Groups' },
       ]
     },
     media: {
@@ -39,7 +40,7 @@ const Navbar = () => {
       items: [
         { to: '/blog', label: 'Blog' },
         { to: '/blog/create', label: 'Create Blog' },
-        { to: '/public', label: 'Public Data' }
+        // { to: '/public', label: 'Public Data' }
       ]
     }
   };
