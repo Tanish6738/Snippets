@@ -190,6 +190,6 @@ UserSchema.methods.toggleBlogLike = async function(blogId) {
     return this;
 };
 
-const User = mongoose.model("User", UserSchema);
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
 export default User;

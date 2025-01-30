@@ -43,4 +43,5 @@ activitySchema.statics.logActivity = async function(data) {
     return activity.save();
 };
 
-export default mongoose.model('Activity', activitySchema);
+const Activity = mongoose.models.Activity || mongoose.model('Activity', activitySchema);
+export default Activity;

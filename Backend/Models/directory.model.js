@@ -151,4 +151,6 @@ directorySchema.methods.updateMetadataRecursive = async function() {
     return this;
 };
 
-export default mongoose.model('Directory', directorySchema);
+const Directory = mongoose.models.Directory || mongoose.model('Directory', directorySchema);
+
+export default Directory;

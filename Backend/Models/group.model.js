@@ -180,4 +180,5 @@ groupSchema.methods.canPerformAction = function(userId, permission) {
     );
 };
 
-export default mongoose.model('Group', groupSchema);
+const Group = mongoose.models.Group || mongoose.model('Group', groupSchema);
+export default Group;

@@ -124,4 +124,5 @@ snippetSchema.methods.moveToDirectory = async function(newDirectoryId) {
     return this;
 };
 
-export default mongoose.model('Snippet', snippetSchema);
+const Snippet = mongoose.models.Snippet || mongoose.model('Snippet', snippetSchema);
+export default Snippet;

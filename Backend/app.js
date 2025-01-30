@@ -12,6 +12,7 @@ import activityRouter from './Routes/activity.routes.js'; // Import activity rou
 import aiRouter from './Routes/Ai.routes.js';
 import blogRouter from './Routes/Blog/Blog.routes.js';
 import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
+import publicRouter from './Routes/public.routes.js';
 dotenv.config();
 
 // Initialize express
@@ -60,6 +61,7 @@ app.use('/api/activities', activityRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/blogs', blogRouter);
 app.use('/api/blog-interactions', blogInteractionRouter);
+app.use('/api/public', publicRouter);  // Add public routes
 
 // Base route
 app.get('/', (req, res) => {
@@ -82,7 +84,8 @@ app.get('/api/docs', (req, res) => {
             directories: '/api/v1/directories',
             activities: '/api/v1/activities', // Add activities endpoint
             blogs: '/api/v1/blogs',
-            blogInteractions: '/api/v1/blog-interactions'
+            blogInteractions: '/api/v1/blog-interactions',
+            public: '/api/public' // Add public endpoints
         },
         documentation: 'https://github.com/yourusername/snippets/wiki'
     });
