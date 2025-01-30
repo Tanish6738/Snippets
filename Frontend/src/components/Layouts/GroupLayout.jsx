@@ -53,47 +53,56 @@ const getAllDescendantSnippets = (directoryId, directories, directorySnippets) =
     return allSnippets;
 };
 
-// Function to build the directory structure
+// Update buildDirectoryTree function
 const buildDirectoryTree = (directories, snippets) => {
-    if (!directories?.length) return null;
+  if (!directories?.length) return null;
 
-    // Create a map of directory IDs to their snippets
-    const directorySnippets = new Map();
-    snippets?.forEach(snippet => {
-        const dirId = snippet.directory?.current;
-        if (dirId) {
-            const existing = directorySnippets.get(dirId) || [];
-            directorySnippets.set(dirId, [...existing, snippet]);
-        }
+  // Create maps for faster lookups
+  const directoryMap = new Map();
+  
+  // Initialize directory map with the structure we received from backend
+  directories.forEach(dir => {
+    // Make sure we preserve the directSnippets from the API response
+    const directSnippets = dir.directSnippets || [];
+    
+    directoryMap.set(dir._id, {
+      ...dir,
+      type: 'directory',
+      children: [],
+      // Preserve the directSnippets array from the backend
+      directSnippets: directSnippets.map(snippet => ({
+        ...snippet,
+        type: 'snippet'
+      })),
+      allSnippets: [],
+      // Use metadata.snippetCount if available, otherwise use directSnippets length
+      snippetCount: dir.metadata?.snippetCount || directSnippets.length || 0
     });
+  });
 
-    // Create a map of parent IDs to child directories
-    const directoryMap = new Map();
-    directories.forEach(dir => {
-        const parentId = dir.parentId || 'root';
-        const existing = directoryMap.get(parentId) || [];
-        directoryMap.set(parentId, [...existing, dir]);
-    });
-
-    const processDirectory = (directory) => {
-        return {
-            ...directory,
-            type: 'directory',
-            children: (directoryMap.get(directory._id) || [])
-                .map(child => processDirectory(child)),
-            directSnippets: directorySnippets.get(directory._id) || [],
-            snippetCount: (directorySnippets.get(directory._id) || []).length
-        };
-    };
-
-    // Find root directory
-    const rootDirectory = directories.find(dir => dir.isRoot);
-    if (!rootDirectory) {
-        console.error('No root directory found');
-        return null;
+  // Build tree structure
+  directories.forEach(dir => {
+    if (dir.parentId && directoryMap.has(dir.parentId)) {
+      const parent = directoryMap.get(dir.parentId);
+      parent.children.push(directoryMap.get(dir._id));
     }
+  });
 
-    return processDirectory(rootDirectory);
+  // Find root directory
+  const rootDir = directories.find(dir => dir.isRoot);
+  if (!rootDir) return null;
+
+  const root = directoryMap.get(rootDir._id);
+
+  // Debug logging
+  console.log('Built Directory Tree:', {
+    root: root,
+    directSnippetsCount: root.directSnippets?.length,
+    childrenCount: root.children?.length,
+    metadata: root.metadata
+  });
+
+  return root;
 };
 
 // Function to format directory size
@@ -262,29 +271,38 @@ const GroupLayout = () => {
   const fetchGroupContent = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch directories
-      const dirsResponse = await axios.get(`/api/groups/${groupId}/directories`);
-      const dirData = dirsResponse.data;
-      
-      // Fetch snippets 
-      const snippetsResponse = await axios.get(`/api/groups/${groupId}/snippets`);
-      const snippetData = snippetsResponse.data;
-  
-      // Find root directory
-      const rootDir = dirData.find(dir => dir.isRoot);
-      
-      if (rootDir) {
-        // Build directory tree starting from root
-        const tree = buildDirectoryTree(dirData, snippetData);
-        setDirectoryStructure(tree);
-        setCurrentDirectory(rootDir);
-        
-        // Update directories and snippets state
-        setDirectories(dirData);
-        setSnippets(snippetData);
+      setFetchError(null);
+
+      // Fetch directories and snippets
+      const [dirsResponse, snippetsResponse] = await Promise.all([
+        axios.get(`/api/groups/${groupId}/directories`),
+        axios.get(`/api/groups/${groupId}/snippets`)
+      ]);
+
+      console.log('API Responses:', {
+        directories: dirsResponse.data,
+        snippets: snippetsResponse.data,
+        directSnippets: dirsResponse.data[0]?.directSnippets
+      });
+
+      const directories = dirsResponse.data;
+
+      // Build directory tree with the directories that already contain snippets
+      const tree = buildDirectoryTree(directories);
+      setDirectoryStructure(tree);
+      setDirectories(directories);
+      setSnippets(snippetsResponse.data);
+
+      // If no current directory is selected, set root as current
+      if (!currentDirectory) {
+        const rootDir = directories.find(dir => dir.isRoot);
+        if (rootDir) {
+          setCurrentDirectory(rootDir);
+        }
       }
-  
+
+      console.log('Directory Tree:', tree);
+
     } catch (error) {
       console.error('Error fetching group content:', error);
       setFetchError(error.message);
@@ -292,7 +310,6 @@ const GroupLayout = () => {
       setIsLoading(false);
     }
   };
-  
 
   const refreshContent = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -785,59 +802,100 @@ const GroupLayout = () => {
   );
 };
 
+// Update FileTreeNode component's render logic for snippets
 const FileTreeNode = ({ item, level = 0, onSelect }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (!item) return null;
 
+  // Check for both children and directSnippets
+  const hasChildren = item.type === 'directory' && 
+    (item.children?.length > 0 || item.directSnippets?.length > 0);
+
+  // Debug logging for tree node
+  console.log('FileTreeNode:', {
+    name: item.name || item.title,
+    type: item.type,
+    directSnippets: item.directSnippets?.length || 0,
+    children: item.children?.length || 0,
+    metadata: item.metadata
+  });
+
   return (
-    <div className="space-y-1">
+    <div className="select-none">
       <div
         className={`
-          flex items-center gap-2 px-2 py-1.5 rounded-lg
-          ${item.type === 'directory' ? 'text-indigo-300' : 'text-indigo-400'}
-          hover:bg-indigo-500/10 cursor-pointer
+          flex items-center py-1.5 px-2 
+          hover:bg-indigo-500/10 rounded-lg 
+          cursor-pointer
+          ${level > 0 ? 'ml-' + (level * 4) : ''}
         `}
-        style={{ paddingLeft: `${level * 16}px` }}
         onClick={() => {
-          if (item.type === 'directory') {
+          if (hasChildren) {
             setIsExpanded(!isExpanded);
           }
           onSelect(item);
         }}
       >
-        {item.type === 'directory' && (
-          <button className="p-1">
-            {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-          </button>
-        )}
-        {item.type === 'directory' ? (
-          <FaFolder className="text-indigo-400" />
-        ) : (
-          <FaCode className="text-indigo-400" />
-        )}
-        <span className="truncate">{item.name}</span>
-        {item.type === 'directory' && (
+        <span className="w-4 h-4 flex items-center justify-center mr-1">
+          {hasChildren && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="text-indigo-400/75 hover:text-indigo-300"
+            >
+              {isExpanded ? (
+                <FaChevronDown size={12} />
+              ) : (
+                <FaChevronRight size={12} />
+              )}
+            </button>
+          )}
+        </span>
+
+        <span className="w-5 h-5 flex items-center justify-center mr-2">
+          {item.type === 'directory' ? (
+            isExpanded ? (
+              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
+            ) : (
+              <FaFolder className="w-4 h-4 text-indigo-400/90" />
+            )
+          ) : (
+            <FaCode className="w-4 h-4 text-indigo-300/90" />
+          )}
+        </span>
+
+        <span className="text-sm text-indigo-200/90 font-medium flex-1">
+          {item.name || item.title}
+        </span>
+
+        {item.type === 'directory' && item.snippetCount > 0 && (
           <span className="text-xs text-indigo-400/60">
-            ({item.snippetCount || 0})
+            ({item.snippetCount})
           </span>
         )}
       </div>
 
-      {item.type === 'directory' && isExpanded && (
-        <div className="space-y-1">
-          {item.snippets?.map(snippet => (
+      {isExpanded && hasChildren && (
+        console.log('Rendering children of:', item.name),
+        <div>
+          {/* Show directories first */}
+          {item.children?.map((child) => (
             <FileTreeNode
-              key={snippet._id}
-              item={{ ...snippet, type: 'snippet' }}
+              key={child._id}
+              item={child}
               level={level + 1}
               onSelect={onSelect}
             />
           ))}
-          {item.children?.map(child => (
+          
+          {/* Show snippets */}
+          {item.directSnippets?.map((snippet) => (
             <FileTreeNode
-              key={child._id}
-              item={child}
+              key={snippet._id}
+              item={{...snippet, type: 'snippet'}}
               level={level + 1}
               onSelect={onSelect}
             />
