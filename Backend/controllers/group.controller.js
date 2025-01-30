@@ -3,6 +3,7 @@ import Activity from "../Models/activity.model.js";
 import { validationResult } from "express-validator";
 import mongoose from 'mongoose'; // Add this import
 import Directory from "../Models/directory.model.js";  // Add this line
+const { ObjectId } = mongoose.Types; // Add this line
 
 // Create new group
 export const createGroup = async (req, res) => {
@@ -573,43 +574,65 @@ export const getGroupSnippets = async (req, res) => {
 
 export const getGroupDirectories = async (req, res) => {
     try {
-        const group = await Group.findById(req.params.id)
-            .populate('directories.directoryId')
-            .populate('rootDirectory');
+        const { id } = req.params;
         
+        // Validate group ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid group ID format" });
+        }
+
+        const group = await Group.findById(id);
         if (!group) {
             return res.status(404).json({ error: "Group not found" });
         }
 
-        // Check access permissions
-        const isMember = group.members.some(member => 
-            member.userId.toString() === req.user._id.toString()
-        );
-
-        if (!isMember && group.settings?.visibility !== 'public') {
-            return res.status(403).json({ error: "Access denied" });
-        }
-
-        // Get all directories associated with the group
-        const directories = await Directory.find({
-            groupId: group._id
-        }).sort('path');
-
-        // If no directories exist but group has a rootDirectory, something went wrong
-        if (directories.length === 0 && group.rootDirectory) {
-            const rootDir = await Directory.findById(group.rootDirectory);
-            if (rootDir) {
-                return res.json([rootDir]);
+        // Get all directories with populated snippets
+        const directories = await Directory.aggregate([
+            { 
+                $match: { 
+                    groupId: new ObjectId(id) // Fix: Use new ObjectId()
+                } 
+            },
+            {
+                $lookup: {
+                    from: 'snippets',
+                    localField: '_id',
+                    foreignField: 'directory.current',
+                    as: 'directSnippets'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'directories',
+                    localField: '_id',
+                    foreignField: 'parentId',
+                    as: 'children'
+                }
+            },
+            {
+                $addFields: {
+                    metadata: {
+                        subDirectoryCount: { $size: "$children" },
+                        totalSize: {
+                            $sum: {
+                                $map: {
+                                    input: "$directSnippets",
+                                    as: "snippet",
+                                    in: { $strLenCP: "$$snippet.content" }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-        }
+        ]);
 
-        // Return found directories
         res.json(directories);
 
     } catch (error) {
-        console.error('getGroupDirectories error:', error);
+        console.error('Error in getGroupDirectories:', error);
         res.status(500).json({ 
-            error: "Failed to fetch group directories",
+            error: 'Failed to fetch group directories',
             message: error.message 
         });
     }
