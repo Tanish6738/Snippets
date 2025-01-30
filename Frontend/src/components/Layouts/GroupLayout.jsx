@@ -149,40 +149,30 @@ const GroupLayout = () => {
   // Enhanced group data fetching with better state management
   const fetchGroupData = async () => {
     if (!groupId) {
-      console.log('No groupId provided, skipping fetch');
       setIsLoading(false);
       return;
     }
   
     try {
-      console.log('Starting group data fetch for ID:', groupId);
       setIsLoading(true);
       setFetchError(null);
   
       // If we have received group details from navigation state, use that first
       if (receivedGroupDetails) {
-        console.log('Using cached group details:', receivedGroupDetails);
         setGroupData(receivedGroupDetails);
         setMembers(receivedGroupDetails.members || []);
-        console.log('Members set from cache:', receivedGroupDetails.members);
         setIsLoading(false);
         return;
       }
   
       // Otherwise fetch from API
-      const timestamp = new Date().toISOString();
-      console.log(`Making API request at ${timestamp}`);
-  
       const response = await axios.get(`/api/groups/${groupId}`);
-      console.log('API Response received:', response.data);
       
       if (!response.data) {
         throw new Error('No data received from server');
       }
   
-      console.log('Setting group data:', response.data);
       setGroupData(response.data);
-      console.log('Setting members:', response.data.members);
       setMembers(response.data.members || []);
   
     } catch (err) {
@@ -197,12 +187,10 @@ const GroupLayout = () => {
       
       // If we have receivedGroupDetails as fallback, use it
       if (receivedGroupDetails) {
-        console.log('Falling back to received group details');
         setGroupData(receivedGroupDetails);
         setMembers(receivedGroupDetails.members || []);
       }
     } finally {
-      console.log('Fetch operation completed');
       setIsLoading(false);
     }
   };
@@ -210,27 +198,20 @@ const GroupLayout = () => {
   // Update the useEffect for fetchGroupData
   useEffect(() => {
     if (groupId) {
-      console.log('GroupId changed, triggering fetch:', groupId);
       fetchGroupData();
     }
   }, [groupId, receivedGroupDetails]);
   
   const handleMemberAdded = async () => {
     try {
-        console.log('Refreshing members list after add');
         setIsLoading(true);
         setFetchError(null);
 
         const response = await axios.get(`/api/groups/${groupId}`);
         
-        if (!response.data) {z
+        if (!response.data) {
             throw new Error('No data received from server');
         }
-
-        console.log('Updated group data received:', {
-            groupId,
-            memberCount: response.data.members?.length,
-        });
 
         setGroupData(response.data);
         setMembers(response.data.members || []);
@@ -239,8 +220,7 @@ const GroupLayout = () => {
         const errorMessage = err.response?.data?.error || err.message || 'Failed to refresh members';
         console.error('Error refreshing members:', {
             message: errorMessage,
-            status: err.response?.status,
-            error: err
+            status: err.response?.status
         });
         setFetchError(errorMessage);
     } finally {
@@ -269,7 +249,6 @@ const GroupLayout = () => {
   // Fetch snippets and directories
   const fetchGroupContent = async () => {
     try {
-      console.log('Fetching group content for:', groupId);
       
       // Fetch snippets
       const snippetsResponse = await fetch(`/api/groups/${groupId}/snippets`, {
@@ -282,7 +261,6 @@ const GroupLayout = () => {
       if (!snippetsResponse.ok) throw new Error(snippetsData.error);
       
       setSnippets(snippetsData);
-      console.log('Fetched snippets:', snippetsData);
 
       // Fetch directories
       const directoriesResponse = await fetch(`/api/groups/${groupId}/directories`, {
@@ -327,7 +305,6 @@ const GroupLayout = () => {
   }, [searchTerm]);
 
   const handleItemCreated = async () => {
-    console.log('Item created, waiting for backend sync...');
     // Add a small delay to allow backend to process the new item
     await new Promise(resolve => setTimeout(resolve, 1000));
     await fetchGroupContent();
@@ -342,7 +319,6 @@ const GroupLayout = () => {
 
   // Modified loading condition
   if (isInitialLoading) {
-    console.log('Rendering loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
                     flex items-center justify-center">
@@ -715,7 +691,6 @@ const GroupLayout = () => {
         isOpen={isCreateSnippetModalOpen}
         onClose={() => setCreateSnippetModalOpen(false)}
         onSnippetCreated={async (snippet) => {
-          console.log('New snippet created:', snippet);
           await handleItemCreated();
           setCreateSnippetModalOpen(false);
         }}
@@ -727,7 +702,6 @@ const GroupLayout = () => {
         onClose={() => setBulkCreateSnippetModalOpen(false)}
         onSnippetsCreated={(snippets) => {
           // Handle newly created snippets
-          console.log('New snippets created:', snippets);
         }}
         group={groupData} // Pass the group data
       />
@@ -738,7 +712,6 @@ const GroupLayout = () => {
         snippet={selectedSnippet}
         onSnippetUpdated={(updatedSnippet) => {
           // Handle updated snippet
-          console.log('Snippet updated:', updatedSnippet);
         }}
       />
 
@@ -766,7 +739,6 @@ const GroupLayout = () => {
         directoryId={selectedDirectory?._id}
         onDirectoryUpdated={(updatedDirectory) => {
           // Handle updated directory
-          console.log('Directory updated:', updatedDirectory);
         }}
       />
 
