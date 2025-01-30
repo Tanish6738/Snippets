@@ -249,48 +249,31 @@ const GroupLayout = () => {
   // Fetch snippets and directories
   const fetchGroupContent = async () => {
     try {
-      
       // Fetch snippets
-      const snippetsResponse = await fetch(`/api/groups/${groupId}/snippets`, {
-          headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-      });
-      const snippetsData = await snippetsResponse.json();
+      const snippetsResponse = await axios.get(`/api/groups/${groupId}/snippets`);
+      setSnippets(snippetsResponse.data);
       
-      if (!snippetsResponse.ok) throw new Error(snippetsData.error);
-      
-      setSnippets(snippetsData);
-
       // Fetch directories
-      const directoriesResponse = await fetch(`/api/groups/${groupId}/directories`, {
-          headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-      });
-      const directoriesData = await directoriesResponse.json();
-      
-      if (!directoriesResponse.ok) throw new Error(directoriesData.error);
-      
-      setDirectories(directoriesData);
+      const directoriesResponse = await axios.get(`/api/groups/${groupId}/directories`);
+      setDirectories(directoriesResponse.data);
       
       // Build directory structure
-      const structure = buildDirectoryTree(directoriesData, snippetsData);
+      const structure = buildDirectoryTree(directoriesResponse.data, snippetsResponse.data);
       setDirectoryStructure(structure);
       
       // Update current directory info
       if (structure) {
-          setCurrentDirectory({
-              name: structure.name,
-              snippetCount: snippetsData.length,
-              childrenCount: structure.children?.length || 0
-          });
+        setCurrentDirectory({
+          name: structure.name,
+          snippetCount: snippetsResponse.data.length,
+          childrenCount: structure.children?.length || 0
+        });
       }
-  } catch (error) {
+    } catch (error) {
       console.error('Error fetching group content:', error);
-      setFetchError(error.message);
-  }
-};
+      setFetchError(error.response?.data?.error || error.message);
+    }
+  };
 
   const refreshContent = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -316,6 +299,31 @@ const GroupLayout = () => {
       fetchGroupContent();
     }
   }, [groupId, groupData]);
+
+  // Add this effect to fetch directory tree
+  useEffect(() => {
+    const fetchGroupContent = async () => {
+      if (!groupId) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`/api/groups/${groupId}/content`);
+        
+        if (!response.data) throw new Error('No data received from server');
+        
+        setDirectoryStructure(response.data);
+        setCurrentDirectory(response.data); // Set root directory as current
+        setIsLoading(false);
+        
+      } catch (err) {
+        console.error('Error fetching group content:', err);
+        setFetchError(err.response?.data?.error || err.message);
+        setIsLoading(false);
+      }
+    };
+  
+    fetchGroupContent();
+  }, [groupId]);
 
   // Modified loading condition
   if (isInitialLoading) {
