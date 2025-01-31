@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { 
   FaUsers, 
   FaComments, 
@@ -666,7 +667,62 @@ const GroupLayout = () => {
 
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Messages would go here */}
+            {/* Example chat messages */}
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/30 
+                            flex items-center justify-center text-indigo-300 shrink-0">
+                A
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-indigo-400">Alice</div>
+                <div className="mt-1 p-3 bg-indigo-500/10 rounded-lg text-indigo-200">
+                  Hey team, I just added a new snippet for the authentication flow.
+                </div>
+                <div className="mt-1 text-xs text-indigo-400/60">2:30 PM</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/30 
+                            flex items-center justify-center text-indigo-300 shrink-0">
+                B
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-indigo-400">Bob</div>
+                <div className="mt-1 p-3 bg-indigo-500/10 rounded-lg text-indigo-200">
+                  Thanks Alice! I'll review it shortly.
+                </div>
+                <div className="mt-1 text-xs text-indigo-400/60">2:32 PM</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/30 
+                            flex items-center justify-center text-indigo-300 shrink-0">
+                C
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-indigo-400">Charlie</div>
+                <div className="mt-1 p-3 bg-indigo-500/10 rounded-lg text-indigo-200">
+                  I've also updated the API documentation in the /docs directory.
+                </div>
+                <div className="mt-1 text-xs text-indigo-400/60">2:35 PM</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/30 
+                            flex items-center justify-center text-indigo-300 shrink-0">
+                A
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-indigo-400">Alice</div>
+                <div className="mt-1 p-3 bg-indigo-500/10 rounded-lg text-indigo-200">
+                  Perfect! Let's make sure we keep all documentation up to date. 👍
+                </div>
+                <div className="mt-1 text-xs text-indigo-400/60">2:36 PM</div>
+              </div>
+            </div>
           </div>
 
           {/* Chat Input - Fixed at bottom */}
@@ -985,6 +1041,37 @@ const DirectoryStats = ({ directory }) => {
       </div>
     </div>
   );
+};
+
+const DirectoryCard = ({ directory }) => {
+  return (
+    <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/15 transition-colors cursor-pointer">
+      <div className="flex items-center gap-3">
+        <FaFolder className="text-xl text-indigo-400" />
+        <div>
+          <h3 className="font-medium text-white">{directory.name}</h3>
+          <p className="text-xs text-indigo-400">{directory.path}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <span className="text-indigo-300">
+          {directory.directSnippets?.length || 0} snippets
+        </span>
+        <span className="text-indigo-400">
+          {new Date(directory.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+DirectoryCard.propTypes = {
+  directory: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    path: PropTypes.string,
+    directSnippets: PropTypes.array,
+    createdAt: PropTypes.string
+  }).isRequired
 };
 
 const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
