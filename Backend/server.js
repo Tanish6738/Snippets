@@ -55,6 +55,7 @@ io.on('connection', socket => {
     socket.join(socket.groupId._id);
 
     socket.on('message', async (data) => {
+        console.log(data);
         socket.broadcast.to(socket.groupId._id).emit('message', data);     
     });
     

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef,useContext } from 'react';
 import PropTypes from 'prop-types';
 import { 
   FaUsers, 
@@ -30,6 +30,7 @@ import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
 import { initializeSocket, recieveMessage, sendMessage } from '../../Config/Socket';
+import { useUser } from '../../Context/UserContext';
 
 // Add these utility functions at the top of GroupLayout.jsx
 
@@ -155,8 +156,17 @@ const GroupLayout = () => {
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [message, setMessage] = useState('');
 
-  const sendMessage = (message) => {
-    console.log('Sending message:', message);
+  const { user } = useUser();
+  console.log('User:', user._id);
+  const send = (message) => {
+    
+    sendMessage('message', {
+      message,
+      sender : user._id
+    });
+
+    setMessage('');
+
   };
 
 
@@ -745,14 +755,17 @@ const GroupLayout = () => {
               <input
                 type="text"
                 placeholder="Type a message..."
-                value={(e)=>setMessage(e.target.value)}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 className="flex-1 bg-indigo-500/10 border border-indigo-500/20 
                          rounded-lg px-4 py-2.5 text-indigo-300 
                          placeholder-indigo-400/50 focus:outline-none 
                          focus:border-indigo-500/50"
               />
               <button className="p-2.5 bg-indigo-500 text-white rounded-lg
-                             hover:bg-indigo-600 active:scale-95 transition-all">
+                             hover:bg-indigo-600 active:scale-95 transition-all"
+                            onClick={() => send(message)}
+                             >
                 <FaPaperPlane size={16} />
               </button>
             </div>
