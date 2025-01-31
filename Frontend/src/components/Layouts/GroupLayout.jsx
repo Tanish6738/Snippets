@@ -29,6 +29,7 @@ import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails
 import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
+import { initializeSocket, recieveMessage, sendMessage } from '../../Config/Socket';
 
 // Add these utility functions at the top of GroupLayout.jsx
 
@@ -152,9 +153,22 @@ const GroupLayout = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
+  const [message, setMessage] = useState('');
+
+  const sendMessage = (message) => {
+    console.log('Sending message:', message);
+  };
+
 
   // Check for mobile viewport
   useEffect(() => {
+
+    initializeSocket(groupId);
+
+    recieveMessage((data) => {
+      console.log('Received message:', data);
+    });
+
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth < 768) {
@@ -731,6 +745,7 @@ const GroupLayout = () => {
               <input
                 type="text"
                 placeholder="Type a message..."
+                value={(e)=>setMessage(e.target.value)}
                 className="flex-1 bg-indigo-500/10 border border-indigo-500/20 
                          rounded-lg px-4 py-2.5 text-indigo-300 
                          placeholder-indigo-400/50 focus:outline-none 

@@ -84,7 +84,7 @@ export const loginUser = async (req, res) => {
         const userObject = user.toObject();
         delete userObject.password;
 
-        console.log('User logged in:', userObject); // Add logging
+        // console.log('User logged in:', userObject); 
         
         res.json({ 
             message: "Login successful",
