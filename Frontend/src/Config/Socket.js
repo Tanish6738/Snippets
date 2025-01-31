@@ -19,9 +19,16 @@ export const initializeSocket = (groupId) => {
     return socketInstance;
 }
 
-export const recieveMessage = (eventName,callback) => {
-    if(socketInstance){
-        socketInstance.on(eventName,callback);
+export const recieveMessage = (eventName, callback) => {
+    if (socketInstance) {
+        console.log('Setting up listener for:', eventName);
+        socketInstance.on(eventName, (data) => {
+            console.log('Received message:', {
+                event: eventName,
+                data: data
+            });
+            callback(data);
+        });
     }
 }
 

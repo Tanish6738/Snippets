@@ -52,15 +52,21 @@ io.on('connection', socket => {
 
     console.log('New connection:');
 
-    socket.join(socket.groupId._id);
+    const socketGroupId = socket.handshake.query.groupId;
+
+    socket.roomId = socketGroupId;
+
+    socket.join(socketGroupId);
+
+    console.log('User joined group:', socketGroupId);
 
     socket.on('message', async (data) => {
         console.log(data);
-        socket.broadcast.to(socket.groupId._id).emit('message', data);     
+        socket.broadcast.to(socketGroupId).emit('message', data);     
     });
     
     socket.on('event', data => {
-        
+        console.log('Event received:', data);
     });
     socket.on('disconnect', () => { /* … */ });
 });

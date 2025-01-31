@@ -159,15 +159,17 @@ const GroupLayout = () => {
   const { user } = useUser();
   console.log('User:', user._id);
   const send = (message) => {
+    const messageData = {
+        message,
+        sender: user._id,
+        timestamp: new Date().toISOString()
+    };
     
-    sendMessage('message', {
-      message,
-      sender : user._id
-    });
-
+    // console.log('Sending message:', messageData);
+    
+    sendMessage('message', messageData);
     setMessage('');
-
-  };
+};
 
 
   // Check for mobile viewport
@@ -175,8 +177,12 @@ const GroupLayout = () => {
 
     initializeSocket(groupId);
 
-    recieveMessage((data) => {
-      console.log('Received message:', data);
+    recieveMessage('message', (data) => {
+        console.log('Chat message received:', {
+            message: data.message,
+            sender: data.sender,
+            timestamp: new Date().toISOString()
+        });
     });
 
     const checkMobile = () => {
