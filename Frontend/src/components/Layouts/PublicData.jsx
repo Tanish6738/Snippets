@@ -8,9 +8,11 @@ import axios from '../../Config/Axios';
 import {
   FiCode, FiFolder, FiUsers, FiSearch, FiStar, FiShare2, 
   FiEye, FiCopy, FiHeart, FiChevronLeft, FiFilter, FiTag,
-  FiTrendingUp, FiClock
+  FiTrendingUp, FiClock, FiDownload // Add FiDownload
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
+import ViewSnippetModal from '../Modals/SnippetModals/ViewSnippetModal'; // Add this import
+import ExportSnippetModal from '../Modals/SnippetModals/ExportSnippetModal'; // Add this import
 
 const PublicData = () => {
   // State management
@@ -45,6 +47,9 @@ const PublicData = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState(''); // New state for input value
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSnippetId, setSelectedSnippetId] = useState(null); // New state
+  const [showViewModal, setShowViewModal] = useState(false); // New state
+  const [showExportModal, setShowExportModal] = useState(false); // New state for export modal
 
   const navigate = useNavigate();
   const { isAuthenticated, user } = useUser();
@@ -387,6 +392,14 @@ const PublicData = () => {
     </div>
   );
 
+  const handleViewSnippet = (snippetId) => {
+    setSelectedSnippetId(snippetId);
+    setShowViewModal(true);
+    // Log snippet details
+    const snippet = items.find(item => item.id === snippetId);
+    console.log('Viewing snippet:', snippet);
+  };
+
   return (
     <div className="min-h-screen bg-[#030712] text-white pt-16">
       <div className="relative">
@@ -501,7 +514,13 @@ const PublicData = () => {
                           exit={{ opacity: 0, y: -20 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <ItemCard item={item} searchQuery={searchQuery} />
+                          <ItemCard 
+                            item={item} 
+                            searchQuery={searchQuery}
+                            handleViewSnippet={handleViewSnippet}
+                            setShowExportModal={setShowExportModal}
+                            setSelectedSnippetId={setSelectedSnippetId}
+                          />
                         </motion.div>
                       ))}
                     </motion.div>
@@ -528,6 +547,25 @@ const PublicData = () => {
           </div>
         </div>
       </div>
+
+      {/* View Snippet Modal */}
+      <ViewSnippetModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        snippetId={selectedSnippetId}
+        onEdit={(snippetId) => {
+          // Handle edit if needed
+          console.log('Edit snippet:', snippetId);
+        }}
+      />
+
+      {/* Add Export Snippet Modal */}
+      <ExportSnippetModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        itemId={selectedSnippetId}
+        itemType="snippet"
+      />
     </div>
   );
 };
@@ -641,35 +679,72 @@ const ItemCardSkeleton = () => (
   </div>
 );
 
-const SnippetCard = ({ item }) => (
+const SnippetCard = ({ item, handleViewSnippet, setShowExportModal, setSelectedSnippetId }) => (
   <motion.div
     whileHover={{ y: -4 }}
-    className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 rounded-xl border border-indigo-500/20 
-               hover:border-indigo-500/40 transition-all duration-300 overflow-hidden"
+    className="glass-card bg-gradient-to-br from-black to-gray-900 rounded-xl border border-[#3D2998]/20 
+               hover:border-[#3D2998]/40 transition-all duration-300 overflow-hidden shadow-lg"
   >
     <div className="p-6">
       <div className="flex items-start justify-between mb-4">
-        <h3 className="text-lg font-medium text-indigo-300 truncate">{item.title}</h3>
-        <FiCode className="text-indigo-400 flex-shrink-0 ml-2" />
+        <div className="flex-1">
+          <h3 className="text-lg font-bold gradient-text truncate">{item.title}</h3>
+          <div className="flex items-center gap-2 mt-1">
+            <img
+              src={`https://api.dicebear.com/7.x/initials/svg?seed=${item.author}`}
+              alt={item.author}
+              className="w-5 h-5 rounded-full border border-[#3D2998]/30"
+            />
+            <span className="text-xs text-gray-400">{item.author}</span>
+          </div>
+        </div>
+        <span className="px-3 py-1 text-xs rounded-full bg-[#3D2998]/10 text-[#3D2998] border border-[#3D2998]/20">
+          {item.language || 'text'}
+        </span>
       </div>
-      <p className="text-sm text-indigo-400/60 mb-4 line-clamp-2">{item.description}</p>
-      <div className="bg-black/30 rounded-lg p-3 mb-4 overflow-x-auto">
-        <pre className="text-xs text-indigo-300">
+
+      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{item.description}</p>
+
+      <div className="bg-black/30 rounded-lg p-3 mb-4 border border-[#3D2998]/20">
+        <pre className="text-xs text-gray-300 overflow-x-auto">
           <code>{item.codePreview || '// Code snippet preview'}</code>
         </pre>
       </div>
+
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-yellow-500">
-            <FiStar /> {item.stars}
-          </span>
-          <span className="flex items-center gap-1 text-indigo-400/60">
-            <FiEye /> {item.views}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => handleViewSnippet(item.id)}
+            className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer"
+          >
+            <FiEye className="text-lg" />
+            <span className="text-xs">View</span>
+          </button>
+          <button
+            onClick={() => {
+              setShowExportModal(true);
+              setSelectedSnippetId(item.id);
+            }}
+            className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer"
+          >
+            <FiDownload className="text-lg" />
+            <span className="text-xs">Export</span>
+          </button>
+          <span className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer">
+            <FiCopy className="text-lg" />
+            <span className="text-xs">Copy</span>
           </span>
         </div>
-        <span className="text-xs bg-indigo-500/10 px-2 py-1 rounded-full">
-          {item.author}
-        </span>
+        <div className="flex gap-1">
+          {(item.tags || []).slice(0, 2).map((tag, index) => (
+            <span 
+              key={index}
+              className="px-2 py-1 text-xs rounded-full bg-[#3D2998]/10 text-[#3D2998]/80 border border-[#3D2998]/20"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   </motion.div>
@@ -814,10 +889,16 @@ const GroupCard = ({ item, searchQuery = '' }) => (
   </motion.div>
 );
 
-const ItemCard = ({ item, searchQuery }) => {
+const ItemCard = ({ item, searchQuery, handleViewSnippet, setShowExportModal, setSelectedSnippetId }) => {
   switch (item.type) {
     case 'snippet':
-      return <SnippetCard item={item} searchQuery={searchQuery} />;
+      return <SnippetCard 
+        item={item} 
+        searchQuery={searchQuery}
+        handleViewSnippet={handleViewSnippet}
+        setShowExportModal={setShowExportModal}
+        setSelectedSnippetId={setSelectedSnippetId}
+      />;
     case 'directory':
       return <DirectoryCard item={item} searchQuery={searchQuery} />;
     case 'group':

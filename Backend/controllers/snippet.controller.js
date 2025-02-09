@@ -150,19 +150,27 @@ export const getSnippetById = async (req, res) => {
             return res.status(404).json({ error: "Snippet not found" });
         }
 
-        // Check access permissions
+        // Safer access permission check
+        const creatorId = snippet.createdBy?._id || snippet.createdBy;
         if (snippet.visibility === 'private' && 
-            snippet.createdBy._id.toString() !== req.user._id.toString()) {
+            creatorId.toString() !== req.user._id.toString() &&
+            !snippet.sharedWith.some(share => 
+                share.entity._id.toString() === req.user._id.toString()
+            )) {
             return res.status(403).json({ error: "Access denied" });
         }
 
         // Increment views
-        snippet.stats.views += 1;
+        snippet.stats.views = (snippet.stats.views || 0) + 1;
         await snippet.save();
 
         res.json(snippet);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Snippet fetch error:', error);
+        res.status(500).json({ 
+            error: "Failed to fetch snippet",
+            details: error.message 
+        });
     }
 };
 

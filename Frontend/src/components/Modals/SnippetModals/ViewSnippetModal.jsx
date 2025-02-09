@@ -2,44 +2,73 @@ import { useEffect, useState } from 'react';
 import { useUser } from '../../../Context/UserContext';
 import axios from '../../../Config/Axios';
 import EditSnippetDetailsModal from './EditSnippetDetailsModal';
-// Add import for ExportSnippetModal
 import ExportSnippetModal from './ExportSnippetModal';
 
 const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [snippet, setSnippet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { user } = useUser(); // Add this line to get current user
+  const { user } = useUser();
   const [showEditModal, setShowEditModal] = useState(false);
-  // Add state for export modal
   const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     const fetchSnippet = async () => {
-      if (!snippetId) return;
+      if (!snippetId) {
+        setError('No snippet ID provided');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const { data } = await axios.get(`/api/snippets/${snippetId}`);
+        setError('');
+
+        const { data } = await axios.get(`/api/snippets/get/${snippetId}`);
+        
+        if (!data) {
+          throw new Error('No data received from server');
+        }
+
         setSnippet(data);
         
-        // Add more detailed debug logging
-        console.log('Debug Info:', {
+        console.log('Snippet fetch successful:', {
+          snippetId,
+          data,
           userID: user?._id,
-          creatorID: data.createdBy?._id || data.createdBy,
-          hasOnEdit: !!onEdit,
-          isMatch: user?._id === (data.createdBy?._id || data.createdBy)
+          creatorID: data.createdBy?._id || data.createdBy
         });
+
       } catch (err) {
-        setError(err.message || 'Failed to fetch snippet');
+        console.error('Snippet fetch error:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          snippetId
+        });
+
+        setError(
+          err.response?.data?.error || 
+          err.message || 
+          'Failed to fetch snippet'
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    if (isOpen) {
+    if (isOpen && snippetId) {
       fetchSnippet();
     }
-  }, [snippetId, isOpen, user]); // Add user to dependencies
+
+    return () => {
+      if (!isOpen) {
+        setSnippet(null);
+        setError('');
+        setLoading(false);
+      }
+    };
+  }, [snippetId, isOpen, user]);
 
   const handleEditClick = () => {
     console.log('Edit button clicked', {
@@ -49,9 +78,9 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
       onEdit
     });
     if (onEdit) {
-      onEdit(snippet._id); // Call the parent's edit handler
+      onEdit(snippet._id);
     }
-    onClose(); // Close the view modal
+    onClose();
   };
 
   const handleEditComplete = (updatedSnippet) => {
@@ -144,7 +173,6 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                 >
                   Close
                 </button>
-                {/* Simplified condition and added debug element */}
                 {user && snippet && user._id === (snippet.createdBy?._id || snippet.createdBy) && (
                   <button
                     onClick={handleEditClick}
@@ -166,7 +194,6 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
         onSnippetUpdated={handleEditComplete}
       />
 
-      {/* Add ExportSnippetModal */}
       <ExportSnippetModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

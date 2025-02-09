@@ -9,6 +9,11 @@
   100% { transform: translate(0px, 0px) scale(1); }
 }
 
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 @keyframes shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
@@ -92,3 +97,21 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+.glass-card {
+  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #3D2998, #8E6CEF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-animate {
+  background: linear-gradient(45deg, #3D2998, #8E6CEF);
+  background-size: 200% 200%;
+  animation: gradient 5s ease infinite;
+}
+
