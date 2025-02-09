@@ -12,6 +12,8 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
+  const [explanationData, setExplanationData] = useState(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   useEffect(() => {
     const fetchSnippet = async () => {
@@ -75,6 +77,26 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
       setTimeout(() => setCopyStatus(''), 2000); // Reset after 2 seconds
     } catch (err) {
       setCopyStatus('Failed to copy');
+    }
+  };
+
+  const handleExplainCode = async () => {
+    if (snippet?.content) {
+      try {
+        setIsExplaining(true);
+        const response = await axios.post('/api/ai/explain-code', {
+          code: snippet.content,
+          language: snippet.programmingLanguage
+        });
+        
+        setExplanationData(response.data.explanation);
+        setIsExplaining(false);
+      } catch (error) {
+        console.error('Failed to explain code:', error);
+        setExplanationData(null);
+        setError('Failed to generate explanation. Please try again.');
+        setIsExplaining(false);
+      }
     }
   };
 
@@ -164,6 +186,56 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                     <p>Copies: {snippet?.stats?.copies || 0}</p>
                     <p>Favorites: {snippet?.stats?.favorites || 0}</p>
                   </div>
+
+                  {isExplaining && (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                      <span className="ml-2 text-indigo-300">Generating explanation...</span>
+                    </div>
+                  )}
+
+                  {explanationData && (
+                    <div className="mt-6 space-y-4">
+                      <div className="border-b border-indigo-500/20 pb-4">
+                        <h3 className="text-lg font-medium text-indigo-300 mb-2">Summary</h3>
+                        <p className="text-indigo-200/80">{explanationData.summary}</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-indigo-300">Detailed Explanation</h3>
+                        
+                        <div className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-indigo-400 mb-1">Title</h4>
+                              <p className="text-indigo-200">{explanationData.details.title}</p>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium text-indigo-400 mb-1">Analysis</h4>
+                              <pre className="whitespace-pre-wrap text-sm text-white font-mono overflow-x-auto">
+                                {explanationData.details.content}
+                              </pre>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-medium text-indigo-400 mb-1">Tags</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {explanationData.details.tags.map((tag, index) => (
+                                  <span 
+                                    key={index}
+                                    className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 text-sm"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : ( // Add this fallback
                 <div className="flex justify-center items-center h-32">
@@ -174,6 +246,18 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
 
             <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
               <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleExplainCode}
+                  disabled={isExplaining}
+                  className={`px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200 flex items-center gap-2 ${
+                    isExplaining ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  {isExplaining ? 'Explaining...' : 'Explain'}
+                </button>
                 <button
                   onClick={() => setShowExportModal(true)}
                   className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
