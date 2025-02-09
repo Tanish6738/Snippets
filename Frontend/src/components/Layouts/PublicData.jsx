@@ -156,9 +156,11 @@ const PublicData = () => {
         setLoading(true);
         setError(null);
 
+        const searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
+        
         const { data } = await axios.get('/api/public/search', {
           params: {
-            query: query.trim(),
+            query: searchTerms.join(' '),
             type: activeView,
             page: currentPage,
             limit: 10
@@ -172,12 +174,16 @@ const PublicData = () => {
                 activeView === 'directories' ? 'directory' : 'group'
         }));
 
-        // Sort by relevance score
+        // Sort by relevance score and filter out low-relevance results
         const sortedData = processedData
           .filter(item => item.relevanceScore > 0)
           .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
         setItems(sortedData);
+        
+        // Update total pages based on filtered results
+        setTotalPages(Math.ceil(sortedData.length / 10));
+        
       } catch (err) {
         setError(err.response?.data?.message || 'Search failed');
         toast.error('Search failed');
@@ -192,32 +198,65 @@ const PublicData = () => {
   const calculateRelevanceScore = (item, searchQuery) => {
     if (!searchQuery) return 0;
     
-    const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+    const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
     let score = 0;
-    const searchableFields = ['title', 'description', 'author'];
-    const weights = {
-      title: 3,
-      description: 2,
-      author: 1
+    
+    const searchableFields = {
+      title: { weight: 3, value: item.title || '' },
+      description: { weight: 2, value: item.description || '' },
+      author: { weight: 1, value: item.author || '' },
+      language: { weight: 2, value: item.language || '' },
+      tags: { weight: 2, value: (item.tags || []).join(' ') }
     };
-    
-    searchableFields.forEach(field => {
-      const fieldValue = item[field]?.toLowerCase() || '';
-      searchWords.forEach(word => {
-        // Exact match gets higher score
-        if (fieldValue.includes(word)) {
-          score += weights[field];
+
+    for (const term of searchTerms) {
+      for (const [field, { weight, value }] of Object.entries(searchableFields)) {
+        const fieldValue = value.toLowerCase();
+        
+        // Exact match
+        if (fieldValue === term) {
+          score += weight * 2;
         }
-        // Partial match gets lower score
-        else if (fieldValue.split(/\s+/).some(fieldWord => 
-          fieldWord.includes(word) || word.includes(fieldWord)
-        )) {
-          score += weights[field] * 0.5;
+        // Contains word
+        else if (fieldValue.includes(` ${term} `) || fieldValue.startsWith(term + ' ') || fieldValue.endsWith(' ' + term)) {
+          score += weight * 1.5;
         }
-      });
-    });
-    
+        // Partial match
+        else if (fieldValue.includes(term)) {
+          score += weight;
+        }
+        // Fuzzy match (tolerates minor typos)
+        else if (calculateLevenshteinDistance(term, fieldValue) <= 2) {
+          score += weight * 0.5;
+        }
+      }
+    }
+
     return score;
+  };
+
+  // Add Levenshtein Distance calculation for fuzzy matching
+  const calculateLevenshteinDistance = (a, b) => {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = Array(b.length + 1).fill().map(() => Array(a.length + 1).fill(0));
+
+    for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+    for (let j = 1; j <= b.length; j++) {
+      for (let i = 1; i <= a.length; i++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        matrix[j][i] = Math.min(
+          matrix[j - 1][i] + 1,
+          matrix[j][i - 1] + 1,
+          matrix[j - 1][i - 1] + cost
+        );
+      }
+    }
+
+    return matrix[b.length][a.length];
   };
 
   useEffect(() => {
@@ -293,7 +332,7 @@ const PublicData = () => {
             type="text"
             value={searchInputValue} // Use searchInputValue instead of searchQuery
             onChange={handleSearchInput}
-            placeholder="Search..."
+            placeholder="Search (multiple words allowed)..."
             className="w-full px-4 py-2 pl-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
                     text-sm placeholder:text-indigo-400/60 focus:outline-none focus:border-indigo-500/40"
           />
@@ -381,9 +420,9 @@ const PublicData = () => {
       <div className="relative">
         <input
           type="text"
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search..."
+          value={searchInputValue}
+          onChange={handleSearchInput}
+          placeholder="Search (multiple words allowed)..."
           className="w-full px-4 py-3 pl-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
                     text-sm placeholder:text-indigo-400/60 focus:outline-none focus:border-indigo-500/40"
         />
