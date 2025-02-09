@@ -11,13 +11,13 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const { user } = useUser();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
 
   useEffect(() => {
     const fetchSnippet = async () => {
       if (!snippetId) {
         setError('No snippet ID provided');
         setLoading(false);
-        return;
       }
 
       try {
@@ -31,22 +31,8 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
         }
 
         setSnippet(data);
-        
-        console.log('Snippet fetch successful:', {
-          snippetId,
-          data,
-          userID: user?._id,
-          creatorID: data.createdBy?._id || data.createdBy
-        });
 
       } catch (err) {
-        console.error('Snippet fetch error:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          snippetId
-        });
-
         setError(
           err.response?.data?.error || 
           err.message || 
@@ -71,12 +57,6 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   }, [snippetId, isOpen, user]);
 
   const handleEditClick = () => {
-    console.log('Edit button clicked', {
-      snippet,
-      userId: user?._id,
-      creatorId: snippet?.createdBy?._id || snippet?.createdBy,
-      onEdit
-    });
     if (onEdit) {
       onEdit(snippet._id);
     }
@@ -86,6 +66,16 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const handleEditComplete = (updatedSnippet) => {
     setShowEditModal(false);
     setSnippet(updatedSnippet);
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(snippet.content);
+      setCopyStatus('Copied!');
+      setTimeout(() => setCopyStatus(''), 2000); // Reset after 2 seconds
+    } catch (err) {
+      setCopyStatus('Failed to copy');
+    }
   };
 
   if (!isOpen) return null;
@@ -117,44 +107,67 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                 <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl">
                   {error}
                 </div>
-              ) : (
+              ) : snippet ? ( // Add this check
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium text-indigo-300 mb-2">Description</h3>
-                    <p className="text-indigo-200/80">{snippet.description || 'No description provided'}</p>
+                    <p className="text-indigo-200/80">{snippet?.description || 'No description provided'}</p>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-indigo-300 mb-2">Code</h3>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-medium text-indigo-300">Code</h3>
+                      <button
+                        onClick={handleCopyCode}
+                        className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+                      >
+                        {copyStatus ? (
+                          <>
+                            <span className="text-green-400">{copyStatus}</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <pre className="bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
-                      <code className="font-mono text-sm text-white">{snippet.content}</code>
+                      <code className="font-mono text-sm text-white">{snippet?.content || ''}</code>
                     </pre>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {snippet.tags.map(tag => (
+                    {snippet?.tags?.map(tag => (
                       <span key={tag} className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 text-sm">
                         {tag}
                       </span>
-                    ))}
+                    )) || null}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm text-indigo-300">
                     <div>
-                      <p>Language: {snippet.programmingLanguage}</p>
-                      <p>Visibility: {snippet.visibility}</p>
+                      <p>Language: {snippet?.programmingLanguage || 'N/A'}</p>
+                      <p>Visibility: {snippet?.visibility || 'N/A'}</p>
                     </div>
                     <div>
-                      <p>Created: {new Date(snippet.createdAt).toLocaleDateString()}</p>
-                      <p>Last Updated: {new Date(snippet.updatedAt).toLocaleDateString()}</p>
+                      <p>Created: {snippet?.createdAt ? new Date(snippet.createdAt).toLocaleDateString() : 'N/A'}</p>
+                      <p>Last Updated: {snippet?.updatedAt ? new Date(snippet.updatedAt).toLocaleDateString() : 'N/A'}</p>
                     </div>
                   </div>
 
                   <div className="text-sm text-indigo-300 space-y-1">
-                    <p>Views: {snippet.stats?.views || 0}</p>
-                    <p>Copies: {snippet.stats?.copies || 0}</p>
-                    <p>Favorites: {snippet.stats?.favorites || 0}</p>
+                    <p>Views: {snippet?.stats?.views || 0}</p>
+                    <p>Copies: {snippet?.stats?.copies || 0}</p>
+                    <p>Favorites: {snippet?.stats?.favorites || 0}</p>
                   </div>
+                </div>
+              ) : ( // Add this fallback
+                <div className="flex justify-center items-center h-32">
+                  <p className="text-indigo-300">No snippet data available</p>
                 </div>
               )}
             </div>
