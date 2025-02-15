@@ -30,6 +30,7 @@ const Navbar = () => {
       label: 'Developer Tools',
       items: [
         { to : "/public", label: "All content" },
+        { to: '/run-code', label: 'Code Runner' },
         // { to: '/snippets', label: 'Code Snippets' },
         // { to: '/directories', label: 'Directories' },
         // { to: '/groups', label: 'Groups' },

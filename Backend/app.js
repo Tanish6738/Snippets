@@ -13,6 +13,7 @@ import aiRouter from './Routes/Ai.routes.js';
 import blogRouter from './Routes/Blog/Blog.routes.js';
 import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 import publicRouter from './Routes/public.routes.js';
+import runCodeRouter from './Routes/run-code.routes.js'; // Add this import with the other route imports
 dotenv.config();
 
 // Initialize express
@@ -62,6 +63,7 @@ app.use('/api/ai', aiRouter);
 app.use('/api/blogs', blogRouter);
 app.use('/api/blog-interactions', blogInteractionRouter);
 app.use('/api/public', publicRouter);  // Add public routes
+app.use('/api/run-code', runCodeRouter); // Add this line with the other route declarations
 
 // Base route
 app.get('/', (req, res) => {

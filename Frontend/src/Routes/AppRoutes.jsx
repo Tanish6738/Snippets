@@ -12,6 +12,7 @@ import PublicData from '../components/Layouts/PublicData';
 import SharedSnippet from '../components/SharedSnippet/SharedSnippet';
 import BlogLayout from '../components/Blog/BlogLayout';
 import Landing from '../components/Landing/Landing';
+import CodeRunner from '../components/Layouts/CodeRunner';
 
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
@@ -46,6 +47,10 @@ const AppRoutes = () => {
             <GroupLayout /> : 
             <Navigate to="/login" />
           } 
+        />
+        <Route 
+          path="/run-code" 
+          element={ <CodeRunner /> } 
         />
 
         {/* Catch-all route */}
