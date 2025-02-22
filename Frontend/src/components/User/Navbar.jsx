@@ -31,6 +31,7 @@ const Navbar = () => {
       items: [
         { to : "/public", label: "All content" },
         { to: '/run-code', label: 'Code Runner' },
+        { to: '/scrape', label: 'Web Scrapper' },
         // { to: '/snippets', label: 'Code Snippets' },
         // { to: '/directories', label: 'Directories' },
         // { to: '/groups', label: 'Groups' },

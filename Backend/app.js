@@ -8,12 +8,13 @@ import userRouter from './Routes/user.routes.js';
 import snippetRouter from './Routes/snippet.routes.js';
 import groupRouter from './Routes/groups.routes.js';
 import directoryRouter from './Routes/directory.routes.js';
-import activityRouter from './Routes/activity.routes.js'; // Import activity routes
+import activityRouter from './Routes/activity.routes.js';
 import aiRouter from './Routes/Ai.routes.js';
 import blogRouter from './Routes/Blog/Blog.routes.js';
 import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 import publicRouter from './Routes/public.routes.js';
-import runCodeRouter from './Routes/run-code.routes.js'; // Add this import with the other route imports
+import runCodeRouter from './Routes/run-code.routes.js';
+import scrapeRouter from './Routes/scraper.routes.js';
 dotenv.config();
 
 // Initialize express
@@ -63,8 +64,8 @@ app.use('/api/ai', aiRouter);
 app.use('/api/blogs', blogRouter);
 app.use('/api/blog-interactions', blogInteractionRouter);
 app.use('/api/public', publicRouter);  // Add public routes
-app.use('/api/run-code', runCodeRouter); // Add this line with the other route declarations
-
+app.use('/api/run-code', runCodeRouter);
+app.use('/api', scrapeRouter);
 // Base route
 app.get('/', (req, res) => {
     res.json({
