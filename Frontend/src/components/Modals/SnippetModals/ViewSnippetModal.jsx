@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../../../Context/UserContext';
+import { useNavigate } from 'react-router-dom';
 import axios from '../../../Config/Axios';
 import EditSnippetDetailsModal from './EditSnippetDetailsModal';
 import ExportSnippetModal from './ExportSnippetModal';
 
 const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
+  const navigate = useNavigate();
   const [snippet, setSnippet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,6 +99,30 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
         setError('Failed to generate explanation. Please try again.');
         setIsExplaining(false);
       }
+    }
+  };
+
+  const handleRunSnippet = () => {
+    if (snippet?.content) {
+      let detectedLanguage = 'javascript'; // Default language
+      
+      if (snippet.programmingLanguage) {
+        const lang = snippet.programmingLanguage.toLowerCase();
+        if (lang.includes('python') || lang.includes('py')) {
+          detectedLanguage = 'python';
+        } else if (lang.includes('javascript') || lang.includes('js')) {
+          detectedLanguage = 'javascript';
+        }
+      }
+
+      onClose();
+
+      navigate('/run-code', {
+        state: {
+          code: snippet.content,
+          language: detectedLanguage
+        }
+      });
     }
   };
 
@@ -257,6 +283,24 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                   {isExplaining ? 'Explaining...' : 'Explain'}
+                </button>
+                <button
+                  onClick={handleRunSnippet}
+                  className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 
+                           hover:bg-indigo-500/10 transition-all duration-200 
+                           flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" 
+                       className="h-5 w-5" 
+                       viewBox="0 0 20 20" 
+                       fill="currentColor"
+                  >
+                    <path fillRule="evenodd" 
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" 
+                          clipRule="evenodd" 
+                    />
+                  </svg>
+                  Run Snippet
                 </button>
                 <button
                   onClick={() => setShowExportModal(true)}

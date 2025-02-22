@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { FaPlay, FaTrash, FaCopy } from 'react-icons/fa';
+import { useLocation } from 'react-router-dom'; // Add this import
 
 const CodeRunner = () => {
-  const [language, setLanguage] = useState('javascript');
-  const [code, setCode] = useState('');
-  const [output, setOutput] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-
+  const location = useLocation();
+  
   const defaultCode = {
-    javascript: '// Write your JavaScript code here\n\n// Example:\nfunction example() {\n  return "Hello, World!";\n}\n\nexample();',
+    javascript: '// Write your JavaScript code here\n\n// Example:\nfunction example() {\n  return "Hello, World!";\n}\n\nconsole.log(example());',
     python: '# Write your Python code here\n\n# Example:\ndef example():\n    return "Hello, World!"\n\nprint(example())'
   };
 
+  // Initialize state with incoming code and language if available
+  const [language, setLanguage] = useState(
+    location.state?.language || 'javascript'
+  );
+  const [code, setCode] = useState(
+    location.state?.code || defaultCode['javascript']
+  );
+  const [output, setOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
+
+  // Modify the useEffect to handle incoming state
   useEffect(() => {
-    setCode(defaultCode[language]);
-  }, [language]);
+    if (location.state?.code) {
+      setCode(location.state.code);
+      if (location.state.language) {
+        setLanguage(location.state.language);
+      }
+    } else {
+      setCode(defaultCode[language]);
+    }
+  }, [language, location.state]);
 
   const handleEditorChange = (value) => {
     setCode(value);
@@ -68,7 +84,7 @@ const CodeRunner = () => {
 
   return (
     <div className="min-h-screen bg-[#070B14] p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6 pt-20">
+      <div className="max-w-7xl mx-auto space-y-6 pt-16">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -91,7 +107,7 @@ const CodeRunner = () => {
         </div>
 
         {/* Editor Toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-[#1E1E1E] border-b border-indigo-500/20">
+        <div className="flex items-center justify-between px-4 py-2 bg-[#1E1E1E] border-b border-indigo-500/20 rounded-lg">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-gray-500 text-sm">Language:</span>
@@ -143,7 +159,7 @@ const CodeRunner = () => {
                 </div>
               </div>
               <Editor
-                height="500px"
+                height="450px"
                 defaultLanguage={language}
                 language={language}
                 value={code}
@@ -176,7 +192,7 @@ const CodeRunner = () => {
 
           {/* Output Section */}
           <div className="space-y-4">
-            <div className="bg-[#1E1E1E] rounded-xl border border-indigo-500/20">
+            <div className="bg-[#1E1E1E] rounded-xl border border-indigo-500/20 overflow-hidden">
               <div className="border-b border-indigo-500/20 p-3 flex justify-between items-center bg-[#252526]">
                 <div className="flex items-center gap-2">
                   <h3 className="text-white font-medium">Output</h3>
