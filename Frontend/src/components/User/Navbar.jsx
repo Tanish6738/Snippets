@@ -42,6 +42,7 @@ const Navbar = () => {
       items: [
         { to: '/blog', label: 'Blog' },
         { to: '/blog/create', label: 'Create Blog' },
+        { to: '/create-pdf', label: 'Create Pdf' },
         // { to: '/public', label: 'Public Data' }
       ]
     }

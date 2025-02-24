@@ -15,23 +15,39 @@ import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 import publicRouter from './Routes/public.routes.js';
 import runCodeRouter from './Routes/run-code.routes.js';
 import scrapeRouter from './Routes/scraper.routes.js';
+import pdfRouter from './Routes/pdf.routes.js';
 dotenv.config();
 
 // Initialize express
 const app = express();
 
-// Security middleware
+// Configure CORS before other middleware
 app.use(cors({
-    origin: "*",
-    credentials: true
+    origin: process.env.NODE_ENV === 'development' 
+        ? ['http://localhost:5173', 'http://127.0.0.1:5173']
+        : process.env.ALLOWED_ORIGINS?.split(','),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Disposition', 'Content-Length'],
+    maxAge: 600 // Cache preflight requests for 10 minutes
 }));
 
 // Logging middleware
 app.use(morgan('dev'));
 
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true}));
+// Body parsing middleware with increased limits
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Configure static uploads directory
+app.use('/uploads', express.static('uploads'));
+
+// Add timeout middleware
+app.use((req, res, next) => {
+    req.setTimeout(300000); // 5 minutes
+    next();
+});
 
 // Health check endpoints
 app.get('/health', (req, res) => {
@@ -66,6 +82,7 @@ app.use('/api/blog-interactions', blogInteractionRouter);
 app.use('/api/public', publicRouter);  // Add public routes
 app.use('/api/run-code', runCodeRouter);
 app.use('/api', scrapeRouter);
+app.use('/api/pdf', pdfRouter);
 // Base route
 app.get('/', (req, res) => {
     res.json({
@@ -148,6 +165,10 @@ app.use((err, req, res, next) => {
                 message: err.message
             });
     }
+
+    // Add CORS headers to error responses
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
 
     // Default error response
     res.status(err.status || 500).json({
