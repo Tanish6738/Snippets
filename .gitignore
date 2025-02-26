@@ -5,3 +5,5 @@ node_modules/
 *.env
 *.env.*
 Inspire.jsx
+/Backend/temp
+/Backend/uploads/temp
