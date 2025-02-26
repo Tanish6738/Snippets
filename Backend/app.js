@@ -14,6 +14,9 @@ import blogRouter from './Routes/Blog/Blog.routes.js';
 import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 import publicRouter from './Routes/public.routes.js';
 import runCodeRouter from './Routes/run-code.routes.js'; // Add this import with the other route imports
+import scrapeRouter from './Routes/scraper.routes.js';  // Add this import
+import pdfRouter from './Routes/pdf.routes.js';         // Add this import
+
 dotenv.config();
 
 // Initialize express
@@ -64,6 +67,8 @@ app.use('/api/blogs', blogRouter);
 app.use('/api/blog-interactions', blogInteractionRouter);
 app.use('/api/public', publicRouter);  // Add public routes
 app.use('/api/run-code', runCodeRouter); // Add this line with the other route declarations
+app.use('/api/scraper', scrapeRouter);  // Add scraper routes
+app.use('/api/pdf', pdfRouter);         // Add PDF routes
 
 // Base route
 app.get('/', (req, res) => {
@@ -87,7 +92,9 @@ app.get('/api/docs', (req, res) => {
             activities: '/api/v1/activities', // Add activities endpoint
             blogs: '/api/v1/blogs',
             blogInteractions: '/api/v1/blog-interactions',
-            public: '/api/public' // Add public endpoints
+            public: '/api/public', // Add public endpoints
+            scraper: '/api/scraper',     // Add scraper documentation
+            pdf: '/api/pdf'              // Add PDF documentation
         },
         documentation: 'https://github.com/yourusername/snippets/wiki'
     });

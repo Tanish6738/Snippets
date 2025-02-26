@@ -31,6 +31,7 @@ const Navbar = () => {
       items: [
         { to : "/public", label: "All content" },
         { to: '/run-code', label: 'Code Runner' },
+        { to: '/scrape', label: 'Web Scrapper' },
         // { to: '/snippets', label: 'Code Snippets' },
         // { to: '/directories', label: 'Directories' },
         // { to: '/groups', label: 'Groups' },
@@ -41,6 +42,7 @@ const Navbar = () => {
       items: [
         { to: '/blog', label: 'Blog' },
         { to: '/blog/create', label: 'Create Blog' },
+        { to: '/create-pdf', label: 'Create Pdf' },
         // { to: '/public', label: 'Public Data' }
       ]
     }

@@ -13,7 +13,8 @@ import SharedSnippet from '../components/SharedSnippet/SharedSnippet';
 import BlogLayout from '../components/Blog/BlogLayout';
 import Landing from '../components/Landing/Landing';
 import CodeRunner from '../components/Layouts/CodeRunner';
-
+import Scrapper from '../components/Layouts/Scrapper';
+import Pdf from '../components/Layouts/Pdf';
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
 
@@ -52,7 +53,14 @@ const AppRoutes = () => {
           path="/run-code" 
           element={ <CodeRunner /> } 
         />
-
+        <Route
+          path="/scrape"
+          element={ <Scrapper /> }
+        />
+        <Route
+          path="/create-pdf"
+          element={ <Pdf /> }
+        />
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
