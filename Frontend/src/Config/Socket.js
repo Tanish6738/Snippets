@@ -1,6 +1,6 @@
 import socket from 'socket.io-client';
 
-const URL = 'http://localhost:3000' || process.env.VITE_API_URL;
+const URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 let socketInstance = null;
 
