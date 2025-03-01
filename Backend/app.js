@@ -22,15 +22,30 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Security middleware
+// Simple CORS configuration allowing all origins
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 600 // Increase preflight cache time to 10 minutes
+    maxAge: 86400 // 24 hours
 }));
+
+// Simplified headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+        return res.status(200).json({
+            status: 'success',
+            message: 'Preflight request successful'
+        });
+    }
+    next();
+});
 
 // Logging middleware
 app.use(morgan('dev'));
