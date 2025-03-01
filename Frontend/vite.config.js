@@ -9,7 +9,7 @@ export default defineConfig(({ command }) => {
     },
     build: {
       rollupOptions: {
-        external: ['json-2-csv']
+        external: ['json-2-csv', 'react-feather']
       }
     }
   };
