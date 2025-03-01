@@ -24,8 +24,12 @@ const app = express();
 
 // Security middleware
 app.use(cors({
-    origin: "*",
-    credentials: true
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600 // Increase preflight cache time to 10 minutes
 }));
 
 // Logging middleware
