@@ -22,20 +22,41 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Security middleware
+// Updated CORS configuration
 app.use(cors({
     origin: [
         'https://snippets-frontend-666ilb4da-tanish6738s-projects.vercel.app',
         'https://snippets-frontend-j6cfw6nd3-tanish6738s-projects.vercel.app',
         'https://snippets-frontend.vercel.app',
-        'http://localhost:5173'
+        'http://localhost:5173',
+        // Add any other frontend URLs that need access
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 600 // Increase preflight cache time to 10 minutes
+    maxAge: 86400 // 24 hours
 }));
+
+// Add preflight handler for all routes
+app.options('*', cors());
+
+// Additional headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).json({
+            status: 'success',
+            message: 'Preflight request successful'
+        });
+    }
+    next();
+});
 
 // Logging middleware
 app.use(morgan('dev'));
