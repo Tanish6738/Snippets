@@ -21,7 +21,7 @@ dotenv.config();
 
 // Initialize express
 const app = express();
-
+ 
 // Update CORS configuration
 app.use(cors({
     origin: (origin, callback) => {
