@@ -22,9 +22,20 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Update the CORS configuration
+// Update CORS configuration
 app.use(cors({
-    origin: 'https://snippets-frontend-pearl.vercel.app',
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            'https://snippets-frontend-pearl.vercel.app',
+            'http://localhost:3000',
+            'http://localhost:5173'
+        ];
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, origin);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
@@ -43,19 +54,6 @@ app.use(cors({
         'Pragma'
     ]
 }));
-
-// Update the headers middleware
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://snippets-frontend-pearl.vercel.app');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma');
-    
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
 
 // Logging middleware
 app.use(morgan('dev'));
