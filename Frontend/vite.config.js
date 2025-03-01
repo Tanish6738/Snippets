@@ -7,6 +7,11 @@ export default defineConfig(({ command }) => {
     define: {
       'process.env': process.env
     },
+    build: {
+      rollupOptions: {
+        external: ['json-2-csv']
+      }
+    }
   };
 
   // Only add server proxy during development
