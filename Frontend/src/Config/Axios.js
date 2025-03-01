@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-axios.defaults.withCredentials = true;
-
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache'
+  }
 });
 
-// Add request interceptor to include auth token
 instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,7 +24,13 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   response => response,
-  error => Promise.reject(error.response?.data || error)
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error.response?.data || error);
+  }
 );
 
 export default instance;

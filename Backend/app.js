@@ -22,25 +22,36 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Simple CORS configuration allowing all origins
+// Update the CORS configuration
 app.use(cors({
     origin: 'https://snippets-frontend-pearl.vercel.app',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Requested-With', 'Accept', 'Accept-Version', 'Content-Length', 'Content-MD5', 'Date', 'X-Api-Version', 'Origin']
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-CSRF-Token',
+        'X-Requested-With',
+        'Accept',
+        'Accept-Version',
+        'Content-Length',
+        'Content-MD5',
+        'Date',
+        'X-Api-Version',
+        'Origin',
+        'Cache-Control'
+    ]
 }));
 
-// Simplified headers middleware
+// Update the headers middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', 'https://snippets-frontend-pearl.vercel.app');
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
     
     if (req.method === 'OPTIONS') {
-        return res.status(200).json({
-            status: 'success',
-            message: 'Preflight request successful'
-        });
+        return res.status(200).end();
     }
     next();
 });
