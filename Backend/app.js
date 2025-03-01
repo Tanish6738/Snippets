@@ -22,15 +22,9 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Updated CORS configuration
+// Simple CORS configuration allowing all origins
 app.use(cors({
-    origin: [
-        'https://snippets-frontend-666ilb4da-tanish6738s-projects.vercel.app',
-        'https://snippets-frontend-j6cfw6nd3-tanish6738s-projects.vercel.app',
-        'https://snippets-frontend.vercel.app',
-        'http://localhost:5173',
-        // Add any other frontend URLs that need access
-    ],
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
@@ -38,17 +32,12 @@ app.use(cors({
     maxAge: 86400 // 24 hours
 }));
 
-// Add preflight handler for all routes
-app.options('*', cors());
-
-// Additional headers middleware
+// Simplified headers middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // Handle preflight
     if (req.method === 'OPTIONS') {
         return res.status(200).json({
             status: 'success',
