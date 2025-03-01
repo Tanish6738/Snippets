@@ -13,7 +13,6 @@ export default defineConfig(({ command }) => {
     },
     build: {
       rollupOptions: {
-        external: ['react-feather', 'react-draggable', 'react-resizable']
       }
     }
   };
