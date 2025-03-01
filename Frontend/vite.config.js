@@ -8,16 +8,16 @@ export default defineConfig(({ command }) => {
       'process.env': process.env
     },
     optimizeDeps: {
-      include: ['json-2-csv']
+      // Remove json-2-csv from include
+      include: []
     },
     build: {
       rollupOptions: {
-        external: ['json-2-csv', 'react-feather', 'react-draggable', 'react-resizable']
+        external: ['react-feather', 'react-draggable', 'react-resizable']
       }
     }
   };
 
-  // Only add server proxy during development
   if (command === 'serve') {
     config.server = {
       proxy: {

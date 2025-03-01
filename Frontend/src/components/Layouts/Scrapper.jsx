@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../../Config/Axios';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../Context/UserContext';
-import { json2csv } from 'json-2-csv';
+// import { json2csv } from 'json-2-csv'; // Temporarily disabled
 import { Search } from 'react-feather';
 
 const ALL_HTML_TAGS = [
@@ -28,6 +28,8 @@ const downloadFile = async (data, format) => {
                 if (data.formatted?.csv) {
                     content = data.formatted.csv;
                 } else {
+                    // Comment out the json2csv conversion
+                    /*
                     const flatData = Object.entries(data.data).flatMap(([tag, elements]) =>
                         elements.map(el => ({
                             tag,
@@ -41,6 +43,9 @@ const downloadFile = async (data, format) => {
                             else resolve(csvData);
                         });
                     });
+                    */
+                    // Instead, use simple JSON stringify
+                    content = JSON.stringify(data.data || {}, null, 2);
                 }
                 mimeType = 'text/csv';
                 filename = 'scraped-data.csv';
