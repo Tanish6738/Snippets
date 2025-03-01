@@ -2,7 +2,7 @@ import Snippet from '../Models/snippet.model.js';
 import Group from '../Models/group.model.js';
 import User from '../Models/user.model.js';
 import Activity from '../Models/activity.model.js';
-import Directory from '../models/directory.model.js';
+import Directory from '../Models/directory.model.js';
 
 // Get public snippets with filtering and pagination
 export const getPublicSnippets = async (req, res) => {
