@@ -7,6 +7,9 @@ export default defineConfig(({ command }) => {
     define: {
       'process.env': process.env
     },
+    optimizeDeps: {
+      include: ['json-2-csv']
+    },
     build: {
       rollupOptions: {
         external: ['json-2-csv', 'react-feather', 'react-draggable', 'react-resizable']
