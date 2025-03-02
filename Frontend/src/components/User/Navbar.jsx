@@ -218,7 +218,7 @@ const Navbar = () => {
               >
                 {/* Add Home button to mobile menu */}
                 <Link
-                  to="/"
+                  to="/home"
                   className="px-4 py-2 rounded-xl text-indigo-300 hover:text-white 
                            hover:bg-indigo-500/10 transition-all text-sm font-medium flex items-center gap-2"
                   onClick={() => setIsMobileMenuOpen(false)}
