@@ -54,7 +54,7 @@ app.use(cors({
         'Pragma'
     ]
 }));
-
+ 
 // Logging middleware
 app.use(morgan('dev'));
 
