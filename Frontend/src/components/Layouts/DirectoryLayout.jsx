@@ -14,7 +14,9 @@ import {
   FaSpinner,
   FaCode,
   FaFileCode,
-  FaDatabase
+  FaDatabase,
+  FaCopy,
+  FaPlay
 } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
@@ -160,24 +162,106 @@ const FileTreeNode = ({ item, level = 0, onSelect }) => {
 };
 
 const SnippetDetails = ({ snippet }) => {
+  const [copyStatus, setCopyStatus] = useState('');
+  const navigate = useNavigate();
+  
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(snippet.content);
+      setCopyStatus('Copied!');
+      setTimeout(() => setCopyStatus(''), 2000); // Reset after 2 seconds
+    } catch (err) {
+      setCopyStatus('Failed to copy');
+    }
+  };
+  
+  const handleRunSnippet = () => {
+    if (snippet?.content) {
+      let detectedLanguage = 'javascript'; // Default language
+      
+      if (snippet.programmingLanguage) {
+        const lang = snippet.programmingLanguage.toLowerCase();
+        if (lang.includes('python') || lang.includes('py')) {
+          detectedLanguage = 'python';
+        } else if (lang.includes('javascript') || lang.includes('js')) {
+          detectedLanguage = 'javascript';
+        }
+      }
+      
+      navigate('/run-code', {
+        state: {
+          code: snippet.content,
+          language: detectedLanguage
+        }
+      });
+    }
+  };
+  
   return (
     <div className="space-y-4">
       <div className="border-b border-indigo-500/30 pb-4">
         <h2 className="text-2xl font-semibold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-          {snippet.name}
+          {snippet.name || snippet.title}
         </h2>
-        <p className="text-indigo-400">Last modified: {snippet.lastModified || 'Unknown'}</p>
+        <p className="text-indigo-400">Last modified: {snippet.lastModified || new Date(snippet.updatedAt || snippet.createdAt).toLocaleDateString() || 'Unknown'}</p>
       </div>
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium text-indigo-100">Code</h3>
-          <button className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors duration-200">
-            Edit
-          </button>
+          <div className="flex space-x-2">
+            <button 
+              onClick={handleCopyCode}
+              className="px-3 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg flex items-center gap-2 transition-colors duration-200"
+            >
+              <FaCopy size={14} />
+              {copyStatus ? (
+                <span className="text-green-400">{copyStatus}</span>
+              ) : (
+                <span>Copy</span>
+              )}
+            </button>
+            <button 
+              onClick={handleRunSnippet}
+              className="px-3 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg flex items-center gap-2 transition-colors duration-200"
+            >
+              <FaPlay size={14} />
+              <span>Run</span>
+            </button>
+            <button className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors duration-200 flex items-center gap-2">
+              <FaEdit size={14} />
+              <span>Edit</span>
+            </button>
+          </div>
         </div>
         <pre className="bg-[#0B1120] text-indigo-100 p-4 rounded-lg overflow-x-auto border border-indigo-500/30">
           <code>{snippet.content || '// No content available'}</code>
         </pre>
+        
+        {/* Display tags if available */}
+        {snippet.tags && snippet.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {snippet.tags.map((tag, index) => (
+              <span 
+                key={index}
+                className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full border border-indigo-500/30 text-sm"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        
+        {/* Additional snippet details */}
+        <div className="grid grid-cols-2 gap-4 mt-4 text-sm text-indigo-300">
+          <div>
+            <p>Language: {snippet.programmingLanguage || 'N/A'}</p>
+            <p>Visibility: {snippet.visibility || 'N/A'}</p>
+          </div>
+          <div>
+            <p>Created: {snippet.createdAt ? new Date(snippet.createdAt).toLocaleDateString() : 'N/A'}</p>
+            <p>Last Updated: {snippet.updatedAt ? new Date(snippet.updatedAt).toLocaleDateString() : 'N/A'}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -296,20 +380,24 @@ const DirectoryStats = ({ directory }) => {
 };
 
 // Fix the SnippetList component to handle undefined tags
-const SnippetList = ({ snippets }) => {
-  if (!snippets?.length) return (
-    <div className="text-center text-indigo-400 py-8">
-      No snippets in this directory
-    </div>
-  );
+const SnippetList = ({ snippets, onSnippetClick }) => {
+  if (!snippets?.length) {
+    return (
+      <div className="text-center text-indigo-400 py-8">
+        No snippets in this directory
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2 md:space-y-3">
       {snippets.map((snippet, index) => (
         <div 
           key={snippet._id || `snippet-${index}`}
+          onClick={() => onSnippetClick(snippet)}
           className="p-3 md:p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
-                     hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+                     hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer
+                     hover:border-indigo-500/30"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div>
@@ -337,6 +425,7 @@ const SnippetList = ({ snippets }) => {
   );
 };
 
+// Update PropTypes to include the new onSnippetClick prop
 SnippetList.propTypes = {
   snippets: PropTypes.arrayOf(PropTypes.shape({
     _id: PropTypes.string,
@@ -345,11 +434,12 @@ SnippetList.propTypes = {
     tags: PropTypes.arrayOf(PropTypes.string),
     createdAt: PropTypes.string,
     versionHistory: PropTypes.array
-  }))
+  })),
+  onSnippetClick: PropTypes.func.isRequired
 };
 
 // Fix the MainContent component to include unique keys
-const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
+const MainContent = ({ directory, selectedSnippet, searchTerm, setSelectedSnippet }) => {
   const [loading, setLoading] = useState(false);
 
   // Log received data for debugging
@@ -357,6 +447,12 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
     console.log('Directory data:', directory);
     console.log('Selected snippet:', selectedSnippet);
   }, [directory, selectedSnippet]);
+
+  // Move handleSnippetClick to use the passed setter
+  const handleSnippetClick = (snippet) => {
+    if (selectedSnippet?._id === snippet._id) return; // Prevent re-selecting same snippet
+    setSelectedSnippet(snippet);
+  };
 
   if (loading) {
     return (
@@ -435,7 +531,10 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
             <FaCode className="text-indigo-400" />
             {searchTerm ? 'Matching Snippets' : 'Snippets'}
           </h3>
-          <SnippetList snippets={filteredSnippets} />
+          <SnippetList 
+            snippets={filteredSnippets} 
+            onSnippetClick={handleSnippetClick}
+          />
         </div>
 
         {/* Subdirectories Section */}
@@ -449,6 +548,14 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
       </div>
     </div>
   );
+};
+
+// Add PropTypes for the MainContent component
+MainContent.propTypes = {
+  directory: PropTypes.object,
+  selectedSnippet: PropTypes.object,
+  searchTerm: PropTypes.string,
+  setSelectedSnippet: PropTypes.func.isRequired
 };
 
 // Add these helper components:
@@ -716,6 +823,7 @@ const DirectoryLayout = () => {
               directory={currentDirectory}
               selectedSnippet={selectedSnippet}
               searchTerm={debouncedSearchTerm}
+              setSelectedSnippet={setSelectedSnippet} // Pass the state setter
             />
           </div>
         </div>
