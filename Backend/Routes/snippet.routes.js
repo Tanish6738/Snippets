@@ -74,7 +74,9 @@ snippetRouter.get("/", getAllSnippets);
 snippetRouter.get("/user/snippets", [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
-    query('sort').optional().isString()
+    query('sort').optional().isString(),
+    query('language').optional().isString(),
+    query('search').optional().isString()
 ], getUserSnippets);
 
 // Share snippet

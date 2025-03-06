@@ -15,6 +15,8 @@ import Landing from '../components/Landing/Landing';
 import CodeRunner from '../components/Layouts/CodeRunner';
 import Scrapper from '../components/Layouts/Scrapper';
 import Pdf from '../components/Layouts/Pdf';
+import Snippets from '../components/Modals/SnippetModals/Snippets';
+
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
 
@@ -60,6 +62,10 @@ const AppRoutes = () => {
         <Route
           path="/create-pdf"
           element={ <Pdf /> }
+        />
+        <Route
+          path="/my-snippets"
+          element={isAuthenticated ? <SnippetLayout /> : <Navigate to="/login" />}
         />
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" />} />

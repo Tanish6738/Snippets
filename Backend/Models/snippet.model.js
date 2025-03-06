@@ -45,7 +45,7 @@ const snippetSchema = new mongoose.Schema({
     position: { type: Number, default: 0 }
 }, { timestamps: true });
 
-snippetSchema.index({ title: 'text', content: 'text', tags: 'text' });
+snippetSchema.index({ title: 'text', content: 'text', tags: 'text', programmingLanguage: 'text' });
 
 // Remove console.log from pre-save hook
 snippetSchema.pre('save', async function(next) {

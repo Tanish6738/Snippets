@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../../../Context/UserContext';
+import { useLocation } from 'react-router-dom';
 import axios from '../../../Config/Axios';
 import ViewSnippetModal from './ViewSnippetModal';
 import BulkCreateSnippetModal from './BulkCreateSnippetModal';
@@ -22,6 +23,9 @@ const Snippets = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
   const [selectedSnippetId, setSelectedSnippetId] = useState(null);
+
+  const location = useLocation();
+  const isMySnippetsPage = location.pathname === '/my-snippets';
 
   // Add language options based on actual used languages
   const languageOptions = [
@@ -46,11 +50,12 @@ const Snippets = () => {
         page: currentPage,
         limit: 10,
         language: selectedLanguage,
-        q: searchQuery,
-        visibility: viewMode === 'user' ? 'private' : undefined
+        search: searchQuery,
       };
 
-      const { data } = await axios.get('/api/snippets', { params });
+      const endpoint = isMySnippetsPage ? '/api/snippets/user/snippets' : '/api/snippets';
+      const { data } = await axios.get(endpoint, { params });
+      
       setSnippets(data.snippets);
       setTotalPages(data.totalPages);
     } catch (err) {
@@ -62,7 +67,7 @@ const Snippets = () => {
 
   useEffect(() => {
     fetchSnippets();
-  }, [viewMode, currentPage, searchQuery, selectedLanguage, isAuthenticated]);
+  }, [currentPage, searchQuery, selectedLanguage, isMySnippetsPage]);
 
   const handleViewSnippet = (snippetId) => {
     setSelectedSnippetId(snippetId);
@@ -89,11 +94,14 @@ const Snippets = () => {
     fetchSnippets();
   };
 
+  // Update page title based on current view
+  const pageTitle = isMySnippetsPage ? "My Snippets" : "Code Snippets";
+
   return (
     <div className="container mx-auto p-6 text-white">
       <div className="mb-8 flex justify-between items-center">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-          Code Snippets
+          {pageTitle}
         </h1>
         {isAuthenticated && (
           <div className="space-x-3">
@@ -117,7 +125,7 @@ const Snippets = () => {
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search snippets..."
+            placeholder={`Search ${isMySnippetsPage ? 'your' : ''} snippets...`}
             className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

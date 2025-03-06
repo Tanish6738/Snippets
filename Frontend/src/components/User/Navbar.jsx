@@ -172,6 +172,9 @@ const Navbar = () => {
                       <Link to="/profile" className="block px-4 py-2 text-sm text-indigo-300 hover:text-white transition-colors duration-200">
                         Profile
                       </Link>
+                      <Link to="/my-snippets" className="block px-4 py-2 text-sm text-indigo-300 hover:text-white transition-colors duration-200">
+                        My Snippets
+                      </Link>
                       <button 
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-indigo-300 hover:text-white transition-colors duration-200"
