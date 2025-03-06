@@ -201,6 +201,28 @@ const AiSnippet = ({
     }
   };
 
+  const resetForm = () => {
+    setPrompt('');
+    setAiResponse(null);
+    setError('');
+    setIsLoading(false);
+    setEditMode(false);
+    setFormData({
+      title: '',
+      content: '',
+      language: '',
+      tags: [],
+      visibility: 'private',
+      description: '',
+      directoryId: location.state?.currentDirectory?._id || null
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const renderFormFields = () => (
     <div className="space-y-4">
       {/* Title */}
@@ -248,7 +270,7 @@ const AiSnippet = ({
             name="directoryId"
             value={formData.directoryId || ''}
             onChange={handleChange}
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-purple-800 font-semibold"
             disabled={isLoadingDirectories}
           >
             <option value="">Select a directory</option>
@@ -286,7 +308,7 @@ const AiSnippet = ({
       </div>
 
       {/* Visibility */}
-      <div>
+      <div className='text-purple-800 font-semibold'>
         <label className="block text-sm font-medium text-indigo-300 mb-1">Visibility</label>
         <select
           name="visibility"
@@ -417,7 +439,7 @@ const AiSnippet = ({
     <div className="flex justify-end space-x-3">
       <button
         type="button"
-        onClick={onClose}
+        onClick={handleClose}
         className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10"
       >
         Cancel
@@ -476,7 +498,7 @@ const AiSnippet = ({
               <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                 AI Snippet Generator
               </h2>
-              <button onClick={onClose} className="text-indigo-400 hover:text-indigo-300">
+              <button onClick={handleClose} className="text-indigo-400 hover:text-indigo-300">
                 ×
               </button>
             </div>
