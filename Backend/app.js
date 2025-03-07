@@ -8,14 +8,14 @@ import userRouter from './Routes/user.routes.js';
 import snippetRouter from './Routes/snippet.routes.js';
 import groupRouter from './Routes/groups.routes.js';
 import directoryRouter from './Routes/directory.routes.js';
-import activityRouter from './Routes/activity.routes.js'; // Import activity routes
+import activityRouter from './Routes/activity.routes.js'; 
 import aiRouter from './Routes/Ai.routes.js';
 import blogRouter from './Routes/Blog/Blog.routes.js';
 import blogInteractionRouter from './Routes/Blog/LikeAndCommet.routes.js';
 import publicRouter from './Routes/public.routes.js';
-import runCodeRouter from './Routes/run-code.routes.js'; // Add this import with the other route imports
-import scrapeRouter from './Routes/scraper.routes.js';  // Add this import
-import pdfRouter from './Routes/pdf.routes.js';         // Add this import
+import runCodeRouter from './Routes/run-code.routes.js'; 
+import scrapeRouter from './Routes/scraper.routes.js';  
+import pdfRouter from './Routes/pdf.routes.js';   
 
 dotenv.config();
 
@@ -27,6 +27,7 @@ app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = [
             'https://snippets-frontend-pearl.vercel.app',
+             process.env.CLOUD_FLARED,
             'http://localhost:3000',
             'http://localhost:5173'
         ];
