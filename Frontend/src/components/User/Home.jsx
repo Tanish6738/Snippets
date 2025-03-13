@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
 import { motion } from 'framer-motion';
@@ -8,16 +8,17 @@ import {
   FiCode,
   FiUsers,
   FiFolder,
-  FiActivity,
   FiPlus,
   FiShare2,
   FiEdit,
   FiEye,
-  FiDownload,
-  FiArrowRight,
-  FiSearch,
   FiUpload,
-  FiZap
+  FiZap,
+  FiBell,
+  FiSettings,
+  FiBookmark,
+  FiStar,
+  FiGrid
 } from 'react-icons/fi';
 import StarsCanvas from '../Landing/StartBackground';
 
@@ -35,45 +36,240 @@ import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails
 import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 import EditSnippetDetailsModal from '../Modals/SnippetModals/EditSnippetDetailsModal';
 
-// Enhanced StatCard with more modern design
+// Enhanced StatCard remains similar
 const StatCard = ({ title, value, icon, trend }) => (
   <motion.div
     whileHover={{ scale: 1.02 }}
-    className="backdrop-blur-xl bg-white/5 p-6 rounded-2xl border border-indigo-500/30 
-               hover:border-indigo-400/50 transition-all duration-300 
-               shadow-[0_0_30px_rgba(99,102,241,0.12)]"
+    className="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5"
   >
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-3xl text-indigo-400 opacity-90">{icon}</span>
-      {trend && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className={`text-sm font-medium px-2 py-1 rounded-full
-                     ${trend > 0 ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}
-        >
-          {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
-        </motion.span>
-      )}
+    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+    <div className="relative p-6 backdrop-blur-xl border border-white/10">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-2xl text-indigo-400 group-hover:scale-110 transition-transform duration-300">
+          {icon}
+        </span>
+        {trend && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={`text-sm font-medium px-3 py-1 rounded-full
+              ${trend > 0 
+                ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' 
+                : 'bg-rose-500/10 text-rose-300 border border-rose-500/20'}`}
+          >
+            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
+          </motion.span>
+        )}
+      </div>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-4xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent mb-2"
+      >
+        {value}
+      </motion.p>
+      <p className="text-sm text-indigo-300/80">{title}</p>
     </div>
-    <motion.p
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 
-                 bg-clip-text text-transparent mb-2"
-    >
-      {value}
-    </motion.p>
-    <p className="text-sm text-indigo-300/90">{title}</p>
   </motion.div>
 );
 
-// Enhanced SectionHeader with better spacing
 const SectionHeader = ({ title, action }) => (
   <div className="flex justify-between items-center mb-6">
-    <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 
-                   bg-clip-text text-transparent">{title}</h2>
+    <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+      {title}
+    </h2>
     {action}
+  </div>
+);
+
+// Updated TopBar (without side nav)
+const TopBar = ({ user }) => (
+  <div className="fixed top-0 left-0 right-0 h-20 bg-gradient-to-r from-[#070B14] to-[#0F172A] backdrop-blur-lg z-30">
+    <div className="max-w-7xl mx-auto flex items-center justify-between h-full px-6">
+      <div className="flex items-center space-x-4">
+        <h1 className="text-2xl font-bold">
+          <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            CodeVault
+          </span>
+        </h1>
+        <span className="hidden sm:block text-xs text-indigo-400/60">Code Smarter, Build Faster</span>
+      </div>
+      <div className="flex items-center gap-6">
+        <div className="relative group">
+          <button className="p-2 text-indigo-400 hover:text-indigo-300 transition-all duration-300">
+            <FiBell size={22} />
+            <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#070B14] group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
+        <div className="flex items-center gap-3 p-1.5 rounded-full bg-white/5 border border-white/10">
+          <img src={user?.avatar || 'default-avatar.png'} alt="Profile" 
+               className="w-8 h-8 rounded-full ring-2 ring-indigo-500/30" />
+          <span className="text-indigo-200 text-sm pr-2 hidden sm:block">{user?.username}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// DashboardTabs for top navigation within the dashboard
+const DashboardTabs = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    { key: 'overview', label: 'Overview', icon: <FiGrid className="w-4 h-4" /> },
+    { key: 'snippets', label: 'Snippets', icon: <FiCode className="w-4 h-4" /> },
+    { key: 'directories', label: 'Directories', icon: <FiFolder className="w-4 h-4" /> },
+    { key: 'groups', label: 'Groups', icon: <FiUsers className="w-4 h-4" /> }
+  ];
+
+  return (
+    <div className="sticky top-20 z-20 bg-gradient-to-b from-[#0F172A] to-[#0F172A]/95 border-b border-indigo-500/20">
+      <div className="max-w-3xl mx-auto px-6"> {/* Changed from max-w-7xl to max-w-3xl */}
+        <div className="flex justify-center space-x-8"> {/* Added justify-center */}
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 py-4 px-2 font-medium relative transition-all duration-300
+                ${activeTab === tab.key 
+                  ? 'text-indigo-300' 
+                  : 'text-indigo-400/60 hover:text-indigo-300'}`}
+            >
+              {tab.icon}
+              {tab.label}
+              {activeTab === tab.key && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-400"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const IconButton = ({ icon, onClick, tooltip }) => (
+  <motion.button
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className="p-2 rounded-full hover:bg-white/[0.05] text-white/60 hover:text-blue-400 transition-all duration-300 relative z-10 group"
+  >
+    {icon}
+    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded bg-black text-white opacity-0 group-hover:opacity-100 transition-opacity">
+      {tooltip}
+    </span>
+  </motion.button>
+);
+
+const Button = ({ children, onClick, className = '' }) => (
+  <motion.button
+    whileHover={{ scale: 0.5 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 relative z-10 ${className}`}
+  >
+    {children}
+  </motion.button>
+);
+
+const QuickActionButton = ({ icon, title, description, onClick, gradientFrom, gradientTo }) => (
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    onClick={onClick}
+    className={`w-full group relative overflow-hidden rounded-xl transition-all duration-300`}
+  >
+    <div className={`absolute inset-0 bg-gradient-to-r ${gradientFrom} ${gradientTo} opacity-10 group-hover:opacity-20 transition-opacity`} />
+    <div className="relative p-5 border border-white/10 group-hover:border-white/20">
+      <div className="flex items-start gap-4">
+        <span className="text-2xl text-white/90 group-hover:scale-110 group-hover:text-white transition-all duration-300">
+          {icon}
+        </span>
+        <div className="text-left">
+          <h4 className="font-medium text-white/90 group-hover:text-white mb-1">
+            {title}
+          </h4>
+          <p className="text-sm text-white/60 group-hover:text-white/80">
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+  </motion.button>
+);
+
+const DirectoryCard = ({ directory, onView }) => (
+  <motion.div
+    whileHover={{ scale: 1.02 }}
+    className="group border border-indigo-500/10 rounded-xl p-4 hover:border-indigo-400/30 transition-all duration-300 bg-gradient-to-r from-indigo-600/3 to-purple-600/3 hover:from-indigo-600/5 hover:to-purple-600/5"
+  >
+    <div className="flex justify-between items-start">
+      <div>
+        <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
+          <FiFolder className="text-indigo-400 group-hover:text-indigo-300 transition-colors duration-200" />
+          {directory.name}
+        </h3>
+        <p className="text-sm text-indigo-300/80 mt-1">{directory.path}</p>
+      </div>
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onView}
+        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
+      >
+        <FiEye /> View
+      </motion.button>
+    </div>
+  </motion.div>
+);
+
+const GlassCard = ({ title, icon, children, action }) => (
+  <div className="backdrop-blur-xl bg-white/[0.01] rounded-3xl border border-white/[0.03] p-8 shadow-2xl shadow-black/[0.1] relative overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3"></div>
+    <div className="flex justify-between items-center mb-6 relative z-10">
+      <h2 className="text-xl font-bold flex items-center gap-3 text-white">
+        <span className="text-blue-400">{icon}</span>
+        {title}
+      </h2>
+      {action}
+    </div>
+    <div className="relative z-10">{children}</div>
+  </div>
+);
+
+// Improved SnippetCard with a refined gradient background, increased padding, and enhanced typography
+const SnippetCard = ({ snippet, onView, onEdit, onShare }) => (
+  <motion.div
+    whileHover={{ scale: 1.02 }}
+    className="group p-6 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-md hover:shadow-lg transition-all duration-300 mb-6"
+  >
+    <div className="flex justify-between items-center">
+      <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
+        {snippet.title}
+      </h3>
+      <div className="flex space-x-2">
+        <IconButton icon={<FiEye />} onClick={onView} tooltip="View" />
+        <IconButton icon={<FiEdit />} onClick={onEdit} tooltip="Edit" />
+        <IconButton icon={<FiShare2 />} onClick={onShare} tooltip="Share" />
+      </div>
+    </div>
+    <p className="mt-3 text-sm text-gray-300">{snippet.description}</p>
+    <div className="mt-4 flex flex-wrap gap-2">
+      {snippet.tags?.map(tag => (
+        <span key={tag} className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300">
+          {tag}
+        </span>
+      ))}
+    </div>
+  </motion.div>
+);
+
+const Container = ({ children, className = '' }) => (
+  <div className={`max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
+    {children}
   </div>
 );
 
@@ -85,9 +281,8 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Add these two new state variables
+  const [activeTab, setActiveTab] = useState('overview');
   const [recentGroups, setRecentGroups] = useState([]);
-  const [featuredGroups, setFeaturedGroups] = useState([]);
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [createdGroups, setCreatedGroups] = useState([]);
   const [userDirectories, setUserDirectories] = useState([]);
@@ -99,7 +294,6 @@ const Home = () => {
   });
   const [selectedDirectoryId, setSelectedDirectoryId] = useState(null);
 
-  // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -107,26 +301,18 @@ const Home = () => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedSnippetId, setSelectedSnippetId] = useState(null);
   const [createGroupModalOpen, setCreateGroupModalOpen] = useState(false);
-  const [viewGroupModalOpen, setViewGroupModalOpen] = useState(false);
-  const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedSnippet, setSelectedSnippet] = useState(null);
 
   const navigate = useNavigate();
 
-  // Update the fetchHomeData function
   const fetchHomeData = async () => {
     try {
       setLoading(true);
       setError('');
-
       const timestamp = Date.now();
-      const headers = {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      };
+      const headers = { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
 
-      // Only fetch data if user is authenticated
       if (!isAuthenticated || !user?._id) {
         setRecentSnippets([]);
         setFeaturedDirectories([]);
@@ -136,68 +322,44 @@ const Home = () => {
         return;
       }
 
-      const params = {
-        _t: timestamp,
-        userId: user._id // Add user ID to filter results
-      };
+      const params = { _t: timestamp, userId: user._id };
 
-      // Update API calls to fetch only user-specific data
-      const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes, userDirectoriesRes] = await Promise.all([
-        // Get only user's snippets and shared snippets
-        axios.get('/api/snippets/user/snippets', {
-          params: { ...params, limit: 5, sort: '-createdAt' },
-          headers
-        }),
-        // Get user's directories
-        axios.get('/api/directories/user/directories', {
-          params: { ...params, limit: 4 },
-          headers
-        }),
-        // Get user's created groups
-        axios.get('/api/groups', {
-          params: { ...params, created: true, limit: 3 },
-          headers
-        }),
-        // Get user's activities
-        axios.get('/api/activities/user', {
-          params,
-          headers
-        }),
-        // Get user's joined groups
-        axios.get('/api/groups/joined', {
-          params: { limit: 3 },
-          headers
-        }),
-        // Get user's directories
-        axios.get('/api/directories', {
-          params: { userId: user._id, limit: 3 },
-          headers
-        })
-      ]);
+      const [snippetsRes, directoriesRes, groupsRes, activitiesRes, joinedGroupsRes, userDirectoriesRes] =
+        await Promise.all([
+          axios.get('/api/snippets/user/snippets', { params: { ...params, limit: 5, sort: '-createdAt' }, headers }),
+          axios.get('/api/directories/user/directories', { params: { ...params, limit: 4 }, headers }),
+          axios.get('/api/groups', { params: { ...params, created: true, limit: 3 }, headers }),
+          axios.get('/api/activities/user', { params, headers }),
+          axios.get('/api/groups/joined', { params: { limit: 3 }, headers }),
+          axios.get('/api/directories', { params: { userId: user._id, limit: 3 }, headers })
+        ]);
 
-      // Filter and set data
-      setRecentSnippets(snippetsRes.data.snippets?.filter(snippet =>
-        snippet.createdBy._id === user._id ||
-        snippet.sharedWith?.some(share => share.entity === user._id)
-      ) || []);
+      setRecentSnippets(
+        snippetsRes.data.snippets?.filter(
+          snippet =>
+            snippet.createdBy._id === user._id ||
+            snippet.sharedWith?.some(share => share.entity === user._id)
+        ) || []
+      );
 
-      setFeaturedDirectories(directoriesRes.data.directories?.filter(directory =>
-        directory.createdBy === user._id ||
-        directory.sharedWith?.some(share => share.entity === user._id)
-      ) || []);
+      setFeaturedDirectories(
+        directoriesRes.data.directories?.filter(
+          directory =>
+            directory.createdBy === user._id ||
+            directory.sharedWith?.some(share => share.entity === user._id)
+        ) || []
+      );
 
-      setCreatedGroups(groupsRes.data.groups?.filter(group =>
-        group.createdBy === user._id
-      ) || []);
-
+      setCreatedGroups(groupsRes.data.groups?.filter(group => group.createdBy === user._id) || []);
       setJoinedGroups(joinedGroupsRes.data || []);
+      setUserDirectories(
+        userDirectoriesRes.data.directories?.filter(
+          directory =>
+            directory.createdBy === user._id ||
+            directory.sharedWith?.some(share => share.entity === user._id)
+        ) || []
+      );
 
-      setUserDirectories(userDirectoriesRes.data.directories?.filter(directory =>
-        directory.createdBy === user._id ||
-        directory.sharedWith?.some(share => share.entity === user._id)
-      ) || []);
-
-      // Update user stats if available
       if (isAuthenticated) {
         const userStats = {
           totalSnippets: snippetsRes.data.total || 0,
@@ -207,7 +369,6 @@ const Home = () => {
         };
         setUserStats(userStats);
       }
-
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data');
       console.error('Error fetching home data:', err);
@@ -260,21 +421,15 @@ const Home = () => {
   };
 
   const handleEditSnippet = (snippetId) => {
-
-
-    setViewModalOpen(false);  // Close view modal
+    setViewModalOpen(false);
     const snippet = recentSnippets.find(s => s._id === snippetId);
-    // console.log('Found snippet:', snippet);
-
     if (snippet) {
       setSelectedSnippet(snippet);
       setEditModalOpen(true);
-
     } else {
       console.error('Snippet not found:', snippetId);
     }
   };
-
 
   const handleSnippetUpdated = async () => {
     await fetchHomeData();
@@ -311,20 +466,13 @@ const Home = () => {
       console.error('No group ID available');
       return;
     }
-    
     try {
-      // Navigate to the group route with the group ID and group data
-      navigate(`/groups/${group._id}`, {
-        state: {
-          groupDetails: group // Pass full group object as state
-        }
-      });
+      navigate(`/groups/${group._id}`, { state: { groupDetails: group } });
     } catch (error) {
       console.error('Error navigating to group:', error);
     }
   };
 
-  // Enhanced loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[#070B14]">
@@ -337,62 +485,168 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#030014] overflow-hidden">
-      {/* Add StarsCanvas only */}
-      <StarsCanvas />
+    <div className="min-h-screen bg-[#030014]">
+      <TopBar user={user} />
+      <main className="pt-16">
+        <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Cosmic Hero Section - update transparency */}
-      <div className="relative bg-gradient-to-b from-[#0F172A]/80 to-[#030712]/80 z-[25]">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full 
-                         mix-blend-multiply filter blur-[128px] opacity-10 animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full 
-                         mix-blend-multiply filter blur-[128px] opacity-10 animate-pulse delay-300"></div>
-        </div>
+        {activeTab === 'overview' && (
+          <>
+            {/* Hero Section */}
+            <div className="relative bg-gradient-to-b from-[#0F172A] to-[#030712] z-[25] overflow-hidden">
+              <div className="absolute inset-0">
+                <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" />
+                <div className="absolute bottom-0 left-0 w-[600px] h-[400px] bg-gradient-to-tr from-indigo-500/20 to-violet-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-1000" />
+              </div>
+              
+              <Container className="relative z-10 py-20">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-3xl mx-auto text-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="inline-block mb-6 px-6 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20"
+                  >
+                    <span className="text-sm text-blue-400">Welcome to Your Workspace</span>
+                  </motion.div>
+                  
+                  <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    {isAuthenticated ? `Welcome back, ${user.username}` : 'Your Code Universe'}
+                  </h1>
+                  
+                  <p className="text-lg text-indigo-200/80 font-light max-w-2xl mx-auto mb-12">
+                    Organize, share, and discover code snippets in a modern, intuitive workspace designed for developers.
+                  </p>
 
-        <div className="container mx-auto px-6 py-20 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl mx-auto text-center"
-          >
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent 
-                         bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400">
-              {isAuthenticated ? `Welcome back, ${user.username}` : 'Your Code Universe'}
-            </h1>
-            <p className="text-xl text-indigo-200/80 mb-8">
-              Organize and discover code snippets in an elegant workspace
-            </p>
-          </motion.div>
-        </div>
-      </div>
+                  <div className="flex flex-wrap justify-center gap-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setCreateModalOpen(true)}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-200"
+                    >
+                      <FiPlus className="inline-block mr-2" /> New Snippet
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setDirectoryModalStates(prev => ({ ...prev, create: true }))}
+                      className="px-6 py-3 rounded-xl bg-white/5 text-indigo-300 font-medium hover:bg-white/10 border border-indigo-500/30 transition-all duration-200"
+                    >
+                      <FiFolder className="inline-block mr-2" /> Create Directory
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </Container>
+            </div>
 
-      {/* Main Content - update background transparency */}
-      <div className="container mx-auto px-4 -mt-20 relative z-[25] bg-[#030014]/50">
-        {/* Stats Overview */}
-        {isAuthenticated && userStats && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
-          >
-            {/* Enhanced Stat Cards */}
-            <StatCard
-              title="Code Snippets"
-              value={userStats.totalSnippets}
-              icon={<FiCode />}
-              trend={12}
-              color="from-blue-500 to-indigo-500"
-            />
-            {/* ... other stat cards ... */}
-          </motion.div>
+            {/* Stats Section */}
+            <Container className="-mt-16 relative z-[26]">
+              {isAuthenticated && userStats && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+                >
+                  <StatCard
+                    title="Total Snippets"
+                    value={userStats.totalSnippets}
+                    icon={<FiCode />}
+                    trend={12}
+                  />
+                  <StatCard
+                    title="Created Groups"
+                    value={userStats.totalGroups}
+                    icon={<FiUsers />}
+                    trend={8}
+                  />
+                  <StatCard
+                    title="Joined Groups"
+                    value={userStats.joinedGroups}
+                    icon={<FiUsers />}
+                    trend={5}
+                  />
+                  <StatCard
+                    title="Recent Activities"
+                    value={userStats.recentActivities.length}
+                    icon={<FiZap />}
+                    trend={15}
+                  />
+                </motion.div>
+              )}
+
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-7">
+                  <GlassCard
+                    title="Recent Snippets"
+                    icon={<FiCode />}
+                    action={
+                      <Button onClick={() => setCreateModalOpen(true)}>
+                        <FiPlus className="mr-1" /> New
+                      </Button>
+                    }
+                  >
+                    {recentSnippets.length > 0 ? (
+                      recentSnippets.map(snippet => (
+                        <SnippetCard
+                          key={snippet._id}
+                          snippet={snippet}
+                          onView={() => handleViewSnippet(snippet._id)}
+                          onEdit={() => handleEditSnippet(snippet._id)}
+                          onShare={() => handleShareSnippet(snippet._id)}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-indigo-300/60">No snippets yet. Create your first one!</p>
+                      </div>
+                    )}
+                  </GlassCard>
+                </div>
+
+                <div className="lg:col-span-5 space-y-8">
+                  <GlassCard title="Quick Actions" icon={<FiZap />}>
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* ...existing QuickActionButtons... */}
+                    </div>
+                  </GlassCard>
+
+                  <GlassCard 
+                    title="Featured Directories" 
+                    icon={<FiFolder />}
+                    action={
+                      <Button onClick={() => setDirectoryModalStates(prev => ({ ...prev, create: true }))}>
+                        <FiPlus className="mr-1" /> New
+                      </Button>
+                    }
+                  >
+                    {featuredDirectories.length > 0 ? (
+                      featuredDirectories.map(directory => (
+                        <DirectoryCard
+                          key={directory._id}
+                          directory={directory}
+                          onView={() => handleViewDirectory(directory)}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-indigo-300/60">No directories yet. Create your first one!</p>
+                      </div>
+                    )}
+                  </GlassCard>
+                </div>
+              </div>
+            </Container>
+          </>
         )}
 
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Recent Snippets - Wider Column */}
-          <div className="lg:col-span-7">
+        {activeTab === 'snippets' && (
+          <div className="container mx-auto px-4 lg:px-8 relative z-[25] bg-[#030014]/50 py-8">
             <GlassCard title="Recent Snippets" icon={<FiCode />}>
               {recentSnippets.map(snippet => (
                 <SnippetCard
@@ -405,148 +659,73 @@ const Home = () => {
               ))}
             </GlassCard>
           </div>
+        )}
 
-          {/* Quick Actions & Featured Content */}
-          <div className="lg:col-span-5 space-y-8">
-            {/* Quick Actions */}
-            <GlassCard title="Quick Actions" icon={<FiZap />}>
-              <div className="grid grid-cols-1 gap-4">
-                <QuickActionButton
-                  icon={<FiPlus />}
-                  title="New Snippet"
-                  description="Create a fresh code snippet"
-                  onClick={() => setCreateModalOpen(true)}
-                  gradientFrom="from-blue-500/20"
-                  gradientTo="to-indigo-500/20"
-                />
-                <QuickActionButton
-                  icon={<FiUpload />}
-                  title="Bulk Import"
-                  description="Import multiple snippets at once"
-                  onClick={() => setBulkCreateModalOpen(true)}
-                  gradientFrom="from-emerald-500/20"
-                  gradientTo="to-teal-500/20"
-                />
-                <QuickActionButton
-                  icon={<FiFolder />}
-                  title="New Directory"
-                  description="Create a new directory for organization"
-                  onClick={() => setDirectoryModalStates(prev => ({ ...prev, create: true }))}
-                  gradientFrom="from-violet-500/20"
-                  gradientTo="to-purple-500/20"
-                />
-                <QuickActionButton
-                  icon={<FiUsers />}
-                  title="Create Group"
-                  description="Start a new collaboration group"
-                  onClick={() => setCreateGroupModalOpen(true)}
-                  gradientFrom="from-rose-500/20"
-                  gradientTo="to-pink-500/20"
-                />
-              </div>
-            </GlassCard>
-
-            {/* Featured Directories */}
+        {activeTab === 'directories' && (
+          <div className="container mx-auto px-4 lg:px-8 relative z-[25] bg-[#030014]/50 py-8">
             <GlassCard title="Featured Directories" icon={<FiFolder />}>
               {featuredDirectories.map(directory => (
-                <DirectoryCard
-                  key={directory._id}
-                  directory={directory}
-                  onView={() => handleViewDirectory(directory)}
-                />
+                <DirectoryCard key={directory._id} directory={directory} onView={() => handleViewDirectory(directory)} />
               ))}
             </GlassCard>
           </div>
-        </div>
+        )}
 
-        {/* Groups Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8"
-        >
-          {/* Created Groups */}
-          <GlassCard title="My Groups" icon={<FiUsers />}
-            action={
-              <Button onClick={() => setCreateGroupModalOpen(true)}>
-                <FiPlus /> New Group
-              </Button>
-            }
-          >
-            {createdGroups.map(group => (
-              <GroupCard
-                key={group._id}
-                group={group}
-                onView={() => handleViewGroup(group)}
-              />
-            ))}
-          </GlassCard>
+        {activeTab === 'groups' && (
+          <div className="container mx-auto px-4 lg:px-8 relative z-[25] bg-[#030014]/50 py-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <GlassCard title="My Groups" icon={<FiUsers />} action={<Button onClick={() => setCreateGroupModalOpen(true)}><FiPlus /> New Group</Button>}>
+                {createdGroups.map(group => (
+                  <GroupCard key={group._id} group={group} onView={() => handleViewGroup(group)} />
+                ))}
+              </GlassCard>
+              <GlassCard title="Joined Groups" icon={<FiUsers />}>
+                {joinedGroups.map(group => (
+                  <GroupCard key={group._id} group={group} onView={() => handleViewGroup(group)} isJoined />
+                ))}
+              </GlassCard>
+            </motion.div>
+          </div>
+        )}
+      </main>
 
-          {/* Joined Groups */}
-          <GlassCard title="Joined Groups" icon={<FiUsers />}>
-            {joinedGroups.map(group => (
-              <GroupCard
-                key={group._id}
-                group={group}
-                onView={() => handleViewGroup(group)}
-                isJoined
-              />
-            ))}
-          </GlassCard>
-        </motion.div>
-      </div>
-
-      {/* Modals remain unchanged */}
       <CreateSnippetModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSnippetCreated={handleSnippetCreated}
-        defaultValues={{
-          visibility: user?.preferences?.defaultSnippetVisibility || 'private'
-        }}
+        defaultValues={{ visibility: user?.preferences?.defaultSnippetVisibility || 'private' }}
       />
-
       <BulkCreateSnippetModal
         isOpen={bulkCreateModalOpen}
         onClose={() => setBulkCreateModalOpen(false)}
         onSnippetsCreated={handleBulkSnippetsCreated}
       />
-
       <ViewSnippetModal
         isOpen={viewModalOpen}
         onClose={() => setViewModalOpen(false)}
         snippetId={selectedSnippetId}
-        onEdit={handleEditSnippet} // Make sure to pass the edit handler
+        onEdit={handleEditSnippet}
       />
-
       <ExportSnippetModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         itemId={selectedSnippetId}
         itemType="snippet"
       />
-
       <ShareLinkModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
         itemId={selectedSnippetId}
         itemType="snippet"
       />
-
       {createGroupModalOpen && (
         <CreateGroupModal
           isOpen={createGroupModalOpen}
           onClose={() => setCreateGroupModalOpen(false)}
           onGroupCreated={handleGroupCreated}
-          defaultValues={{
-            settings: {
-              joinPolicy: 'invite',
-              visibility: 'private'
-            }
-          }}
+          defaultValues={{ settings: { joinPolicy: 'invite', visibility: 'private' } }}
         />
       )}
-
       <ViewDirectoryDetailsModal
         isOpen={directoryModalStates.view}
         onClose={() => {
@@ -555,16 +734,12 @@ const Home = () => {
         }}
         directoryId={selectedDirectoryId}
       />
-
       <CreateDirectoryModal
         isOpen={directoryModalStates.create}
         onClose={() => setDirectoryModalStates(prev => ({ ...prev, create: false }))}
         onDirectoryCreated={handleDirectoryCreated}
-        defaultValues={{
-          visibility: 'private'
-        }}
+        defaultValues={{ visibility: 'private' }}
       />
-
       <EditDirectoryDetails
         isOpen={directoryModalStates.edit}
         onClose={() => {
@@ -574,7 +749,6 @@ const Home = () => {
         directoryId={selectedDirectoryId}
         onDirectoryUpdated={handleDirectoryUpdated}
       />
-
       <ExportDirectoryModal
         isOpen={directoryModalStates.export}
         onClose={() => {
@@ -583,20 +757,12 @@ const Home = () => {
         }}
         directoryId={selectedDirectoryId}
       />
-
       <EditSnippetDetailsModal
         isOpen={editModalOpen}
-        onClose={() => {
-          // console.log('Closing edit modal');
-          setEditModalOpen(false);
-        }}
+        onClose={() => setEditModalOpen(false)}
         snippet={selectedSnippet}
-        onSnippetUpdated={(updatedSnippet) => {
-          // console.log('Snippet updated:', updatedSnippet);
-          handleSnippetUpdated();
-        }}
+        onSnippetUpdated={handleSnippetUpdated}
       />
-
       {error && (
         <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
@@ -606,193 +772,23 @@ const Home = () => {
   );
 };
 
-// Add these new component definitions:
-
-const ActionButton = ({ icon, label, onClick, className }) => (
-  <motion.button
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={`transition-colors duration-200 flex items-center gap-1 ${className}`}
-  >
-    {icon} {label}
-  </motion.button>
-);
-
-const MetadataItem = ({ icon, text }) => (
-  <span className="flex items-center gap-1">
-    {icon}
-    {text}
-  </span>
-);
-
-const QuickActionButton = ({ icon, title, description, onClick, gradientFrom, gradientTo }) => (
-  <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={`w-full group text-left p-4 rounded-xl 
-                bg-gradient-to-r ${gradientFrom} ${gradientTo}
-                hover:from-opacity-30 hover:to-opacity-30
-                border border-white/[0.05] hover:border-white/[0.1]
-                transition-all duration-300`}
-  >
-    <div className="flex items-center gap-4">
-      <span className="text-2xl text-white/90 group-hover:scale-110 
-                      group-hover:text-white transition-all duration-200">
-        {icon}
-      </span>
-      <div>
-        <h4 className="font-medium text-white/90 
-                      group-hover:text-white transition-colors">
-          {title}
-        </h4>
-        <p className="text-sm text-white/60 group-hover:text-white/80">
-          {description}
-        </p>
-      </div>
-    </div>
-  </motion.button>
-);
-
-const DirectoryCard = ({ directory, onView }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    className="group border border-indigo-500/10 rounded-xl p-4
-               hover:border-indigo-400/30 transition-all duration-300 
-               bg-gradient-to-r from-indigo-600/3 to-purple-600/3 
-               hover:from-indigo-600/5 hover:to-purple-600/5"
-  >
-    <div className="flex justify-between items-start">
-      <div>
-        <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
-          <FiFolder className="text-indigo-400 group-hover:text-indigo-300 
-                             transition-colors duration-200" />
-          {directory.name}
-        </h3>
-        <p className="text-sm text-indigo-300/80 mt-1">{directory.path}</p>
-      </div>
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onView}
-        className="text-indigo-400 hover:text-indigo-300 
-                   transition-colors duration-200 flex items-center gap-1"
-      >
-        <FiEye /> View
-      </motion.button>
-    </div>
-  </motion.div>
-);
-
-// Update the GlassCard component to ensure proper stacking context
-const GlassCard = ({ title, icon, children, action }) => (
-  <div className="backdrop-blur-xl bg-white/[0.01] rounded-3xl border border-white/[0.03]
-                  p-8 shadow-2xl shadow-black/[0.1] relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3"></div>
-    <div className="flex justify-between items-center mb-6 relative z-10">
-      <h2 className="text-xl font-bold flex items-center gap-3 text-white">
-        <span className="text-blue-400">{icon}</span>
-        {title}
-      </h2>
-      {action}
-    </div>
-    <div className="relative z-10">
-      {children}
-    </div>
-  </div>
-);
-
-const SnippetCard = ({ snippet, onView, onEdit, onShare }) => (
-  <motion.div
-    whileHover={{ scale: 1.01 }}
-    className="group p-4 rounded-2xl bg-white/[0.01] border border-white/[0.03]
-               hover:border-white/[0.08] transition-all duration-300 mb-4"
-  >
-    <div className="flex justify-between items-start">
-      <div>
-        <h3 className="font-medium text-white group-hover:text-blue-400 
-                     transition-colors duration-300">{snippet.title}</h3>
-        <p className="text-sm text-white/60 mt-1">{snippet.description}</p>
-      </div>
-      <div className="flex gap-2">
-        <IconButton icon={<FiEye />} onClick={onView} tooltip="View" />
-        <IconButton icon={<FiEdit />} onClick={onEdit} tooltip="Edit" />
-        <IconButton icon={<FiShare2 />} onClick={onShare} tooltip="Share" />
-      </div>
-    </div>
-    {/* Tags */}
-    <div className="mt-4 flex flex-wrap gap-2">
-      {snippet.tags?.map(tag => (
-        <span key={tag} className="px-2 py-1 text-xs rounded-full 
-                                 bg-blue-500/10 text-blue-300 border border-blue-500/20">
-          {tag}
-        </span>
-      ))}
-    </div>
-  </motion.div>
-);
-
-// Update the IconButton component
-const IconButton = ({ icon, onClick, tooltip }) => (
-  <motion.button
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className="p-2 rounded-full hover:bg-white/[0.05] text-white/60 
-               hover:text-blue-400 transition-all duration-300 
-               relative z-10 group"
-  >
-    {icon}
-    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 
-                     text-xs rounded bg-black text-white opacity-0 
-                     group-hover:opacity-100 transition-opacity">
-      {tooltip}
-    </span>
-  </motion.button>
-);
-
-// Update the Button component definition
-const Button = ({ children, onClick, className = '' }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-2 rounded-lg
-                bg-blue-500/20 hover:bg-blue-500/30
-                text-blue-300 hover:text-blue-200
-                border border-blue-500/30 hover:border-blue-400/50
-                transition-all duration-200 relative z-10 ${className}`}
-  >
-    {children}
-  </motion.button>
-);
-
-// Add this new GroupCard component definition
 const GroupCard = ({ group, onView, isJoined = false }) => (
   <motion.div
     whileHover={{ scale: 1.02 }}
-    className="group border border-indigo-500/10 rounded-xl p-4 mb-4
-               hover:border-indigo-400/30 transition-all duration-300 
-               bg-gradient-to-r from-indigo-600/3 to-purple-600/3 
-               hover:from-indigo-600/5 hover:to-purple-600/5"
+    className="group border border-indigo-500/10 rounded-xl p-4 mb-4 hover:border-indigo-400/30 transition-all duration-300 bg-gradient-to-r from-indigo-600/3 to-purple-600/3 hover:from-indigo-600/5 hover:to-purple-600/5"
   >
     <div className="flex justify-between items-start">
       <div>
         <h3 className="font-semibold text-indigo-100 flex items-center gap-2">
-          <FiUsers className="text-indigo-400 group-hover:text-indigo-300 
-                           transition-colors duration-200" />
+          <FiUsers className="text-indigo-400 group-hover:text-indigo-300 transition-colors duration-200" />
           {group.name}
         </h3>
         <p className="text-sm text-indigo-300/80 mt-1">{group.description}</p>
-        {/* Show member count */}
         <div className="flex items-center gap-2 mt-2 text-xs text-indigo-400/80">
           <FiUsers size={12} />
           <span>{group.members?.length || 0} members</span>
           {isJoined && (
-            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
-              Joined
-            </span>
+            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">Joined</span>
           )}
         </div>
       </div>
@@ -800,169 +796,12 @@ const GroupCard = ({ group, onView, isJoined = false }) => (
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={onView}
-        className="text-indigo-400 hover:text-indigo-300 
-                   transition-colors duration-200 flex items-center gap-1"
+        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200 flex items-center gap-1"
       >
         <FiEye /> View
       </motion.button>
     </div>
   </motion.div>
 );
-
-const fetchGroupContent = async () => {
-  try {
-    console.log('Fetching content for group:', groupId);
-    
-    const [snippetsRes, directoriesRes] = await Promise.all([
-      axios.get(`/api/groups/${groupId}/snippets`),
-      axios.get(`/api/groups/${groupId}/directories`)
-    ]);
-
-    console.log('Group snippets:', snippetsRes.data);
-    console.log('Group directories:', directoriesRes.data);
-    
-    setSnippets(snippetsRes.data);
-    setDirectories(directoriesRes.data);
-
-    // Build directory structure
-    const structure = buildDirectoryTree(directoriesRes.data, snippetsRes.data);
-    console.log('Built directory structure:', structure);
-    setDirectoryStructure(structure);
-
-  } catch (error) {
-    console.error('Error fetching group content:', error);
-    setFetchError(error.message);
-  }
-};
-
-const FileTreeNode = ({ item, level = 0, onSelect }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const isDirectory = item.type === 'directory';
-  const hasChildren = isDirectory && (
-    (item.children?.length > 0) || (item.directSnippets?.length > 0)
-  );
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-    onSelect(item);
-  };
-
-  const handleExpandClick = (e) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
-
-  return (
-    <div className="select-none">
-      <div
-        className={`
-          flex items-center py-1.5 px-2 
-          hover:bg-indigo-500/10 rounded-lg 
-          cursor-pointer
-          ${level > 0 ? `ml-${level * 4}` : ''}
-        `}
-        onClick={handleClick}
-      >
-        <span className="w-4 h-4 flex items-center justify-center mr-1">
-          {hasChildren && (
-            <button
-              onClick={handleExpandClick}
-              className="text-indigo-400/75 hover:text-indigo-300"
-            >
-              {isExpanded ? <FaChevronDown size={12} /> : <FaChevronRight size={12} />}
-            </button>
-          )}
-        </span>
-
-        <span className="w-5 h-5 flex items-center justify-center mr-2">
-          {isDirectory ? (
-            isExpanded ? (
-              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
-            ) : (
-              <FaFolder className="w-4 h-4 text-indigo-400/90" />
-            )
-          ) : (
-            <FaCode className="w-4 h-4 text-indigo-300/90" />
-          )}
-        </span>
-
-        <span className="text-sm text-indigo-200/90 font-medium flex-1">
-          {item.name || item.title}
-        </span>
-
-        {isDirectory && (
-          <span className="text-xs text-indigo-400">
-            {item.directSnippets?.length || 0} snippets
-          </span>
-        )}
-      </div>
-
-      {isExpanded && hasChildren && (
-        <div>
-          {item.children?.map((child) => (
-            <FileTreeNode
-              key={child._id}
-              item={{ ...child, type: 'directory' }}
-              level={level + 1}
-              onSelect={onSelect}
-            />
-          ))}
-          
-          {item.directSnippets?.map((snippet) => (
-            <FileTreeNode
-              key={snippet._id}
-              item={{ ...snippet, type: 'snippet' }}
-              level={level + 1}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const SnippetList = ({ snippets }) => {
-  if (!snippets?.length) {
-    return (
-      <div className="text-indigo-400 text-sm p-4 text-center">
-        No snippets found
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-3 md:gap-4">
-      {snippets.map(snippet => (
-        <div 
-          key={`snippet-${snippet._id}`}
-          className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
-                   hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FaCode className="text-indigo-400" />
-              <span className="text-white">{snippet.title}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-indigo-400">
-                {snippet.programmingLanguage}
-              </span>
-              <span className="text-xs text-indigo-400/60">
-                {new Date(snippet.createdAt).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-          {snippet.description && (
-            <p className="mt-2 text-sm text-indigo-300/70">
-              {snippet.description}
-            </p>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export default Home;
