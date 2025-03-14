@@ -126,28 +126,28 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="relative max-w-md w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden transition-all transform duration-300 ease-in-out hover:border-indigo-400/50 hover:shadow-indigo-500/10 mx-4"
+          className="relative max-w-md w-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg border border-slate-700/30 overflow-hidden"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-indigo-500/20">
+          <div className="px-6 py-4 border-b border-slate-700/30">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent flex items-center">
-                <FiFolder className="mr-3 text-indigo-400" />
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <FiFolder className="text-slate-300" />
                 Create Directory
               </h2>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
               >
-                <FiX className="w-6 h-6" />
+                <FiX size={18} />
               </motion.button>
             </div>
           </div>
@@ -170,13 +170,13 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
           <div className="px-6 py-4">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Directory Name
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white placeholder-indigo-400/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder-slate-400 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 hover:border-slate-600/70 transition-all duration-200"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter directory name"
@@ -184,7 +184,7 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Visibility
                 </label>
                 <div className="grid grid-cols-3 gap-4">
@@ -201,9 +201,9 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
                       onClick={() => setFormData(prev => ({ ...prev, visibility: value }))}
                       className={`p-3 rounded-xl flex flex-col items-center justify-center border ${
                         formData.visibility === value
-                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
-                          : 'border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400'
-                      }`}
+                          ? 'border-slate-600 bg-slate-700/70 text-slate-200'
+                          : 'border-slate-700/50 hover:border-slate-600/70 text-slate-400 hover:bg-slate-800/60'
+                      } transition-all duration-200`}
                     >
                       <Icon className="w-5 h-5 mb-1" />
                       <span className="text-sm">{label}</span>
@@ -212,17 +212,16 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
                 </div>
               </div>
 
-              {/* Update the parent directory selection */}
+              {/* Parent directory selection */}
               <div>
-                <label className="block text-sm font-medium text-indigo-300 mb-1">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
                   Parent Directory
                 </label>
                 <div className="relative">
-                  <FiFolder className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                  <FiFolder className="absolute left-4 top-3.5 text-slate-400" size={20} />
                   <select
                     name="parentId"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                              text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-200"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 hover:border-slate-600/70 transition-all duration-200"
                     value={formData.parentId || ''}
                     onChange={(e) => {
                       const selectedParentId = e.target.value;
@@ -250,14 +249,14 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+          <div className="px-6 py-4 border-t border-slate-700/30 bg-slate-800/30">
             <div className="flex justify-end space-x-3">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+                className="px-4 py-2 rounded-xl text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 transition-all duration-200"
               >
                 Cancel
               </motion.button>
@@ -266,7 +265,7 @@ const CreateDirectoryModal = ({ isOpen, onClose, onDirectoryCreated }) => {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
                 disabled={loading}
-                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center">

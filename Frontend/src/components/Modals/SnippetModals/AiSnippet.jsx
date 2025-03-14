@@ -227,50 +227,50 @@ const AiSnippet = ({
     <div className="space-y-4">
       {/* Title */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Title</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
         <input
           type="text"
           name="title"
           value={formData.title}
           onChange={handleChange}
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
         />
       </div>
 
       {/* Content */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Content</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Content</label>
         <textarea
           name="content"
           value={formData.content}
           onChange={handleChange}
           rows="6"
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white font-mono"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white font-mono focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
         />
       </div>
 
       {/* Language */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Programming Language</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Programming Language</label>
         <input
           type="text"
           name="language"
           value={formData.language}
           onChange={handleChange}
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
         />
       </div>
 
       {/* Directory Selection */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Select Directory</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Select Directory</label>
         <div className="relative">
-          <FiFolder className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+          <FiFolder className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
           <select
             name="directoryId"
             value={formData.directoryId || ''}
             onChange={handleChange}
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-purple-800 font-semibold"
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
             disabled={isLoadingDirectories}
           >
             <option value="">Select a directory</option>
@@ -285,20 +285,20 @@ const AiSnippet = ({
 
       {/* Tags */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Tags</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Tags</label>
         <input
           type="text"
           onKeyPress={handleTagInput}
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
           placeholder="Press Enter to add tags"
         />
         <div className="mt-2 flex flex-wrap gap-2">
           {formData.tags.map(tag => (
-            <span key={tag} className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full">
+            <span key={tag} className="bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700/50">
               {tag}
               <button
                 onClick={() => removeTag(tag)}
-                className="ml-2 text-indigo-400 hover:text-indigo-300"
+                className="ml-2 text-slate-400 hover:text-slate-300"
               >
                 ×
               </button>
@@ -308,13 +308,13 @@ const AiSnippet = ({
       </div>
 
       {/* Visibility */}
-      <div className='text-purple-800 font-semibold'>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Visibility</label>
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Visibility</label>
         <select
           name="visibility"
           value={formData.visibility}
           onChange={handleChange}
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
         >
           <option value="private">Private</option>
           <option value="public">Public</option>
@@ -324,13 +324,13 @@ const AiSnippet = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">Description</label>
+        <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
         <textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           rows="3"
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
         />
       </div>
     </div>
@@ -352,8 +352,8 @@ const AiSnippet = ({
       <div className="space-y-6">
         {/* Response Overview */}
         {text && (
-          <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-            <p className="text-indigo-300">{text}</p>
+          <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/30 hover:border-slate-600/40 transition-all duration-300">
+            <p className="text-slate-300">{text}</p>
           </div>
         )}
 
@@ -361,17 +361,17 @@ const AiSnippet = ({
         <div className="space-y-4">
           {/* Title Section */}
           <div>
-            <label className="block text-sm font-medium text-indigo-300 mb-1">Title</label>
-            <div className="px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+            <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white">
               {file.title}
             </div>
           </div>
 
           {/* Code Content Section */}
           <div>
-            <label className="block text-sm font-medium text-indigo-300 mb-1">Code</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Code</label>
             <div className="relative group">
-              <pre className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white font-mono text-sm overflow-x-auto whitespace-pre">
+              <pre className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white font-mono text-sm overflow-x-auto whitespace-pre styled-scrollbar">
                 <code className="language-javascript">
                   {file.content}
                 </code>
@@ -379,7 +379,7 @@ const AiSnippet = ({
               <div className="absolute top-2 right-2 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => navigator.clipboard.writeText(file.content)}
-                  className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300"
+                  className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 transition-all duration-200"
                   title="Copy to clipboard"
                 >
                   <FiCopy />
@@ -390,8 +390,8 @@ const AiSnippet = ({
 
           {/* Language Section */}
           <div>
-            <label className="block text-sm font-medium text-indigo-300 mb-1">Programming Language</label>
-            <div className="px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white capitalize">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Programming Language</label>
+            <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white capitalize">
               {file.programmingLanguage}
             </div>
           </div>
@@ -399,8 +399,8 @@ const AiSnippet = ({
           {/* Description Section */}
           {file.description && (
             <div>
-              <label className="block text-sm font-medium text-indigo-300 mb-1">Description</label>
-              <div className="px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white">
+              <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+              <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white">
                 {file.description}
               </div>
             </div>
@@ -409,12 +409,12 @@ const AiSnippet = ({
           {/* Tags Section */}
           {file.tags && file.tags.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-indigo-300 mb-1">Tags</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Tags</label>
               <div className="flex flex-wrap gap-2">
                 {file.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm"
+                    className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700/50 text-slate-300 text-sm"
                   >
                     {tag}
                   </span>
@@ -425,8 +425,8 @@ const AiSnippet = ({
 
           {/* Visibility Section */}
           <div>
-            <label className="block text-sm font-medium text-indigo-300 mb-1">Visibility</label>
-            <div className="px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white capitalize">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Visibility</label>
+            <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white capitalize">
               {file.visibility || 'private'}
             </div>
           </div>
@@ -440,7 +440,7 @@ const AiSnippet = ({
       <button
         type="button"
         onClick={handleClose}
-        className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10"
+        className="px-4 py-2 rounded-xl text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200"
       >
         Cancel
       </button>
@@ -448,14 +448,14 @@ const AiSnippet = ({
         <button
           onClick={handlePromptSubmit}
           disabled={isLoading}
-          className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600"
+          className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Generating...' : 'Generate'}
         </button>
       ) : (
         <button
           onClick={handleSave}
-          className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600"
+          className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 shadow-lg"
         >
           Save Snippet
         </button>
@@ -464,16 +464,16 @@ const AiSnippet = ({
   );
 
   const renderContent = () => (
-    <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+    <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto styled-scrollbar">
       {/* Prompt Input */}
       <div>
-        <label className="block text-sm font-medium text-indigo-300 mb-1">
+        <label className="block text-sm font-medium text-slate-300 mb-1">
           Enter your prompt
         </label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-white"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-400 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 transition-all duration-200"
           rows="4"
           placeholder="Describe what code you want to generate..."
         />
@@ -488,17 +488,17 @@ const AiSnippet = ({
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm"></div>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
       
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative max-w-2xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden">
+        <div className="relative max-w-2xl w-full bg-gradient-to-br from-slate-900/95 to-slate-950/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-700/30 overflow-hidden transition-all transform duration-300 hover:border-slate-600/50 hover:shadow-slate-700/10">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-indigo-500/20">
+          <div className="px-6 py-4 border-b border-slate-700/30">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+              <h2 className="text-xl font-bold text-white">
                 AI Snippet Generator
               </h2>
-              <button onClick={handleClose} className="text-indigo-400 hover:text-indigo-300">
+              <button onClick={handleClose} className="text-slate-400 hover:text-slate-300 transition-colors duration-200 text-2xl font-semibold">
                 ×
               </button>
             </div>
@@ -514,14 +514,14 @@ const AiSnippet = ({
           {/* Content */}
           {isLoading ? (
             <div className="h-40 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-slate-500"></div>
             </div>
           ) : (
             renderContent()
           )}
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-indigo-500/20 bg-indigo-500/5">
+          <div className="px-6 py-4 border-t border-slate-700/30 bg-slate-800/20">
             {renderFooterButtons()}
           </div>
         </div>
