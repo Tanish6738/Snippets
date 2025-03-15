@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 
-// Import routes
+// Import routes 
 import userRouter from './Routes/user.routes.js';
 import snippetRouter from './Routes/snippet.routes.js';
 import groupRouter from './Routes/groups.routes.js';
