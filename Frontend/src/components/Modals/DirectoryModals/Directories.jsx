@@ -292,7 +292,7 @@ const Directories = () => {
         <EditDirectoryDetails
           isOpen={modalStates.edit}
           onClose={() => handleModalToggle('edit', false)}
-          directory={selectedDirectory}
+          directoryId={selectedDirectory?._id}
           onDirectoryUpdated={fetchDirectories}
         />
       </div>

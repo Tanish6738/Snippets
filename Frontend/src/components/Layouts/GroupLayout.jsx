@@ -19,7 +19,11 @@ import {
   FaDatabase,
   FaCompress,
   FaExpand,
-  FaArrowDown
+  FaArrowDown,
+  FaExclamationCircle,
+  FaEdit,
+  FaCopy,
+  FaPlay
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import AddMemberModal from '../Modals/GroupModals/AddMemberModal';
@@ -418,12 +422,16 @@ const GroupLayout = () => {
   // Modified loading condition
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 
                     flex items-center justify-center">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-indigo-500 mx-auto mb-4" size={40} />
-          <p className="text-indigo-300">Loading group data...</p>
-          <p className="text-xs text-indigo-400 mt-2">Group ID: {groupId}</p>
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-slate-500 to-slate-600 opacity-70 blur-sm animate-pulse"></div>
+            <div className="relative h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center">
+              <FaSpinner className="animate-spin text-slate-400" size={24} />
+            </div>
+          </div>
+          <p className="text-slate-400 mt-4">Loading group data...</p>
         </div>
       </div>
     );
@@ -431,13 +439,17 @@ const GroupLayout = () => {
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 
                     flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{fetchError}</p>
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="mb-6 text-red-400">
+            <FaExclamationCircle size={40} className="mx-auto" />
+          </div>
+          <p className="text-slate-300 mb-4">{fetchError}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg text-indigo-300"
+            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
           >
             Retry
           </button>
@@ -449,42 +461,49 @@ const GroupLayout = () => {
   // Early return if no group data
   if (!groupData && !isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120] 
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 
                     flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-indigo-400 mb-4">Group not found</p>
-          <button 
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="mb-6">
+            <div className="p-4 rounded-full bg-slate-800/50 border border-slate-700/30 mx-auto inline-block">
+              <FaUsers className="text-2xl text-slate-400" />
+            </div>
+          </div>
+          <p className="text-slate-300 mb-4">Group not found</p>
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/groups')}
-            className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg text-indigo-300"
+            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
           >
             Return to Groups
-          </button>
+          </motion.button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0B1120]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900">
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 
-                    bg-gradient-to-r from-[#0B1120]/95 to-[#0D1428]/95
-                    border-b border-indigo-500/10 flex items-center px-4 z-50
-                    backdrop-blur-2xl">
+                    bg-slate-900/90 backdrop-blur-xl
+                    border-b border-slate-800/50 flex items-center px-4 z-50">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg
-                   active:scale-95 transition-transform"
+          className="p-2.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800/60 
+                   rounded-lg transition-all duration-200"
         >
           <FaBars size={18} />
         </button>
-        <h1 className="text-lg font-semibold text-indigo-300 mx-auto">
-          {groupData.name}
+        <h1 className="text-lg font-semibold text-slate-200 mx-auto">
+          {groupData?.name}
         </h1>
         <button
           onClick={() => setChatOpen(true)}
-          className="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg
-                   active:scale-95 transition-transform"
+          className="p-2.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800/60 
+                   rounded-lg transition-all duration-200"
         >
           <FaComments size={18} />
         </button>
@@ -492,44 +511,59 @@ const GroupLayout = () => {
 
       <div className="flex h-screen md:h-[calc(100vh-4rem)] pt-16 md:pt-20">
         {/* Sidebar */}
-        <GroupSideBar
-          isMobile={isMobile}
-          isSidebarOpen={isSidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          isSidebarCollapsed={isSidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
-          groupData={groupData}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          members={members}
-          setAddMemberModalOpen={setAddMemberModalOpen}
-          setCreateSnippetModalOpen={setCreateSnippetModalOpen}
-          setBulkCreateSnippetModalOpen={setBulkCreateSnippetModalOpen}
-          setCreateDirectoryModalOpen={setCreateDirectoryModalOpen}
-          directoryStructure={directoryStructure}
-          onSelectItem={(item) => {
-            if (item.type === 'snippet') {
-              setSelectedSnippet(item);
-              setCurrentDirectory(null);
-            } else {
-              setCurrentDirectory(item);
-              setSelectedSnippet(null);
-            }
-          }}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        />
+        <div className={`fixed inset-y-0 left-0 z-40 w-72 transform 
+                      ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                      md:relative md:translate-x-0 transition-transform duration-300
+                      bg-slate-900/95 backdrop-blur-xl border-r border-slate-800/50
+                      ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}>
+          <GroupSideBar
+            isMobile={isMobile}
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            isSidebarCollapsed={isSidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            groupData={groupData}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            members={members}
+            setAddMemberModalOpen={setAddMemberModalOpen}
+            setCreateSnippetModalOpen={setCreateSnippetModalOpen}
+            setBulkCreateSnippetModalOpen={setBulkCreateSnippetModalOpen}
+            setCreateDirectoryModalOpen={setCreateDirectoryModalOpen}
+            directoryStructure={directoryStructure}
+            onSelectItem={(item) => {
+              if (item.type === 'snippet') {
+                setSelectedSnippet(item);
+                setCurrentDirectory(null);
+              } else {
+                setCurrentDirectory(item);
+                setSelectedSnippet(null);
+              }
+            }}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            className="h-full"
+          />
+        </div>
+
         {/* Chat Panel */}
-        <Chat
-          isOpen={isChatOpen}
-          onClose={() => setChatOpen(false)}
-          messages={messages}
-          onSendMessage={send}
-          isMobile={isMobile}
-          isFullScreen={isFullScreenChat}
-          onToggleFullScreen={() => setIsFullScreenChat(!isFullScreenChat)}
-          user={user}
-        />
+        <div className={`fixed inset-y-0 right-0 z-30 w-96 transform
+                      ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}
+                      transition-transform duration-300
+                      bg-slate-900/95 backdrop-blur-xl border-l border-slate-800/50
+                      ${isFullScreenChat ? 'w-full' : 'w-96'}`}>
+          <Chat
+            isOpen={isChatOpen}
+            onClose={() => setChatOpen(false)}
+            messages={messages}
+            onSendMessage={send}
+            isMobile={isMobile}
+            isFullScreen={isFullScreenChat}
+            onToggleFullScreen={() => setIsFullScreenChat(!isFullScreenChat)}
+            user={user}
+            className="h-full"
+          />
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -541,11 +575,10 @@ const GroupLayout = () => {
               ${!isMobile && isChatOpen ? 'mr-96' : ''}
               relative
             `}>
-            <div className="bg-gradient-to-br from-[#0B1120]/90 to-[#0D1428]/90 
-                          backdrop-blur-2xl h-full 
+            <div className="bg-slate-900/90 backdrop-blur-xl h-full 
                           rounded-2xl p-6 md:p-8
-                          border border-indigo-500/10
-                          shadow-2xl shadow-indigo-500/5">
+                          border border-slate-800/50
+                          shadow-2xl shadow-slate-950/20">
               <MainContent 
                 directory={currentDirectory}
                 selectedSnippet={selectedSnippet}
@@ -563,12 +596,16 @@ const GroupLayout = () => {
           whileTap={{ scale: 0.95 }}
           onClick={() => setChatOpen(true)}
           className="fixed bottom-8 right-8 p-4 rounded-xl
-                     bg-gradient-to-br from-indigo-500 to-indigo-600
-                     text-white shadow-lg shadow-indigo-500/20
-                     hover:shadow-xl hover:shadow-indigo-500/30
-                     transition-all duration-300"
+                     bg-gradient-to-br from-slate-800 to-slate-900
+                     text-slate-300 hover:text-slate-200
+                     border border-slate-700/50 hover:border-slate-600/50
+                     shadow-lg shadow-slate-950/20
+                     transition-all duration-200 z-20 group"
         >
-          <FaComments size={20} />
+          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-700 text-xs flex items-center justify-center border border-slate-600">
+            {messages.length > 0 ? Math.min(messages.length, 9) : 0}
+          </div>
+          <FaComments size={20} className="group-hover:scale-110 transition-transform duration-200" />
         </motion.button>
       )}
 
@@ -577,7 +614,7 @@ const GroupLayout = () => {
         onClose={() => setAddMemberModalOpen(false)}
         groupId={groupId}
         onMemberAdded={handleMemberAdded}
-        currentMembers={members} // Make sure members array is properly structured
+        currentMembers={members}
       />
 
       {/* Snippet Modals */}
@@ -655,22 +692,14 @@ const FileTreeNode = ({ item, level = 0, onSelect }) => {
   const hasChildren = item.type === 'directory' && 
     (item.children?.length > 0 || item.directSnippets?.length > 0);
 
-  // Debug logging for tree node
-  console.log('FileTreeNode:', {
-    name: item.name || item.title,
-    type: item.type,
-    directSnippets: item.directSnippets?.length || 0,
-    children: item.children?.length || 0,
-    metadata: item.metadata
-  });
-
   return (
     <div className="select-none">
-      <div
+      <motion.div
+        whileHover={{ scale: 1.01 }}
         className={`
-          flex items-center py-1.5 px-2 
-          hover:bg-indigo-500/10 rounded-lg 
-          cursor-pointer
+          flex items-center py-1.5 px-2 my-0.5
+          hover:bg-slate-800/60 rounded-lg 
+          cursor-pointer group
           ${level > 0 ? 'ml-' + (level * 4) : ''}
         `}
         onClick={() => {
@@ -687,12 +716,12 @@ const FileTreeNode = ({ item, level = 0, onSelect }) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className="text-indigo-400/75 hover:text-indigo-300"
+              className="text-slate-500 group-hover:text-slate-400 transition-colors"
             >
               {isExpanded ? (
-                <FaChevronDown size={12} />
+                <FaChevronDown size={10} />
               ) : (
-                <FaChevronRight size={12} />
+                <FaChevronRight size={10} />
               )}
             </button>
           )}
@@ -701,28 +730,27 @@ const FileTreeNode = ({ item, level = 0, onSelect }) => {
         <span className="w-5 h-5 flex items-center justify-center mr-2">
           {item.type === 'directory' ? (
             isExpanded ? (
-              <FaFolderOpen className="w-4 h-4 text-indigo-400/90" />
+              <FaFolderOpen className="text-slate-400 group-hover:text-slate-300 transition-colors" />
             ) : (
-              <FaFolder className="w-4 h-4 text-indigo-400/90" />
+              <FaFolder className="text-slate-400 group-hover:text-slate-300 transition-colors" />
             )
           ) : (
-            <FaCode className="w-4 h-4 text-indigo-300/90" />
+            <FaCode className="text-slate-400 group-hover:text-slate-300 transition-colors" />
           )}
         </span>
 
-        <span className="text-sm text-indigo-200/90 font-medium flex-1">
+        <span className="text-sm text-slate-300 group-hover:text-slate-200 font-medium flex-1 truncate transition-colors">
           {item.name || item.title}
         </span>
 
         {item.type === 'directory' && item.snippetCount > 0 && (
-          <span className="text-xs text-indigo-400/60">
-            ({item.snippetCount})
+          <span className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors px-1.5 py-0.5 rounded-full bg-slate-800/50">
+            {item.snippetCount}
           </span>
         )}
-      </div>
+      </motion.div>
 
       {isExpanded && hasChildren && (
-        console.log('Rendering children of:', item.name),
         <div>
           {/* Show directories first */}
           {item.children?.map((child) => (
@@ -749,42 +777,144 @@ const FileTreeNode = ({ item, level = 0, onSelect }) => {
   );
 };
 
-const SnippetContent = ({ snippet }) => (
-  <div className="space-y-4">
-    <div className="flex justify-between items-center">
-      <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-        {snippet.title}
-      </h2>
-      <div className="flex gap-2">
-        <button className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors">
-          Edit
-        </button>
-        <button className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors">
-          Export
-        </button>
+const SnippetContent = ({ snippet }) => {
+  const [copyStatus, setCopyStatus] = useState('');
+  const navigate = useNavigate();
+  
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(snippet.content);
+      setCopyStatus('Copied!');
+      setTimeout(() => setCopyStatus(''), 2000);
+    } catch (err) {
+      setCopyStatus('Failed to copy');
+    }
+  };
+  
+  const handleRunSnippet = () => {
+    if (snippet?.content) {
+      let detectedLanguage = 'javascript';
+      
+      if (snippet.programmingLanguage) {
+        const lang = snippet.programmingLanguage.toLowerCase();
+        if (lang.includes('python') || lang.includes('py')) {
+          detectedLanguage = 'python';
+        } else if (lang.includes('javascript') || lang.includes('js')) {
+          detectedLanguage = 'javascript';
+        }
+      }
+      
+      navigate('/run-code', {
+        state: {
+          code: snippet.content,
+          language: detectedLanguage
+        }
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-200">
+            {snippet.title}
+          </h2>
+          {snippet.description && (
+            <p className="text-sm text-slate-400 mt-1">{snippet.description}</p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleCopyCode}
+            className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <FaCopy size={14} />
+              <span>{copyStatus || "Copy"}</span>
+            </div>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRunSnippet}
+            className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <FaPlay size={14} />
+              <span>Run</span>
+            </div>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setEditSnippetModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2">
+              <FaEdit size={14} />
+              <span>Edit</span>
+            </div>
+          </motion.button>
+        </div>
+      </div>
+      
+      <div className="relative group overflow-hidden rounded-xl bg-slate-900 border border-slate-800/50 shadow-inner shadow-slate-950/50">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-slate-800/70 border-b border-slate-700/50 flex items-center px-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-slate-400 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/50">
+              {snippet.programmingLanguage || 'Text'}
+            </span>
+          </div>
+        </div>
+        <pre className="text-slate-300 px-4 pt-12 pb-4 overflow-x-auto styled-scrollbar">
+          <code>{snippet.content}</code>
+        </pre>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 mt-2">
+        {snippet.tags?.map(tag => (
+          <span key={tag} className="px-2.5 py-1 text-xs rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/50">
+            {tag}
+          </span>
+        ))}
+      </div>
+      
+      <div className="flex justify-between items-center text-xs text-slate-400 border-t border-slate-800/50 pt-4 mt-4">
+        <div className="flex items-center gap-4">
+          <span>Created: {new Date(snippet.createdAt).toLocaleDateString()}</span>
+          <span>Version: {snippet.versionHistory?.length || 1}</span>
+        </div>
+        <div>
+          <span>Size: {formatBytes(snippet.content?.length || 0)}</span>
+        </div>
       </div>
     </div>
-    
-    <div className="bg-[#0B1120] rounded-xl border border-indigo-500/20 p-4 overflow-x-auto">
-      <pre className="text-indigo-100">
-        <code>{snippet.content}</code>
-      </pre>
-    </div>
-  </div>
-);
+  );
+};
 
-// Add the StatBox component definition before DirectoryStats
+// Update the StatBox component
 const StatBox = ({ label, value, icon }) => (
-  <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
-    <div className="flex items-center gap-2 text-indigo-400 mb-1">
+  <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-300">
+    <div className="flex items-center gap-2 text-slate-400 mb-1">
       {icon}
-      <span className="text-xs uppercase">{label}</span>
+      <span className="text-xs uppercase tracking-wide">{label}</span>
     </div>
-    <div className="text-xl font-semibold text-white">{value}</div>
+    <div className="text-xl font-semibold text-slate-200">{value}</div>
   </div>
 );
 
-const DirectoryStats = ({ directory }) => {
+const DirectoryStats = ({ directory, onEdit, onExport }) => {
   if (!directory) return null;
 
   const stats = {
@@ -795,12 +925,48 @@ const DirectoryStats = ({ directory }) => {
   };
 
   return (
-    <div className="bg-[#0B1120]/80 rounded-xl border border-indigo-500/20 p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <FaFolderOpen className="text-2xl text-indigo-400" />
-        <div>
-          <h2 className="text-xl font-bold text-white">{directory.name}</h2>
-          <p className="text-sm text-indigo-400">{directory.path}</p>
+    <div className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800/50 p-6 shadow-lg shadow-slate-950/10">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700/50">
+            <FaFolderOpen className="text-xl text-slate-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-200">{directory.name}</h2>
+            <p className="text-sm text-slate-400">{directory.path}</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          {onEdit && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onEdit}
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 
+                       border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <FaEdit size={14} />
+                <span>Edit</span>
+              </div>
+            </motion.button>
+          )}
+          
+          {onExport && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onExport}
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 
+                       border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <FaDatabase size={14} />
+                <span>Export</span>
+              </div>
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -808,47 +974,62 @@ const DirectoryStats = ({ directory }) => {
         <StatBox 
           label="Direct Snippets" 
           value={stats.directSnippets}
-          icon={<FaCode />}
+          icon={<FaCode className="text-slate-500" />}
         />
         <StatBox 
           label="All Snippets" 
           value={stats.allSnippets}
-          icon={<FaCodeBranch />}
+          icon={<FaCodeBranch className="text-slate-500" />}
         />
         <StatBox 
           label="Subdirectories" 
           value={stats.subDirs}
-          icon={<FaFolder />}
+          icon={<FaFolder className="text-slate-500" />}
         />
         <StatBox 
           label="Total Size" 
           value={formatBytes(stats.totalSize)}
-          icon={<FaDatabase />}
+          icon={<FaDatabase className="text-slate-500" />}
         />
       </div>
     </div>
   );
 };
 
-const DirectoryCard = ({ directory }) => {
+const DirectoryCard = ({ directory, onClick }) => {
   return (
-    <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/15 transition-colors cursor-pointer">
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 
+               border border-slate-700/30 shadow-lg hover:shadow-xl hover:border-slate-600/50 
+               transition-all duration-300 p-4 cursor-pointer"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-700/5 via-transparent to-slate-800/5 
+                    opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
       <div className="flex items-center gap-3">
-        <FaFolder className="text-xl text-indigo-400" />
+        <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700/50 group-hover:border-slate-600/70 transition-colors">
+          <FaFolder className="text-slate-400 group-hover:text-slate-300" />
+        </div>
         <div>
-          <h3 className="font-medium text-white">{directory.name}</h3>
-          <p className="text-xs text-indigo-400">{directory.path}</p>
+          <h3 className="font-medium text-slate-200 group-hover:text-white transition-colors">
+            {directory.name}
+          </h3>
+          <p className="text-xs text-slate-400 mt-1">{directory.path}</p>
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between text-sm">
-        <span className="text-indigo-300">
+      
+      <div className="mt-3 flex items-center justify-between text-xs">
+        <span className="text-slate-400 flex items-center gap-1.5">
+          <FaCode size={12} className="text-slate-500" />
           {directory.directSnippets?.length || 0} snippets
         </span>
-        <span className="text-indigo-400">
+        <span className="text-slate-500">
           {new Date(directory.createdAt).toLocaleDateString()}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -862,6 +1043,13 @@ DirectoryCard.propTypes = {
 };
 
 const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
+  const [isEditSnippetModalOpen, setEditSnippetModalOpen] = useState(false);
+  const [isCreateSnippetModalOpen, setCreateSnippetModalOpen] = useState(false);
+  const [isCreateDirectoryModalOpen, setCreateDirectoryModalOpen] = useState(false);
+  const [isExportSnippetModalOpen, setExportSnippetModalOpen] = useState(false);
+  const [isExportDirectoryModalOpen, setExportDirectoryModalOpen] = useState(false);
+  const [isEditDirectoryModalOpen, setEditDirectoryModalOpen] = useState(false);
+  
   // Add logging for current directory and snippets
   useEffect(() => {
     if (directory) {
@@ -873,16 +1061,93 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
     }
   }, [directory]);
 
+  const handleEditDirectory = () => {
+    if (directory) {
+      setEditDirectoryModalOpen(true);
+    }
+  };
+
+  const handleExportDirectory = () => {
+    if (directory) {
+      setExportDirectoryModalOpen(true);
+    }
+  };
+
+  const handleEditSnippet = () => {
+    if (selectedSnippet) {
+      setEditSnippetModalOpen(true);
+    }
+  };
+
+  const handleExportSnippet = () => {
+    if (selectedSnippet) {
+      setExportSnippetModalOpen(true);
+    }
+  };
+
   if (!directory && !selectedSnippet) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-indigo-400">Select a directory or snippet to view</p>
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="p-6 rounded-full bg-slate-800/50 border border-slate-700/30 mb-6">
+          <FaUsers className="text-4xl text-slate-400" />
+        </div>
+        <h3 className="text-xl font-semibold text-slate-300 mb-2">Welcome to Group Workspace</h3>
+        <p className="text-slate-400 text-center max-w-md mb-8">
+          Select a directory or snippet from the sidebar to view its contents
+        </p>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCreateSnippetModalOpen(true)}
+            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200
+                     flex items-center gap-2"
+          >
+            <FaPlus size={14} />
+            <span>Create Snippet</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCreateDirectoryModalOpen(true)}
+            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 
+                     border border-slate-700/50 hover:border-slate-600/50 transition-all duration-200
+                     flex items-center gap-2"
+          >
+            <FaFolder size={14} />
+            <span>Create Directory</span>
+          </motion.button>
+        </div>
       </div>
     );
   }
 
   if (selectedSnippet) {
-    return <SnippetContent snippet={selectedSnippet} />;
+    return (
+      <>
+        <SnippetContent snippet={selectedSnippet} />
+        
+        <EditSnippetDetailsModal
+          isOpen={isEditSnippetModalOpen}
+          onClose={() => setEditSnippetModalOpen(false)}
+          snippet={selectedSnippet}
+          onSnippetUpdated={(updatedSnippet) => {
+            // Handle updated snippet
+            setEditSnippetModalOpen(false);
+            // Refresh content
+            fetchGroupContent();
+          }}
+        />
+        
+        <ExportSnippetModal
+          isOpen={isExportSnippetModalOpen}
+          onClose={() => setExportSnippetModalOpen(false)}
+          itemId={selectedSnippet?._id}
+          itemType="snippet"
+        />
+      </>
+    );
   }
 
   // Search functionality
@@ -890,7 +1155,11 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
     if (!term) return items;
     return items.filter(item => 
       item.name?.toLowerCase().includes(term.toLowerCase()) ||
-      item.title?.toLowerCase().includes(term.toLowerCase())
+      item.title?.toLowerCase().includes(term.toLowerCase()) ||
+      (item.tags && Array.isArray(item.tags) && 
+        item.tags.some(tag => tag.toLowerCase().includes(term.toLowerCase()))) ||
+      (item.programmingLanguage && 
+        item.programmingLanguage.toLowerCase().includes(term.toLowerCase()))
     );
   };
 
@@ -901,23 +1170,32 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
     <div className="space-y-6">
       {/* Directory Header */}
       {!searchTerm && (
-        <DirectoryStats directory={directory} />
+        <DirectoryStats 
+          directory={directory} 
+          onEdit={handleEditDirectory}
+          onExport={handleExportDirectory}
+        />
       )}
 
       {/* Snippets */}
       {filteredSnippets.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+            <FaCode className="text-slate-400" size={16} />
             {searchTerm ? 'Matching Snippets' : 'Snippets'}
           </h3>
-          <SnippetList snippets={filteredSnippets} />
+          <SnippetList 
+            snippets={filteredSnippets} 
+            onSnippetClick={(snippet) => setSelectedSnippet(snippet)}
+          />
         </div>
       )}
 
       {/* Directories */}
       {filteredDirectories.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+            <FaFolder className="text-slate-400" size={16} />
             {searchTerm ? 'Matching Directories' : 'Subdirectories'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -925,22 +1203,61 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
               <DirectoryCard 
                 key={dir._id}
                 directory={dir}
-                onClick={() => setCurrentDirectory(dir)}
+                onClick={() => navigateToDirectory(dir)}
               />
             ))}
           </div>
         </div>
       )}
+      
+      {/* Modals */}
+      <CreateSnippetModal
+        isOpen={isCreateSnippetModalOpen}
+        onClose={() => setCreateSnippetModalOpen(false)}
+        onSnippetCreated={async (snippet) => {
+          await handleItemCreated();
+          setCreateSnippetModalOpen(false);
+        }}
+        directory={directory}
+      />
+      
+      <CreateDirectoryModal
+        isOpen={isCreateDirectoryModalOpen}
+        onClose={() => setCreateDirectoryModalOpen(false)}
+        onDirectoryCreated={async (directory) => {
+          await handleItemCreated();
+          setCreateDirectoryModalOpen(false);
+        }}
+        parentDirectoryId={directory?._id}
+      />
+      
+      <EditDirectoryDetails
+        isOpen={isEditDirectoryModalOpen}
+        onClose={() => setIsEditDirectoryModalOpen(false)}
+        directoryId={directory?._id}
+        onDirectoryUpdated={(updatedDirectory) => {
+          // Handle updated directory
+          setIsEditDirectoryModalOpen(false);
+          // Refresh content
+          fetchGroupContent();
+        }}
+      />
+      
+      <ExportDirectoryModal
+        isOpen={isExportDirectoryModalOpen}
+        onClose={() => setIsExportDirectoryModalOpen(false)}
+        directoryId={directory?._id}
+      />
     </div>
   );
 };
 
-// Add missing SnippetList component
-const SnippetList = ({ snippets }) => {
+// Update SnippetList component
+const SnippetList = ({ snippets, onSnippetClick }) => {
     if (!snippets?.length) {
         return (
-            <div className="text-center text-indigo-300/70 py-8">
-                No snippets found
+            <div className="text-center py-8">
+                <p className="text-slate-400/80">No snippets found</p>
             </div>
         );
     }
@@ -948,28 +1265,66 @@ const SnippetList = ({ snippets }) => {
     return (
         <div className="grid grid-cols-1 gap-3 md:gap-4">
             {snippets.map(snippet => (
-                <div 
+                <motion.div 
                     key={snippet._id}
-                    className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 
-                             hover:bg-indigo-500/10 transition-colors duration-200 cursor-pointer"
+                    whileHover={{ scale: 1.01, y: -2 }}
+                    onClick={() => onSnippetClick(snippet)}
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 
+                             border border-slate-700/30 shadow-lg hover:shadow-xl hover:border-slate-600/50 
+                             transition-all duration-300 p-4 cursor-pointer"
                 >
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-600 via-slate-500 to-slate-600" />
+                    </div>
+                    
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <FaCode className="text-indigo-400" />
-                            <span className="text-white">
-                                {snippet.title || snippet.name}
-                            </span>
+                            <div className="p-2 rounded-lg bg-slate-800 border border-slate-700/50 group-hover:border-slate-600/70 transition-colors">
+                              <FaCode className="text-slate-400 group-hover:text-slate-300" />
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-200 group-hover:text-white transition-colors">
+                                  {snippet.title || snippet.name}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800/70 text-slate-400 border border-slate-700/50">
+                                  {snippet.programmingLanguage || 'Text'}
+                                </span>
+                              </div>
+                            </div>
                         </div>
-                        <span className="text-xs text-indigo-400">
-                            {snippet.programmingLanguage}
-                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-300 hover:bg-slate-800/60 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSnippetClick(snippet);
+                            }}
+                          >
+                            <FaEdit size={14} />
+                          </button>
+                        </div>
                     </div>
+                    
                     {snippet.description && (
-                        <p className="mt-2 text-sm text-indigo-300/70">
+                        <p className="mt-3 text-sm text-slate-400 line-clamp-2">
                             {snippet.description}
                         </p>
                     )}
-                </div>
+                    
+                    {snippet.tags && snippet.tags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {snippet.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="px-2 py-0.5 text-xs rounded-full bg-slate-800/70 text-slate-400 border border-slate-700/50">
+                            {tag}
+                          </span>
+                        ))}
+                        {snippet.tags.length > 3 && (
+                          <span className="text-xs text-slate-500">+{snippet.tags.length - 3} more</span>
+                        )}
+                      </div>
+                    )}
+                </motion.div>
             ))}
         </div>
     );

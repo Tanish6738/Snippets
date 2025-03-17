@@ -94,144 +94,179 @@ const EditDirectoryDetails = ({ isOpen, onClose, directoryId, onDirectoryUpdated
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="relative max-w-2xl w-full bg-[#0B1120]/95 backdrop-blur-xl rounded-2xl shadow-lg border border-indigo-500/30 overflow-hidden transition-all transform duration-300 ease-in-out hover:border-indigo-400/50 hover:shadow-indigo-500/10 mx-4"
+          className="relative max-w-md w-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg border border-slate-700/30 overflow-hidden"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-indigo-500/20">
+          <div className="px-6 py-4 border-b border-slate-700/30">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent flex items-center">
-                <FiFolder className="mr-3 text-indigo-400" />
-                Edit Directory: {formData.name}
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <FiFolder className="text-slate-300" />
+                Edit Directory
               </h2>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
               >
-                <FiX className="w-6 h-6" />
+                <FiX size={18} />
               </motion.button>
             </div>
           </div>
 
-          <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-indigo-500/10 scrollbar-thumb-indigo-500/40">
+          {/* Error Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mx-6 mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="px-6 py-4 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 hover:scrollbar-thumb-slate-500 pr-4">
             {loading ? (
               <div className="flex justify-center items-center h-32">
-                <div className="animate-pulse text-indigo-400">Loading directory details...</div>
-              </div>
-            ) : error ? (
-              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300">
-                {error}
+                <div className="animate-spin -ml-1 mr-3 h-8 w-8 text-white">
+                  <svg className="animate-spin h-8 w-8 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
               </div>
             ) : directory ? (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Initial Data Display */}
-                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
-                  <p className="text-sm text-indigo-400">Last Updated</p>
-                  <p className="text-indigo-200">
-                    {directory.updatedAt ? new Date(directory.updatedAt).toLocaleString() : 'N/A'}
-                  </p>
-                </div>
-
-                {/* Path Section */}
-                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
-                  <h3 className="text-lg font-medium text-indigo-200 mb-2">Path</h3>
-                  <p className="text-indigo-300 font-mono text-sm">{directory.path}</p>
-                </div>
-
-                {/* Edit Form Fields */}
-                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20 space-y-4">
-                  <h3 className="text-lg font-medium text-indigo-200 mb-2">Directory Details</h3>
+                {/* Directory Info */}
+                <div>
+                  <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 mb-6">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400">Last Updated</span>
+                      <span className="text-slate-300">
+                        {directory.updatedAt ? new Date(directory.updatedAt).toLocaleString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-indigo-300 mb-2">
-                      Directory Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                               text-white placeholder-indigo-400/60 focus:border-indigo-500 
-                               focus:ring-1 focus:ring-indigo-500 transition-all"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-indigo-300 mb-2">
-                      Visibility
-                    </label>
-                    <select
-                      className="w-full px-4 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                               text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 
-                               transition-all"
-                      value={formData.visibility}
-                      onChange={(e) => setFormData(prev => ({ ...prev, visibility: e.target.value }))}
-                    >
-                      <option value="private">Private</option>
-                      <option value="public">Public</option>
-                      <option value="shared">Shared</option>
-                    </select>
+                  <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 mb-6">
+                    <h3 className="text-sm font-medium text-slate-300 mb-2">Path</h3>
+                    <div className="text-slate-400 font-mono text-sm break-all max-h-[80px] overflow-y-auto scrollbar-thin scrollbar-track-slate-700/30 scrollbar-thumb-slate-600/50 pr-2">
+                      {directory.path}
+                    </div>
                   </div>
                 </div>
 
-                {/* Statistics Grid */}
-                <div className="bg-indigo-500/5 rounded-xl p-4 border border-indigo-500/20">
-                  <h3 className="text-lg font-medium text-indigo-200 mb-4">Statistics</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                {/* Name Field */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Directory Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder-slate-400 focus:border-slate-600 focus:ring-1 focus:ring-slate-500 hover:border-slate-600/70 transition-all duration-200"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+
+                {/* Visibility Field */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Visibility
+                  </label>
+                  <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'Total Snippets', value: directory.metadata?.snippetCount || 0 },
-                      { label: 'Subdirectories', value: directory.metadata?.subDirectoryCount || 0 },
-                      { label: 'Total Size', value: `${((directory.metadata?.size || 0) / 1024).toFixed(2)} KB` },
-                      { label: 'Current Visibility', value: directory.visibility, capitalize: true }
-                    ].map(({ label, value, capitalize }) => (
-                      <div key={label} className="bg-indigo-500/10 rounded-xl p-3 border border-indigo-500/20">
-                        <p className="text-sm text-indigo-400">{label}</p>
-                        <p className={`font-medium text-indigo-200 ${capitalize ? 'capitalize' : ''}`}>
-                          {value}
-                        </p>
-                      </div>
+                      { value: 'private', label: 'Private', icon: <FiX size={16} /> },
+                      { value: 'public', label: 'Public', icon: <FiFolder size={16} /> },
+                      { value: 'shared', label: 'Shared', icon: <FiEdit size={16} /> },
+                    ].map(({ value, label, icon }) => (
+                      <motion.button
+                        key={value}
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setFormData(prev => ({ ...prev, visibility: value }))}
+                        className={`p-3 rounded-xl flex flex-col items-center justify-center border ${
+                          formData.visibility === value
+                            ? 'border-slate-600 bg-slate-700/70 text-slate-200'
+                            : 'border-slate-700/50 hover:border-slate-600/70 text-slate-400 hover:bg-slate-800/60'
+                        } transition-all duration-200`}
+                      >
+                        {icon}
+                        <span className="text-sm mt-1">{label}</span>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-indigo-500/20">
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={onClose}
-                    className="px-4 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 
-                             hover:bg-indigo-500/10 transition-all"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={loading || !hasChanges()}
-                    className={`px-6 py-2 rounded-xl text-white bg-gradient-to-r 
-                              ${hasChanges() 
-                                ? 'from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600' 
-                                : 'from-gray-500 to-gray-600 cursor-not-allowed'
-                              } transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50 
-                              flex items-center`}
-                  >
-                    <FiSave className="mr-2" />
-                    {loading ? 'Updating...' : hasChanges() ? 'Update Directory' : 'No Changes'}
-                  </motion.button>
+                {/* Statistics */}
+                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                  <h3 className="text-sm font-medium text-slate-300 mb-4">Statistics</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50">
+                      <p className="text-xs text-slate-400">Total Snippets</p>
+                      <p className="text-slate-200 font-medium">{directory.metadata?.snippetCount || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50">
+                      <p className="text-xs text-slate-400">Subdirectories</p>
+                      <p className="text-slate-200 font-medium">{directory.metadata?.subDirectoryCount || 0}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50">
+                      <p className="text-xs text-slate-400">Total Size</p>
+                      <p className="text-slate-200 font-medium">{((directory.metadata?.size || 0) / 1024).toFixed(2)} KB</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/50">
+                      <p className="text-xs text-slate-400">Current Visibility</p>
+                      <p className="text-slate-200 font-medium capitalize">{directory.visibility}</p>
+                    </div>
+                  </div>
                 </div>
               </form>
             ) : null}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-slate-700/30 bg-slate-800/30">
+            <div className="flex justify-end space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 transition-all duration-200"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSubmit}
+                disabled={loading || !hasChanges()}
+                className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Updating...
+                  </span>
+                ) : (
+                  'Update Directory'
+                )}
+              </motion.button>
+            </div>
           </div>
         </motion.div>
       </motion.div>

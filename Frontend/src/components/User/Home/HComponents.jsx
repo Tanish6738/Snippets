@@ -173,7 +173,7 @@ export const Container = ({ children, className = "" }) => (
 );
 
 export const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-[200px]">
+  <div className="flex items-center justify-center min-h-screen w-full bg-slate-950">
     <div className="relative">
       <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-slate-500 to-slate-600 opacity-70 blur-sm animate-pulse"></div>
       <div className="relative h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center">

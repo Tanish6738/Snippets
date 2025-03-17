@@ -302,6 +302,11 @@ const Navbar = () => {
                         <FiCode className="w-4 h-4" />
                         My Snippets
                       </Link>
+                      <Link to="/my-directories" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
+                                                        ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
+                        <FiFolder className="w-4 h-4" />
+                        My Directories
+                      </Link>
                       <button 
                         onClick={handleLogout}
                         className={`block w-full text-left px-4 py-2 text-sm ${colors.text.secondary} 
@@ -371,7 +376,7 @@ const Navbar = () => {
                       <Link
                         key={item.to}
                         to={item.to}
-                        className=" px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                        className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
                                  hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
@@ -394,12 +399,30 @@ const Navbar = () => {
                 <hr className="border-slate-700/30 my-2" />
                 <Link
                   to="/profile"
-                  className=" px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
                            hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <FiSettings className="w-4 h-4" />
                   Profile
+                </Link>
+                <Link
+                  to="/my-snippets"
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FiCode className="w-4 h-4" />
+                  My Snippets
+                </Link>
+                <Link
+                  to="/my-directories"
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FiFolder className="w-4 h-4" />
+                  My Directories
                 </Link>
                 <button
                   onClick={() => {
