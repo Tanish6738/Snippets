@@ -17,12 +17,14 @@ import {
   FaFileCode,
   FaDatabase,
   FaCopy,
-  FaPlay
+  FaPlay,
+  FaBook
 } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
 import CreateDirectoryModal from '../Modals/DirectoryModals/CreateDirectoryModal';
 import EditSnippetModal from '../Modals/SnippetModals/EditSnippetModal';
+import CheatSheetModal from '../Modals/SnippetModals/CheatSheetModal';
 import axios from '../../Config/Axios';
 import { Container, LoadingSpinner, ScrollbarStyles } from '../User/Home/HComponents';
 import { GlassCard, IconButton, Button, QuickActionButton } from '../User/Home/Cards';
@@ -643,6 +645,7 @@ const DirectoryLayout = () => {
   const [showCreateDirectoryModal, setShowCreateDirectoryModal] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [showEditSnippetModal, setShowEditSnippetModal] = useState(false);
+  const [showCheatSheetModal, setShowCheatSheetModal] = useState(false);
   const [snippetToEdit, setSnippetToEdit] = useState(null);
   
   const location = useLocation();
@@ -853,6 +856,21 @@ const DirectoryLayout = () => {
                   />
                 ) : currentDirectory ? (
                   <>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-white">
+                        {currentDirectory.name}
+                      </h2>
+                      {currentDirectory.directSnippets?.length > 0 && (
+                        <Button 
+                          onClick={() => setShowCheatSheetModal(true)}
+                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <FaBook size={14} />
+                          Create Cheat Sheet
+                        </Button>
+                      )}
+                    </div>
+                    
                     <GlassCard
                       title="Directory Info"
                       icon={<FaFolderOpen />}
@@ -979,6 +997,12 @@ const DirectoryLayout = () => {
         }}
         snippet={snippetToEdit}
         onSnippetUpdated={handleSnippetUpdated}
+      />
+      <CheatSheetModal
+        isOpen={showCheatSheetModal}
+        onClose={() => setShowCheatSheetModal(false)}
+        snippets={currentDirectory?.directSnippets || []}
+        directories={currentDirectory ? [currentDirectory] : []}
       />
     </>
   );

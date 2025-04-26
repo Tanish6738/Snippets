@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiCode, FiLayout, FiGrid, FiList, FiSearch, FiTrash2, FiFilter, FiDownload, FiEye, FiStar } from 'react-icons/fi';
+import { FiCode, FiLayout, FiGrid, FiList, FiSearch, FiTrash2, FiFilter, FiDownload, FiEye, FiStar, FiBook } from 'react-icons/fi';
 import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
 import ViewSnippetModal from '../Modals/SnippetModals/ViewSnippetModal';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
 import BulkCreateSnippetModal from '../Modals/SnippetModals/BulkCreateSnippetModal';
+import CheatSheetModal from '../Modals/SnippetModals/CheatSheetModal';
 
 const SnippetLayout = () => {
   const { isAuthenticated, user } = useUser();
@@ -18,6 +19,7 @@ const SnippetLayout = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
+  const [cheatSheetModalOpen, setCheatSheetModalOpen] = useState(false);
   const [filterBy, setFilterBy] = useState('all'); // 'all', 'title', 'tags', 'language'
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
@@ -297,6 +299,17 @@ const SnippetLayout = () => {
 
           <div className="flex gap-2 sm:gap-3">
             <button
+              onClick={() => setCheatSheetModalOpen(true)}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl 
+                bg-gradient-to-r from-indigo-600/80 to-indigo-700/80 text-white border-indigo-500/50
+                hover:from-indigo-600 hover:to-indigo-700 border transition-all duration-200 
+                flex items-center justify-center sm:justify-start gap-2"
+              disabled={snippets.length === 0}
+            >
+              <FiBook size={18} />
+              <span className="hidden sm:inline">Create Cheat Sheet</span>
+            </button>
+            <button
               onClick={() => setViewMode('grid')}
               className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl 
               ${viewMode === 'grid' 
@@ -364,6 +377,14 @@ const SnippetLayout = () => {
             isOpen={bulkCreateModalOpen}
             onClose={() => setBulkCreateModalOpen(false)}
             onSnippetsCreated={fetchSnippets}
+          />
+        )}
+
+        {cheatSheetModalOpen && (
+          <CheatSheetModal
+            isOpen={cheatSheetModalOpen}
+            onClose={() => setCheatSheetModalOpen(false)}
+            snippets={snippets}
           />
         )}
       </div>

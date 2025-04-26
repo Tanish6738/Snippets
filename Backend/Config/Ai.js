@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from 'dotenv';
 
-const genAI = new GoogleGenerativeAI("AIzaSyAE7HhNsHg-Wp7mGjj9VEUAqFikJdeUbr0");
+// Load environment variables
+dotenv.config();
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyAE7HhNsHg-Wp7mGjj9VEUAqFikJdeUbr0");
 const model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
     generationConfig: {
@@ -87,5 +91,3 @@ export const generateResult = async (prompt) => {
         throw error;
     }
 };
-
-// generateResult("Generate a JavaScript utility function for array manipulation");
