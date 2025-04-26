@@ -1,44 +1,66 @@
-# Snippets - Code Snippet Management System
+# CodeArc - Advanced Code Snippet Management System
 
-A full-stack application for managing and sharing code snippets with team collaboration features.
+A full-stack application for managing, sharing, and collaborating on code snippets with advanced team features, blogging capabilities, and AI assistance.
 
 ## Features
 
 - User authentication and authorization
-- Code snippet creation and management
-- Directory organization
-- Group collaboration
+- Code snippet creation, management and version control
+- Directory organization with hierarchical structure
+- Group collaboration with role-based permissions
+- Kanban board for project management
 - Sharing and permission management
-- Version history tracking
-- Syntax highlighting
+- Syntax highlighting for multiple languages
+- Blog publishing and community interaction
 - Real-time collaboration
-- Activity logging
+- Activity logging and analytics
+- Bookmarking and favorites
+- Export snippets in multiple formats
+- Search and filter capabilities
+- Responsive UI with dark/light themes
 
 ## Tech Stack
 
-- **Frontend**: React, Vite, TailwindCSS
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB
-- **Authentication**: JWT
+- **Frontend**: 
+  - React with Vite
+  - TailwindCSS & Framer Motion animations
+  - Context API for state management
+  - React Router for navigation
+- **Backend**: 
+  - Node.js with Express.js
+  - MongoDB with Mongoose ODM
+  - JWT Authentication
+  - RESTful API architecture
+- **Additional Technologies**:
+  - GSAP for advanced animations
+  - Socket.io for real-time features
+  - Multer for file uploads
+  - PDF generation and processing
 
 ## Project Structure
 
 ```
 snippets/
 ├── Backend/
-│   ├── Config/
-│   ├── controllers/
-│   ├── middlewares/
-│   ├── Models/
-│   └── Routes/
+│   ├── Config/          # Configuration files (DB, AI, etc.)
+│   ├── controllers/     # API route controllers
+│   ├── middlewares/     # Auth and validation middlewares
+│   ├── Models/          # MongoDB schema definitions
+│   ├── Routes/          # API route definitions
+│   ├── app.js          # Express app configuration
+│   └── server.js        # Main server entry point
 └── Frontend/
     ├── src/
-    │   ├── Components/
-    │   ├── Config/
-    │   ├── Context/
-    │   ├── Routes/
-    │   └── Services/
-    └── public/
+    │   ├── assets/      # Static assets
+    │   ├── blocks/      # Reusable UI building blocks
+    │   ├── components/  # React components organized by feature
+    │   ├── Config/      # Frontend configuration
+    │   ├── Context/     # React context providers
+    │   ├── hooks/       # Custom React hooks
+    │   ├── Routes/      # Application routes
+    │   ├── services/    # API service integrations
+    │   └── utils/       # Utility functions
+    └── public/          # Public assets
 ```
 
 ## Getting Started
@@ -544,6 +566,170 @@ DELETE /api/activities/:id
 Authorization: Bearer <token>
 ```
 
+### Blog Routes
+
+#### 1. Create Blog Post
+```http
+POST /api/blogs
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "title": "Understanding JavaScript Promises",
+    "content": "Detailed blog content here...",
+    "tags": ["javascript", "async", "promises"],
+    "coverImage": "image_url.jpg",
+    "visibility": "public"
+}
+```
+
+#### 2. Get Blog Posts
+```http
+GET /api/blogs
+Authorization: Bearer <token>
+
+# Query Parameters:
+?page=1
+?limit=10
+?tags=javascript,webdev
+```
+
+#### 3. Like Blog Post
+```http
+POST /api/blog-interactions/like/:blogId
+Authorization: Bearer <token>
+```
+
+#### 4. Comment on Blog Post
+```http
+POST /api/blog-interactions/comment/:blogId
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "content": "Great article! Very informative."
+}
+```
+
+#### 5. Bookmark Blog Post
+```http
+POST /api/blogs/:id/bookmark
+Authorization: Bearer <token>
+```
+
+### Public Routes
+
+#### 1. Get Public Snippets
+```http
+GET /api/public/snippets
+
+# Query Parameters:
+?page=1
+?limit=10
+?language=javascript
+?sort=newest
+```
+
+#### 2. Get Public Groups
+```http
+GET /api/public/groups
+```
+
+#### 3. Get Platform Statistics
+```http
+GET /api/public/stats
+```
+
+#### 4. Get Trending Snippets
+```http
+GET /api/public/trending
+```
+
+#### 5. Get Top Contributors
+```http
+GET /api/public/top-users
+```
+
+### AI Features
+
+#### 1. Generate Code Snippet
+```http
+POST /api/ai/generate
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "prompt": "Create a React function component that displays a counter",
+    "language": "javascript"
+}
+```
+
+#### 2. Analyze Code
+```http
+POST /api/ai/analyze
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "code": "function example() { /* code here */ }",
+    "language": "javascript"
+}
+```
+
+### Run Code Routes
+
+#### 1. Execute Code Snippet
+```http
+POST /api/run-code
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "code": "console.log('Hello, world!');",
+    "language": "javascript",
+    "inputs": []
+}
+```
+
+### PDF Routes
+
+#### 1. Export Snippet as PDF
+```http
+GET /api/pdf/snippet/:id
+Authorization: Bearer <token>
+
+# Query Parameters:
+?includeMetadata=true
+?includeComments=true
+```
+
+#### 2. Export Directory as PDF
+```http
+GET /api/pdf/directory/:id
+Authorization: Bearer <token>
+
+# Query Parameters:
+?includeSubdirectories=true
+?recursive=true
+```
+
+## Key Features Explained
+
+### Directory Structure
+The system supports a hierarchical directory structure similar to a file system. Each user has a root directory, and directories can contain both snippets and subdirectories.
+
+### Version Control
+Each snippet maintains a complete version history, allowing users to track changes and revert to previous versions.
+
+### Group Collaboration
+Users can create groups, invite members, and collaborate on shared snippets and directories with role-based permissions.
+
+### Blog System
+The platform includes a blog system that allows users to publish articles, receive comments, and gain likes from the community.
+
+### Activity Tracking
+All user actions are logged, providing insights into usage patterns and enabling audit trails.
+
 ## Development
 
 ### Coding Standards
@@ -574,6 +760,19 @@ npm test
 4. Push to the branch
 5. Open a Pull Request
 
+## Deployment
+
+### Backend Deployment
+The backend can be deployed on Vercel, and includes a `vercel.json` configuration file for easy deployment.
+
+### Frontend Deployment
+The frontend is built with Vite and can be deployed on Vercel, Netlify, or any other static site hosting service.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Open source community for providing invaluable libraries and tools
+- Contributors who have dedicated time to improve this project

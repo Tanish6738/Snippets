@@ -41,7 +41,7 @@ const EditSnippetModal = ({ isOpen, onClose, snippet, onSnippetUpdated }) => {
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
 
-      const response = await axios.put(`/api/snippets/${snippet._id}`, {
+      const response = await axios.patch(`/api/snippets/${snippet._id}`, {
         title,
         content,
         programmingLanguage,

@@ -665,7 +665,7 @@ const Pdf = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 text-white">
+        <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 text-white pt-20">
             {/* Main container with improved padding */}
             <div className="container mx-auto px-4 py-6 sm:py-8 md:py-12 max-w-[1440px]">
                 {/* Header section with better spacing */}

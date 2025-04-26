@@ -1,29 +1,140 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { debounce } from 'lodash';
-import Highlighter from 'react-highlight-words';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../Context/UserContext'; // Add this import
+import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
 import {
-  FiCode, FiFolder, FiUsers, FiSearch, FiStar, FiShare2, 
-  FiEye, FiCopy, FiHeart, FiChevronLeft, FiFilter, FiTag,
-  FiTrendingUp, FiClock, FiDownload // Add FiDownload
+  FiCode, FiFolder, FiUsers, FiSearch, FiStar, 
+  FiTrendingUp, FiClock, FiDownload, FiChevronLeft,
+  FiFilter, FiGrid, FiList
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import ViewSnippetModal from '../Modals/SnippetModals/ViewSnippetModal'; // Add this import
-import ExportSnippetModal from '../Modals/SnippetModals/ExportSnippetModal'; // Add this import
+import ViewSnippetModal from '../Modals/SnippetModals/ViewSnippetModal';
+import ExportSnippetModal from '../Modals/SnippetModals/ExportSnippetModal';
 
+// Import our component files
+import { PublicSidebar } from './PublicComponents/PublicSidebar';
+import { 
+  ItemCardSkeleton, 
+  ItemCard, 
+  getSearchWords 
+} from './PublicComponents/PublicCards';
+import { 
+  TabButton, 
+  ViewButton, 
+  SearchBar, 
+  Pagination, 
+  SortControls,
+  StatBox
+} from './PublicComponents/PublicUI';
+
+// Container component for consistent styling
+const Container = ({ children }) => (
+  <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+    {children}
+  </div>
+);
+
+// Glass card component
+const GlassCard = ({ title, icon, children, action }) => (
+  <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+    {(title || icon) && (
+      <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+        <div className="flex items-center gap-2">
+          {icon && <span className="text-slate-300">{icon}</span>}
+          {title && <h3 className="text-lg font-medium text-slate-300">{title}</h3>}
+        </div>
+        {action}
+      </div>
+    )}
+    <div className="p-4">{children}</div>
+  </div>
+);
+
+// Right sidebar component
+const PublicRightSidebar = ({ 
+  isCollapsed, 
+  onToggleCollapse, 
+  handleSearchInput,
+  searchInputValue,
+  stats
+}) => {
+  return (
+    <motion.div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-800/50 
+                          shadow-lg shadow-slate-900/10 h-full relative">
+      <button
+        onClick={onToggleCollapse}
+        className="absolute -left-3 top-4 p-1.5 rounded-full bg-slate-700 text-white
+                  hover:bg-slate-600 transition-colors z-10"
+      >
+        <FiChevronLeft className={`transform transition-transform duration-300 
+                                ${isCollapsed ? '' : 'rotate-180'}`} />
+      </button>
+
+      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-slate-300">Search & Stats</h2>
+        </div>
+
+        <div className="space-y-6">
+          <SearchBar 
+            value={searchInputValue}
+            onChange={handleSearchInput}
+            placeholder="Search (multiple words allowed)..."
+          />
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-slate-400">Platform Stats</h3>
+            <div className="grid grid-cols-1 gap-4">
+              <StatBox 
+                label="Snippets" 
+                value={stats.snippetCount} 
+                icon={<FiCode />} 
+              />
+              <StatBox 
+                label="Users" 
+                value={stats.userCount} 
+                icon={<FiUsers />} 
+              />
+              <StatBox 
+                label="Groups" 
+                value={stats.groupCount} 
+                icon={<FiUsers />} 
+              />
+              <StatBox 
+                label="Activities" 
+                value={stats.activityCount} 
+                icon={<FiClock />} 
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsed View */}
+      <div className={`p-4 ${isCollapsed ? 'block' : 'hidden'}`}>
+        <div className="space-y-6 flex flex-col items-center">
+          <FiSearch className="text-slate-300 text-xl" />
+          <FiCode className="text-slate-300 text-xl" />
+          <FiUsers className="text-slate-300 text-xl" />
+          <FiStar className="text-slate-300 text-xl" />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Main PublicData component
 const PublicData = () => {
   // State management
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [categories, setCategories] = useState([
     { icon: <FiTrendingUp />, label: "Popular", count: 0 },
     { icon: <FiClock />, label: "Recent", count: 0 },
@@ -32,12 +143,13 @@ const PublicData = () => {
     { icon: <FiFolder />, label: "Collections", count: 0 },
     { icon: <FiUsers />, label: "Groups", count: 0 },
   ]);
-  const [activeTab, setActiveTab] = useState('public'); // 'public' or 'personal'
-  const [activeView, setActiveView] = useState('snippets'); // 'snippets', 'directories', 'groups'
+  const [activeTab, setActiveTab] = useState('public');
+  const [activeView, setActiveView] = useState('snippets');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState('newest');
   const [language, setLanguage] = useState('');
+  const [languages, setLanguages] = useState([]);
   const [stats, setStats] = useState({
     snippetCount: 0,
     userCount: 0,
@@ -45,21 +157,114 @@ const PublicData = () => {
     activityCount: 0
   });
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [searchInputValue, setSearchInputValue] = useState(''); // New state for input value
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSnippetId, setSelectedSnippetId] = useState(null); // New state
-  const [showViewModal, setShowViewModal] = useState(false); // New state
-  const [showExportModal, setShowExportModal] = useState(false); // New state for export modal
+  const [selectedSnippetId, setSelectedSnippetId] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [filters, setFilters] = useState({
+    language: '',
+    tags: [],
+    author: '',
+    dateRange: 'all'
+  });
 
   const navigate = useNavigate();
   const { isAuthenticated, user } = useUser();
 
+  // Enhanced search functionality
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchQuery(value.toLowerCase().trim());
+    }, 300),
+    []
+  );
+
+  // Handle search input with debounce
+  const handleSearchInput = (e) => {
+    const value = e.target.value;
+    setSearchInputValue(value);
+    debouncedSearch(value);
+  };
+
+  // Filter items based on enhanced search query and active filters
+  const filteredItems = useMemo(() => {
+    if (!items.length) return [];
+    
+    let filtered = [...items];
+    
+    // Apply search query filter
+    if (searchQuery) {
+      const searchTerms = searchQuery.split(' ').filter(term => term.length > 0);
+      filtered = filtered.filter(item => {
+        const searchableText = `${item.title} ${item.description} ${item.tags?.join(' ')} ${item.language} ${item.author}`.toLowerCase();
+        return searchTerms.every(term => searchableText.includes(term));
+      });
+    }
+    
+    // Apply category filter
+    if (activeCategory !== 'all') {
+      switch (activeCategory) {
+        case 'popular':
+          filtered = filtered.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+          break;
+        case 'recent':
+          filtered = filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          break;
+        case 'featured':
+          filtered = filtered.filter(item => item.featured);
+          break;
+        case 'snippets':
+          filtered = filtered.filter(item => item.type === 'snippet');
+          break;
+        case 'collections':
+          filtered = filtered.filter(item => item.type === 'directory');
+          break;
+        case 'groups':
+          filtered = filtered.filter(item => item.type === 'group');
+          break;
+      }
+    }
+
+    // Apply additional filters
+    if (filters.language) {
+      filtered = filtered.filter(item => item.language === filters.language);
+    }
+    if (filters.tags.length) {
+      filtered = filtered.filter(item => 
+        filters.tags.every(tag => item.tags?.includes(tag))
+      );
+    }
+    if (filters.author) {
+      filtered = filtered.filter(item => item.author === filters.author);
+    }
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      const cutoff = new Date();
+      switch (filters.dateRange) {
+        case 'today':
+          cutoff.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          cutoff.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoff.setMonth(now.getMonth() - 1);
+          break;
+      }
+      filtered = filtered.filter(item => new Date(item.createdAt) > cutoff);
+    }
+    
+    return filtered;
+  }, [items, activeCategory, searchQuery, filters]);
+
+  // Fetch public content
   const fetchPublicContent = useCallback(async () => {
     try {
-      setIsTransitioning(true); // Start transition
+      setIsTransitioning(true);
       setLoading(true);
       setError(null);
-      setItems([]); // Clear existing items before loading new ones
+      setItems([]);
 
       const params = {
         page: currentPage,
@@ -74,7 +279,7 @@ const PublicData = () => {
           const snippetRes = await axios.get('/api/public/snippets', { params });
           data = snippetRes.data.snippets.map(snippet => ({
             ...snippet,
-            id: snippet._id, // Ensure unique id
+            id: snippet._id,
             type: 'snippet',
             title: snippet.title,
             description: snippet.description,
@@ -89,7 +294,7 @@ const PublicData = () => {
           const dirRes = await axios.get('/api/public/directories', { params });
           data = dirRes.data.directories.map(dir => ({
             ...dir,
-            id: dir._id, // Ensure unique id
+            id: dir._id,
             type: 'directory',
             title: dir.name,
             description: dir.description || 'No description',
@@ -104,7 +309,7 @@ const PublicData = () => {
           const groupRes = await axios.get('/api/public/groups', { params });
           data = groupRes.data.map(group => ({
             ...group,
-            id: group._id, // Ensure unique id
+            id: group._id,
             type: 'group',
             title: group.name,
             memberCount: group.memberCount,
@@ -116,18 +321,42 @@ const PublicData = () => {
       }
 
       setItems(data || []);
+      
+      // Update category counts
+      updateCategoryCounts(data);
+      
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch content');
       toast.error('Failed to fetch content');
     } finally {
-      // Add a small delay before removing loading state for smooth transition
       setTimeout(() => {
         setLoading(false);
         setIsTransitioning(false);
       }, 300);
     }
-  }, [activeView, currentPage, sortBy, language]); // Add dependencies here
+  }, [activeView, currentPage, sortBy, language]);
 
+  // Update category counts
+  const updateCategoryCounts = (data) => {
+    if (!data) return;
+    
+    const counts = {
+      snippets: data.filter(item => item.type === 'snippet').length,
+      collections: data.filter(item => item.type === 'directory').length,
+      groups: data.filter(item => item.type === 'group').length,
+      featured: data.filter(item => item.featured).length,
+      // We'll use the total for popular and recent
+      popular: data.length,
+      recent: data.length
+    };
+    
+    setCategories(prev => prev.map(cat => ({
+      ...cat,
+      count: counts[cat.label.toLowerCase()] || 0
+    })));
+  };
+
+  // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
       const { data } = await axios.get('/api/public/stats');
@@ -142,829 +371,167 @@ const PublicData = () => {
     }
   }, []);
 
-  // Handle search with debounce
-  const handleSearch = useCallback(
-    debounce(async (query) => {
-      setSearchQuery(query); // This will trigger the search functionality
-      
-      if (!query.trim()) {
-        fetchPublicContent();
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const searchTerms = query.trim().split(/\s+/).filter(term => term.length > 0);
-        
-        const { data } = await axios.get('/api/public/search', {
-          params: {
-            query: searchTerms.join(' '),
-            type: activeView,
-            page: currentPage,
-            limit: 10
-          }
-        });
-
-        const processedData = data.map(item => ({
-          ...item,
-          relevanceScore: calculateRelevanceScore(item, query),
-          type: activeView === 'snippets' ? 'snippet' : 
-                activeView === 'directories' ? 'directory' : 'group'
-        }));
-
-        // Sort by relevance score and filter out low-relevance results
-        const sortedData = processedData
-          .filter(item => item.relevanceScore > 0)
-          .sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-        setItems(sortedData);
-        
-        // Update total pages based on filtered results
-        setTotalPages(Math.ceil(sortedData.length / 10));
-        
-      } catch (err) {
-        setError(err.response?.data?.message || 'Search failed');
-        toast.error('Search failed');
-      } finally {
-        setLoading(false);
-      }
-    }, 300),
-    [activeView, currentPage, fetchPublicContent]
-  );
-
-  // Add utility function for calculating search relevance
-  const calculateRelevanceScore = (item, searchQuery) => {
-    if (!searchQuery) return 0;
-    
-    const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
-    let score = 0;
-    
-    const searchableFields = {
-      title: { weight: 3, value: item.title || '' },
-      description: { weight: 2, value: item.description || '' },
-      author: { weight: 1, value: item.author || '' },
-      language: { weight: 2, value: item.language || '' },
-      tags: { weight: 2, value: (item.tags || []).join(' ') }
-    };
-
-    for (const term of searchTerms) {
-      for (const [field, { weight, value }] of Object.entries(searchableFields)) {
-        const fieldValue = value.toLowerCase();
-        
-        // Exact match
-        if (fieldValue === term) {
-          score += weight * 2;
-        }
-        // Contains word
-        else if (fieldValue.includes(` ${term} `) || fieldValue.startsWith(term + ' ') || fieldValue.endsWith(' ' + term)) {
-          score += weight * 1.5;
-        }
-        // Partial match
-        else if (fieldValue.includes(term)) {
-          score += weight;
-        }
-        // Fuzzy match (tolerates minor typos)
-        else if (calculateLevenshteinDistance(term, fieldValue) <= 2) {
-          score += weight * 0.5;
-        }
-      }
-    }
-
-    return score;
-  };
-
-  // Add Levenshtein Distance calculation for fuzzy matching
-  const calculateLevenshteinDistance = (a, b) => {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-
-    const matrix = Array(b.length + 1).fill().map(() => Array(a.length + 1).fill(0));
-
-    for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
-
-    for (let j = 1; j <= b.length; j++) {
-      for (let i = 1; i <= a.length; i++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        matrix[j][i] = Math.min(
-          matrix[j - 1][i] + 1,
-          matrix[j][i - 1] + 1,
-          matrix[j - 1][i - 1] + cost
-        );
-      }
-    }
-
-    return matrix[b.length][a.length];
-  };
-
-  useEffect(() => {
-    setCurrentPage(1); // Reset to first page when view changes
-  }, [activeView]);
-
-  // Update the main data fetching useEffect
-  useEffect(() => {
-    fetchPublicContent();
-    fetchStats();
-  }, [fetchPublicContent, fetchStats, activeView, currentPage, sortBy, language]);
-
-  const filteredItems = useMemo(() => {
-    return items;
-  }, [items]);
-
-  const fetchCategories = async () => {
+  // Fetch available languages
+  const fetchLanguages = useCallback(async () => {
     try {
-      const { data } = await axios.get('/api/public/stats');
-      const updatedCategories = categories.map(cat => {
-        switch(cat.label) {
-          case 'Snippets':
-            return { ...cat, count: data.snippetCount };
-          case 'Groups':
-            return { ...cat, count: data.groupCount };
-          case 'Collections':
-            return { ...cat, count: data.directoryCount };
-          default:
-            return cat;
-        }
-      });
-      setCategories(updatedCategories);
+      const { data } = await axios.get('/api/public/languages');
+      setLanguages(data || []);
     } catch (err) {
-      console.error('Failed to fetch category counts:', err);
+      console.error('Failed to fetch languages:', err);
+      // Set default languages if API endpoint is not available
+      setLanguages([
+        'JavaScript', 'Python', 'Java', 'C#', 'C++', 'PHP', 'Ruby', 'Go',
+        'TypeScript', 'Swift', 'Kotlin', 'Rust', 'HTML', 'CSS', 'SQL'
+      ]);
     }
-  };
-
-  useEffect(() => {
-    fetchCategories();
   }, []);
 
-  const StatCard = ({ label, value }) => (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
-    >
-      <div className="text-2xl font-bold text-indigo-300">{value}</div>
-      <div className="text-xs text-indigo-400">{label}</div>
-    </motion.div>
-  );
-
-  const handleSearchInput = (e) => {
-    const value = e.target.value;
-    setSearchInputValue(value); // Update input value immediately
-    handleSearch(value); // Trigger debounced search
-  };
-
-  const PublicRightSidebar = ({ isCollapsed, onToggleCollapse, handleSearchInput, searchInputValue }) => (
-    <motion.div className="bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 
-                          shadow-lg shadow-indigo-500/10 relative">
-      <button
-        onClick={onToggleCollapse}
-        className="absolute -left-3 top-4 p-1.5 rounded-full bg-indigo-500 text-white
-                  hover:bg-indigo-600 transition-colors z-10"
-      >
-        <FiChevronLeft className={`transform transition-transform duration-300 
-                                ${!isCollapsed ? 'rotate-180' : ''}`} />
-      </button>
-
-      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
-        <div className="relative mb-6">
-          <input
-            type="text"
-            value={searchInputValue} // Use searchInputValue instead of searchQuery
-            onChange={handleSearchInput}
-            placeholder="Search (multiple words allowed)..."
-            className="w-full px-4 py-2 pl-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                    text-sm placeholder:text-indigo-400/60 focus:outline-none focus:border-indigo-500/40"
-          />
-          <FiSearch className="absolute left-3 top-2.5 text-indigo-400/50" size={16} />
-        </div>
-
-        {/* Add filters and stats similar to BlogLayout */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-indigo-300">Quick Stats</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard label="Snippets" value={stats.snippetCount} />
-            <StatCard label="Users" value={stats.userCount} />
-            <StatCard label="Groups" value={stats.groupCount} />
-            <StatCard label="Activities" value={stats.activityCount} />
-          </div>
-        </div>
-      </div>
-
-      {/* Collapsed View */}
-      <div className={`p-4 ${isCollapsed ? 'block' : 'hidden'}`}>
-        <div className="flex flex-col items-center space-y-4">
-          <IconButton 
-            icon={<FiSearch />} 
-            onClick={() => setIsRightSidebarCollapsed(false)}
-          />
-          <IconButton icon={<FiFilter />} />
-        </div>
-      </div>
-    </motion.div>
-  );
-
-  const SortControls = () => (
-    <select 
-      value={sortBy}
-      onChange={(e) => setSortBy(e.target.value)}
-      className="px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300"
-    >
-      <option value="newest">Newest</option>
-      <option value="oldest">Oldest</option>
-      <option value="popular">Popular</option>
-      <option value="favorites">Most Favorited</option>
-    </select>
-  );
-
-  const Pagination = () => (
-    <div className="flex justify-center gap-2 mt-8">
-      {Array.from({ length: totalPages }, (_, i) => (
-        <button
-          key={i}
-          onClick={() => setCurrentPage(i + 1)}
-          className={`px-4 py-2 rounded-lg ${
-            currentPage === i + 1
-              ? 'bg-indigo-500 text-white'
-              : 'bg-indigo-500/10 text-indigo-300'
-          }`}
-        >
-          {i + 1}
-        </button>
-      ))}
-    </div>
-  );
-
-  // Updated ViewButton component inside PublicData
-  const ViewButton = ({ children, active, onClick, icon }) => (
-    <button
-      onClick={() => {
-        setIsTransitioning(true);
-        setItems([]); 
-        setLoading(true);
-        onClick();
-      }}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300
-                ${active 
-                  ? 'bg-indigo-500/20 text-indigo-300' 
-                  : 'text-indigo-400/60 hover:text-indigo-300 hover:bg-indigo-500/10'}`}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-
-  // Add mobile search component
-  const MobileSearch = () => (
-    <div className="lg:hidden mb-6">
-      <div className="relative">
-        <input
-          type="text"
-          value={searchInputValue}
-          onChange={handleSearchInput}
-          placeholder="Search (multiple words allowed)..."
-          className="w-full px-4 py-3 pl-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 
-                    text-sm placeholder:text-indigo-400/60 focus:outline-none focus:border-indigo-500/40"
-        />
-        <FiSearch className="absolute left-3 top-3.5 text-indigo-400/50" size={16} />
-      </div>
-    </div>
-  );
-
+  // Handle view snippet
   const handleViewSnippet = (snippetId) => {
     setSelectedSnippetId(snippetId);
     setShowViewModal(true);
-    // Log snippet details
-    const snippet = items.find(item => item.id === snippetId);
-    console.log('Viewing snippet:', snippet);
   };
 
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Effects
+  useEffect(() => {
+    fetchPublicContent();
+  }, [fetchPublicContent]);
+
+  useEffect(() => {
+    fetchStats();
+    fetchLanguages();
+  }, [fetchStats, fetchLanguages]);
+
   return (
-    <div className="min-h-screen bg-[#030712] text-white pt-16">
-      <div className="relative">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-            <motion.div 
-              className="hidden lg:block flex-shrink-0"
-              animate={{ width: isLeftSidebarCollapsed ? '60px' : '280px' }}
-            >
-              <div className="sticky top-20">
-                <PublicSidebar 
-                  isCollapsed={isLeftSidebarCollapsed}
-                  onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
-                  categories={categories}
-                  activeCategory={activeCategory}
-                  onCategoryChange={setActiveCategory}
-                />
-              </div>
-            </motion.div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="flex">
+        {/* Left Sidebar */}
+        <PublicSidebar
+          isCollapsed={isLeftSidebarCollapsed}
+          onToggleCollapse={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+          categories={categories}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+        />
 
-            <main className="flex-1 min-w-0">
-              <MobileSearch /> {/* Add mobile search */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-4">
-                    <TabButton 
-                      active={activeTab === 'public'} 
-                      onClick={() => setActiveTab('public')}
-                    >
-                      Public
-                    </TabButton>
-                    <TabButton 
-                      active={activeTab === 'personal'} 
-                      onClick={() => setActiveTab('personal')}
-                      disabled={!isAuthenticated}
-                    >
-                      Personal
-                    </TabButton>
-                  </div>
-                  <div className="flex gap-2">
-                    <ViewButton 
-                      active={activeView === 'snippets'} 
-                      onClick={() => {
-                        setItems([]); // Clear items before view change
-                        setLoading(true); // Show loading state
-                        setActiveView('snippets');
-                      }}
-                      icon={<FiCode />}
-                    >
-                      Snippets
-                    </ViewButton>
-                    <ViewButton 
-                      active={activeView === 'directories'} 
-                      onClick={() => {
-                        setItems([]); // Clear items before view change
-                        setLoading(true); // Show loading state
-                        setActiveView('directories');
-                      }}
-                      icon={<FiFolder />}
-                    >
-                      Directories
-                    </ViewButton>
-                    <ViewButton 
-                      active={activeView === 'groups'} 
-                      onClick={() => {
-                        setItems([]); // Clear items before view change
-                        setLoading(true); // Show loading state
-                        setActiveView('groups');
-                      }}
-                      icon={<FiUsers />}
-                    >
-                      Groups
-                    </ViewButton>
-                  </div>
-                </div>
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          {/* Header */}
+          <header className="mb-8">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+                Discover Code Snippets
+              </h1>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                  className="p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 transition-colors"
+                >
+                  {viewMode === 'grid' ? <FiList /> : <FiGrid />}
+                </button>
+                <button
+                  onClick={() => setShowFilters(prev => !prev)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 transition-colors"
+                >
+                  <FiFilter />
+                  <span>Filters</span>
+                </button>
               </div>
+            </div>
 
-              <div className="flex justify-between mb-6">
-                <SortControls />
-                {/* ... existing tab controls ... */}
+            {/* Search and Filter Bar */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-[1fr,auto] gap-4">
+              <SearchBar
+                value={searchInputValue}
+                onChange={handleSearchInput}
+                placeholder="Search snippets by title, description, tags, or language..."
+              />
+              <SortControls
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                options={[
+                  { value: 'newest', label: 'Newest' },
+                  { value: 'popular', label: 'Most Popular' },
+                  { value: 'trending', label: 'Trending' }
+                ]}
+              />
+            </div>
+          </header>
+
+          {/* Content Grid/List */}
+          <AnimatePresence mode="wait">
+            {loading ? (
+              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                {[...Array(6)].map((_, i) => (
+                  <ItemCardSkeleton key={i} />
+                ))}
               </div>
-
+            ) : error ? (
+              <div className="p-6 rounded-xl bg-red-500/10 border border-red-500/50 text-red-300">
+                {error}
+              </div>
+            ) : (
               <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
               >
-                <AnimatePresence mode="wait">
-                  {loading ? (
-                    <motion.div
-                      key="loading"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    >
-                      {Array(6).fill(0).map((_, i) => (
-                        <ItemCardSkeleton key={i} />
-                      ))}
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="content"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    >
-                      {filteredItems.map(item => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <ItemCard 
-                            item={item} 
-                            searchQuery={searchQuery}
-                            handleViewSnippet={handleViewSnippet}
-                            setShowExportModal={setShowExportModal}
-                            setSelectedSnippetId={setSelectedSnippetId}
-                          />
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {filteredItems.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    searchQuery={searchQuery}
+                    handleViewSnippet={handleViewSnippet}
+                    setShowExportModal={setShowExportModal}
+                    setSelectedSnippetId={setSelectedSnippetId}
+                    viewMode={viewMode}
+                  />
+                ))}
               </motion.div>
+            )}
+          </AnimatePresence>
 
-              <Pagination />
-            </main>
+          {/* Pagination */}
+          {!loading && !error && totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </main>
 
-            <motion.div 
-              className="hidden xl:block flex-shrink-0"
-              animate={{ width: isRightSidebarCollapsed ? '60px' : '300px' }}
-            >
-              <div className="sticky top-20">
-                <PublicRightSidebar 
-                  isCollapsed={isRightSidebarCollapsed}
-                  onToggleCollapse={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-                  handleSearchInput={handleSearchInput} // Add this prop
-                  searchInputValue={searchInputValue} // Add this prop
-                />
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        {/* Right Sidebar */}
+        <PublicRightSidebar
+          isCollapsed={isRightSidebarCollapsed}
+          onToggleCollapse={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+          handleSearchInput={handleSearchInput}
+          searchInputValue={searchInputValue}
+          stats={stats}
+        />
       </div>
 
-      {/* View Snippet Modal */}
+      {/* Modals */}
       <ViewSnippetModal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
         snippetId={selectedSnippetId}
-        onEdit={(snippetId) => {
-          // Handle edit if needed
-          console.log('Edit snippet:', snippetId);
-        }}
       />
-
-      {/* Add Export Snippet Modal */}
       <ExportSnippetModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
-        itemId={selectedSnippetId}
-        itemType="snippet"
+        snippetId={selectedSnippetId}
       />
     </div>
   );
-};
-
-// Left Sidebar Component
-const PublicSidebar = ({ 
-  onClose, 
-  isCollapsed, 
-  onToggleCollapse, 
-  categories, 
-  activeCategory,
-  onCategoryChange 
-}) => {
-  return (
-    <motion.div className="bg-[#0B1120]/50 backdrop-blur-xl rounded-2xl border border-indigo-500/20 
-                          shadow-lg shadow-indigo-500/10 h-full relative">
-      <button
-        onClick={onToggleCollapse}
-        className="absolute -right-3 top-4 p-1.5 rounded-full bg-indigo-500 text-white
-                  hover:bg-indigo-600 transition-colors z-10"
-      >
-        <FiChevronLeft className={`transform transition-transform duration-300 
-                                ${isCollapsed ? 'rotate-180' : ''}`} />
-      </button>
-
-      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-indigo-300">Categories</h2>
-          {onClose && (
-            <button onClick={onClose} className="md:hidden p-2 text-indigo-400 hover:text-indigo-300">
-              <FiChevronLeft size={20} />
-            </button>
-          )}
-        </div>
-
-        <nav className="space-y-2">
-          {categories.map((category, index) => (
-            <CategoryLink 
-              key={index}
-              {...category}
-              isActive={activeCategory === category.label.toLowerCase()}
-              onClick={() => onCategoryChange(category.label.toLowerCase())}
-            />
-          ))}
-        </nav>
-      </div>
-
-      {/* Collapsed View */}
-      <div className={`p-4 ${isCollapsed ? 'block' : 'hidden'}`}>
-        {categories.map((category, index) => (
-          <div key={index} className="mb-4 flex justify-center">
-            <motion.span
-              whileHover={{ scale: 1.1 }}
-              className="text-indigo-300 hover:text-indigo-200 cursor-pointer"
-              onClick={() => onCategoryChange(category.label.toLowerCase())}
-            >
-              {category.icon}
-            </motion.span>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  );
-};
-
-// Utility Components
-const CategoryLink = ({ icon, label, count, isActive, onClick }) => (
-  <motion.button
-    whileHover={{ x: 4 }}
-    onClick={onClick}
-    className={`w-full flex items-center justify-between px-4 py-2 rounded-xl 
-                transition-all duration-300 group
-                ${isActive 
-                  ? 'bg-indigo-500/20 text-indigo-300' 
-                  : 'text-indigo-400/60 hover:text-indigo-300 hover:bg-indigo-500/10'}`}
-  >
-    <div className="flex items-center gap-3">
-      <span className="group-hover:scale-110 transition-transform duration-300">
-        {icon}
-      </span>
-      <span>{label}</span>
-    </div>
-    <span className="px-2 py-1 text-xs rounded-full bg-indigo-500/10">
-      {count}
-    </span>
-  </motion.button>
-);
-
-const IconButton = ({ icon, onClick }) => (
-  <motion.button
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className="p-2 rounded-lg text-indigo-400/60 hover:text-indigo-400 
-               hover:bg-indigo-500/10 transition-all duration-200"
-  >
-    {icon}
-  </motion.button>
-);
-
-// Add skeleton loading components
-const ItemCardSkeleton = () => (
-  <div className="animate-pulse bg-white/[0.01] rounded-xl border border-indigo-500/20 p-6">
-    <div className="h-6 bg-indigo-500/20 rounded w-3/4 mb-4"></div>
-    <div className="h-4 bg-indigo-500/20 rounded w-full mb-3"></div>
-    <div className="h-4 bg-indigo-500/20 rounded w-2/3 mb-4"></div>
-    <div className="flex justify-between items-center">
-      <div className="h-4 bg-indigo-500/20 rounded w-20"></div>
-      <div className="h-4 bg-indigo-500/20 rounded w-20"></div>
-    </div>
-  </div>
-);
-
-const SnippetCard = ({ item, handleViewSnippet, setShowExportModal, setSelectedSnippetId }) => (
-  <motion.div
-    whileHover={{ y: -4 }}
-    className="glass-card bg-gradient-to-br from-black to-gray-900 rounded-xl border border-[#3D2998]/20 
-               hover:border-[#3D2998]/40 transition-all duration-300 overflow-hidden shadow-lg"
-  >
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-bold gradient-text truncate">{item.title}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <img
-              src={`https://api.dicebear.com/7.x/initials/svg?seed=${item.author}`}
-              alt={item.author}
-              className="w-5 h-5 rounded-full border border-[#3D2998]/30"
-            />
-            <span className="text-xs text-gray-400">{item.author}</span>
-          </div>
-        </div>
-        <span className="px-3 py-1 text-xs rounded-full bg-[#3D2998]/10 text-[#3D2998] border border-[#3D2998]/20">
-          {item.language || 'text'}
-        </span>
-      </div>
-
-      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{item.description}</p>
-
-      <div className="bg-black/30 rounded-lg p-3 mb-4 border border-[#3D2998]/20">
-        <pre className="text-xs text-gray-300 overflow-x-auto">
-          <code>{item.codePreview || '// Code snippet preview'}</code>
-        </pre>
-      </div>
-
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => handleViewSnippet(item.id)}
-            className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer"
-          >
-            <FiEye className="text-lg" />
-            <span className="text-xs">View</span>
-          </button>
-          <button
-            onClick={() => {
-              setShowExportModal(true);
-              setSelectedSnippetId(item.id);
-            }}
-            className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer"
-          >
-            <FiDownload className="text-lg" />
-            <span className="text-xs">Export</span>
-          </button>
-          <span className="flex items-center gap-1 text-[#3D2998]/60 hover:text-[#3D2998] transition-colors cursor-pointer">
-            <FiCopy className="text-lg" />
-            <span className="text-xs">Copy</span>
-          </span>
-        </div>
-        <div className="flex gap-1">
-          {(item.tags || []).slice(0, 2).map((tag, index) => (
-            <span 
-              key={index}
-              className="px-2 py-1 text-xs rounded-full bg-[#3D2998]/10 text-[#3D2998]/80 border border-[#3D2998]/20"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  </motion.div>
-);
-
-const DirectoryCard = ({ item, searchQuery = '' }) => (
-  <motion.div
-    whileHover={{ y: -4 }}
-    className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 rounded-xl border border-purple-500/20 
-               hover:border-purple-500/40 transition-all duration-300 relative overflow-hidden"
-  >
-    <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-transparent" />
-    <div className="p-6 relative z-10">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-500/10 rounded-lg">
-              <FiFolder className="text-purple-400 text-xl" />
-            </div>
-            <h3 className="text-lg font-medium text-purple-300">
-              <Highlighter
-                highlightClassName="bg-purple-500/20 text-purple-200 px-1 rounded"
-                searchWords={getSearchWords(searchQuery)}
-                textToHighlight={item.title}
-                autoEscape={true}
-              />
-            </h3>
-          </div>
-          <p className="text-sm text-purple-400/60 line-clamp-2">
-            <Highlighter
-              highlightClassName="bg-purple-500/20 text-purple-200 px-1 rounded"
-              searchWords={getSearchWords(searchQuery)}
-              textToHighlight={item.description}
-            />
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-purple-500/10 rounded-lg p-4 text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-purple-300">{item.itemCount}</div>
-          <div className="text-xs text-purple-400/60 mt-1">Total Items</div>
-        </div>
-        <div className="bg-purple-500/10 rounded-lg p-4 text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-purple-300">{item.members}</div>
-          <div className="text-xs text-purple-400/60 mt-1">Members</div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <img
-            src={`https://api.dicebear.com/7.x/initials/svg?seed=${item.author}`}
-            alt={item.author}
-            className="w-6 h-6 rounded-full bg-purple-500/10"
-          />
-          <span className="text-sm text-purple-300">{item.author}</span>
-        </div>
-        <div className="flex gap-2">
-          <IconButton 
-            icon={<FiShare2 />} 
-            className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400"
-          />
-          <IconButton 
-            icon={<FiStar />} 
-            className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400"
-          />
-        </div>
-      </div>
-    </div>
-  </motion.div>
-);
-
-const GroupCard = ({ item, searchQuery = '' }) => (
-  <motion.div
-    whileHover={{ y: -4 }}
-    className="bg-gradient-to-br from-emerald-900/20 to-emerald-800/10 rounded-xl border border-emerald-500/20 
-               hover:border-emerald-500/40 transition-all duration-300 relative overflow-hidden"
-  >
-    <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent" />
-    <div className="p-6 relative z-10">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-emerald-500/10 rounded-lg">
-            <FiUsers className="text-emerald-400 text-xl" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-emerald-300">
-              <Highlighter
-                highlightClassName="bg-emerald-500/20 text-emerald-200 px-1 rounded"
-                searchWords={getSearchWords(searchQuery)}
-                textToHighlight={item.title}
-                autoEscape={true}
-              />
-            </h3>
-            <span className="text-xs text-emerald-400/60">
-              Created by {item.author}
-            </span>
-          </div>
-        </div>
-        <span className="px-3 py-1 text-xs rounded-full bg-emerald-500/10 text-emerald-300">
-          {item.visibility || 'Public'}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-emerald-500/10 rounded-lg p-4 text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-emerald-300">{item.memberCount}</div>
-          <div className="text-xs text-emerald-400/60 mt-1">Members</div>
-        </div>
-        <div className="bg-emerald-500/10 rounded-lg p-4 text-center backdrop-blur-sm">
-          <div className="text-2xl font-bold text-emerald-300">{item.snippetCount}</div>
-          <div className="text-xs text-emerald-400/60 mt-1">Snippets</div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex -space-x-2">
-          {/* Add dummy avatar stack for visual representation */}
-          {[...Array(3)].map((_, i) => (
-            <img
-              key={i}
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`}
-              alt="Member avatar"
-              className="w-8 h-8 rounded-full border-2 border-emerald-900"
-            />
-          ))}
-          {item.memberCount > 3 && (
-            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border-2 border-emerald-900
-                          flex items-center justify-center text-xs text-emerald-300">
-              +{item.memberCount - 3}
-            </div>
-          )}
-        </div>
-        <button className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 
-                         hover:bg-emerald-500/30 transition-colors flex items-center gap-2">
-          <FiUsers className="text-sm" />
-          Join Group
-        </button>
-      </div>
-    </div>
-  </motion.div>
-);
-
-const ItemCard = ({ item, searchQuery, handleViewSnippet, setShowExportModal, setSelectedSnippetId }) => {
-  switch (item.type) {
-    case 'snippet':
-      return <SnippetCard 
-        item={item} 
-        searchQuery={searchQuery}
-        handleViewSnippet={handleViewSnippet}
-        setShowExportModal={setShowExportModal}
-        setSelectedSnippetId={setSelectedSnippetId}
-      />;
-    case 'directory':
-      return <DirectoryCard item={item} searchQuery={searchQuery} />;
-    case 'group':
-      return <GroupCard item={item} searchQuery={searchQuery} />;
-    default:
-      return null;
-  }
-};
-
-const TabButton = ({ children, active, onClick, disabled }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className={`px-4 py-2 rounded-xl transition-all duration-300
-                ${active 
-                  ? 'bg-indigo-500/20 text-indigo-300' 
-                  : 'text-indigo-400/60 hover:text-indigo-300 hover:bg-indigo-500/10'}
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-  >
-    {children}
-  </button>
-);
-
-const getSearchWords = (searchQuery) => {
-  return searchQuery
-    ? searchQuery.toLowerCase().split(/\s+/).filter(word => word.length > 0)
-    : [];
 };
 
 export default PublicData;
