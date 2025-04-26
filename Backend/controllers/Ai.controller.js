@@ -194,3 +194,117 @@ export const convertCode = async (req, res) => {
         res.status(500).json({ error: error.message || 'Failed to convert code' });
     }
 };
+
+// Generate documentation for a code snippet
+export const generateDocumentation = async (req, res) => {
+    try {
+        const { code, language, style, level } = req.body;
+
+        // Validate input
+        if (!code) {
+            return res.status(400).json({ error: 'Code snippet is required' });
+        }
+
+        // Configure the model
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Determine documentation style
+        const docStyle = style || 'standard'; // Options: standard, jsdoc, javadoc, docstring, etc.
+        const detailLevel = level || 'medium'; // Options: basic, medium, comprehensive
+
+        // Prepare the prompt
+        const prompt = `
+            You are a documentation expert. Generate professional documentation for the following code snippet written in ${language || 'the appropriate programming language'}.
+            
+            Use the ${docStyle} documentation style with ${detailLevel} detail level.
+            
+            For ${detailLevel} detail level:
+            ${detailLevel === 'basic' ? 'Focus only on the core functionality and main components.' : ''}
+            ${detailLevel === 'medium' ? 'Include function descriptions, parameters, return values, and key concepts.' : ''}
+            ${detailLevel === 'comprehensive' ? 'Provide extensive documentation with examples, edge cases, performance considerations, and detailed explanations of all components.' : ''}
+            
+            Format your response as a JSON object with the following structure:
+            {
+                "documentation": {
+                    "overview": "Brief overview of the code",
+                    "sections": [
+                        {
+                            "title": "Section title (e.g., function name, class name, etc.)",
+                            "content": "Documentation content for this section",
+                            "params": [{"name": "paramName", "description": "param description", "type": "param type"}],
+                            "returns": {"description": "return description", "type": "return type"}
+                        }
+                    ],
+                    "examples": [
+                        {
+                            "title": "Example title",
+                            "code": "Example code",
+                            "explanation": "Example explanation"
+                        }
+                    ]
+                },
+                "formattedDocumentation": "The full documentation formatted according to the specified style"
+            }
+            
+            IMPORTANT: Return valid JSON only. No markdown code blocks. No extra text. No prefix or suffix. Just the raw JSON object.
+
+            Here is the code:
+            \`\`\`${language || ''}
+            ${code}
+            \`\`\`
+        `;
+
+        // Generate content
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+        
+        // Clean up response text to ensure it's valid JSON
+        let cleanedText = text;
+        
+        // Remove any markdown code blocks (```json, ```, etc)
+        cleanedText = cleanedText.replace(/```json\s*|```\s*|```javascript\s*/g, '');
+        
+        // Remove any trailing backticks that might be at the end
+        cleanedText = cleanedText.replace(/\s*```\s*$/g, '');
+        
+        // Trim whitespace from beginning and end
+        cleanedText = cleanedText.trim();
+        
+        // Parse the JSON
+        let data;
+        try {
+            data = JSON.parse(cleanedText);
+        } catch (e) {
+            console.error("Failed to parse response as JSON:", e);
+            console.error("Response text:", cleanedText.substring(0, 200) + "..."); // Log part of the response for debugging
+            
+            // Create a fallback response if parsing fails
+            data = {
+                documentation: {
+                    overview: "Documentation generation encountered an error",
+                    sections: [{
+                        title: "Error Processing Documentation",
+                        content: "The AI couldn't generate properly formatted documentation. Please try again with a different code snippet or format."
+                    }],
+                    examples: []
+                },
+                formattedDocumentation: "Error generating documentation."
+            };
+            
+            return res.status(200).json({ 
+                success: true, 
+                documentation: data,
+                generationError: true
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            documentation: data
+        });
+    } catch (error) {
+        console.error("Error generating documentation:", error);
+        res.status(500).json({ error: error.message || 'Failed to generate documentation' });
+    }
+};

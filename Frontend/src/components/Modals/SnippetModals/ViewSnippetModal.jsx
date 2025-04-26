@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../../../Config/Axios';
 import { FiCode, FiAlignLeft, FiTag, FiEye, FiX, FiEdit, 
          FiDownload, FiExternalLink, FiPlay, FiInfo, 
-         FiCopy, FiGlobe, FiLock, FiShare2, FiRefreshCw } from 'react-icons/fi';
+         FiCopy, FiGlobe, FiLock, FiShare2, FiRefreshCw, FiFileText } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import EditSnippetDetailsModal from './EditSnippetDetailsModal';
 import ExportSnippetModal from './ExportSnippetModal';
 import ConvertCodeModal from './ConvertCodeModal';
+import DocumentationModal from './DocumentationModal';
 
 const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showDocumentationModal, setShowDocumentationModal] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
   const [explanationData, setExplanationData] = useState(null);
   const [isExplaining, setIsExplaining] = useState(false);
@@ -415,6 +417,13 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                   {isExplaining ? 'Explaining...' : 'Explain'}
                 </button>
                 <button
+                  onClick={() => setShowDocumentationModal(true)}
+                  className="px-3 py-2 rounded-lg text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200 flex items-center gap-2"
+                >
+                  <FiFileText size={16} />
+                  Document
+                </button>
+                <button
                   onClick={() => setShowConvertModal(true)}
                   className="px-3 py-2 rounded-lg text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200 flex items-center gap-2"
                 >
@@ -480,6 +489,12 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
           // For example, you could refresh the snippet list
           // This callback gets triggered when a new snippet is created from a conversion
         }}
+      />
+
+      <DocumentationModal
+        isOpen={showDocumentationModal}
+        onClose={() => setShowDocumentationModal(false)}
+        snippet={snippet}
       />
     </>
   );
