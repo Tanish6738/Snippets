@@ -68,7 +68,17 @@ const ProjectSchema = new mongoose.Schema({
         description: { type: String },
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         timestamp: { type: Date, default: Date.now }
-    }]
+    }],
+    visibility: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'private'
+    },
+    projectType: {
+        type: String,
+        enum: ['Standard', 'Development', 'Research', 'Marketing', 'Event', 'Other'],
+        default: 'Standard'
+    }
 }, { timestamps: true });
 
 // Method to check if a user has specific permission for this project

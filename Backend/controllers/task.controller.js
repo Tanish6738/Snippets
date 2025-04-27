@@ -77,7 +77,17 @@ export const createTask = async (req, res) => {
         // Validate assigned users if provided
         let assignedUsers = [];
         
-        if (assignedTo && assignedTo.length > 0) {
+        // If no specific assignees provided, assign to project admin by default
+        if (!assignedTo || assignedTo.length === 0) {
+            // Find the admin from project.members or use the project creator
+            const adminMember = project.members.find(m => m.role === 'Admin');
+            if (adminMember) {
+                assignedUsers = [adminMember.user];
+            } else {
+                // Fallback to project creator
+                assignedUsers = [project.createdBy];
+            }
+        } else {
             // Ensure all users are members of the project
             const validUserIds = project.members.map(m => m.user.toString());
             validUserIds.push(project.createdBy.toString());
@@ -86,6 +96,12 @@ export const createTask = async (req, res) => {
                 mongoose.Types.ObjectId.isValid(id) && 
                 validUserIds.includes(id)
             );
+            
+            // If none of the provided users are valid project members,
+            // fall back to assigning to the project creator/admin
+            if (assignedUsers.length === 0) {
+                assignedUsers = [project.createdBy];
+            }
         }
         
         // Create the task
@@ -113,8 +129,23 @@ export const createTask = async (req, res) => {
             await project.save();
         }
         
-        // Add activity to project
-        await project.addActivity('task_created', `Task "${title}" was created`, userId);
+        // Get the assignee details for the activity log
+        let assigneeNames = "project admin";
+        if (assignedUsers.length > 0) {
+            const users = await User.find({ _id: { $in: assignedUsers } }).select('username');
+            if (users.length > 0) {
+                assigneeNames = users.length === 1 
+                    ? users[0].username 
+                    : `${users.length} users`;
+            }
+        }
+        
+        // Add activity to project with assignment details
+        await project.addActivity(
+            'task_created', 
+            `Task "${title}" was created and assigned to ${assigneeNames}`, 
+            userId
+        );
         
         res.status(201).json({
             success: true,
@@ -740,6 +771,795 @@ export const generateTasksWithAI = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to generate tasks',
+            error: error.message
+        });
+    }
+};
+
+// Save AI-generated tasks to the project
+export const saveGeneratedTasks = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks } = req.body;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid project ID' 
+            });
+        }
+        
+        if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No tasks provided to save' 
+            });
+        }
+        
+        const project = await Project.findById(projectId);
+        
+        if (!project) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Project not found' 
+            });
+        }
+        
+        // Check if user has permission to add tasks
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to add tasks to this project' 
+            });
+        }
+        
+        // Find the project admin for default task assignment
+        let adminId = project.createdBy;
+        const adminMember = project.members.find(m => m.role === 'Admin');
+        if (adminMember) {
+            adminId = adminMember.user;
+        }
+        
+        // Helper function to recursively create tasks and subtasks
+        async function createTaskWithSubtasks(taskData, parentId = null, level = 0) {
+            // Create the task
+            const task = new Task({
+                title: taskData.title,
+                description: taskData.description || '',
+                project: projectId,
+                parentTask: parentId,
+                priority: taskData.priority || 'Medium',
+                dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+                assignedTo: [adminId], // Default assignment to admin
+                createdBy: userId,
+                tags: taskData.tags || [],
+                level: level,
+                aiGenerated: true
+            });
+            
+            await task.save();
+            
+            // If this is a top-level task, add it to the project
+            if (!parentId) {
+                project.tasks.push(task._id);
+            } else {
+                // Otherwise add it as a subtask to its parent
+                const parentTask = await Task.findById(parentId);
+                if (parentTask) {
+                    await parentTask.addSubtask(task._id);
+                }
+            }
+            
+            // Process subtasks if any
+            if (taskData.subtasks && Array.isArray(taskData.subtasks) && taskData.subtasks.length > 0) {
+                for (const subtaskData of taskData.subtasks) {
+                    await createTaskWithSubtasks(subtaskData, task._id, level + 1);
+                }
+            }
+            
+            return task;
+        }
+        
+        // Create all tasks
+        const savedTasks = [];
+        for (const taskData of tasks) {
+            const savedTask = await createTaskWithSubtasks(taskData);
+            savedTasks.push(savedTask);
+        }
+        
+        // Save the project to update the tasks array
+        await project.save();
+        
+        // Add activity for task creation
+        await project.addActivity(
+            'ai_tasks_added',
+            `${savedTasks.length} AI-generated tasks were added to the project`,
+            userId
+        );
+        
+        res.status(201).json({
+            success: true,
+            message: `${savedTasks.length} AI-generated tasks were saved successfully`,
+            tasks: savedTasks
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save AI-generated tasks',
+            error: error.message
+        });
+    }
+};
+
+// Task dependencies management
+export const addTaskDependency = async (req, res) => {
+    try {
+        const { taskId, dependencyId } = req.params;
+        const { type, delay } = req.body;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId) || !mongoose.Types.ObjectId.isValid(dependencyId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task or dependency ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        const dependencyTask = await Task.findById(dependencyId);
+        if (!dependencyTask) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Dependency task not found' 
+            });
+        }
+        
+        // Check if both tasks are in the same project
+        if (!task.project.equals(dependencyTask.project)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Tasks must be in the same project' 
+            });
+        }
+        
+        // Check permissions
+        const project = await Project.findById(task.project);
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to manage task dependencies' 
+            });
+        }
+        
+        // Check for circular dependencies
+        if (await hasCircularDependency(dependencyId, taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Adding this dependency would create a circular reference' 
+            });
+        }
+        
+        // Add dependency
+        await task.addDependency(
+            dependencyId, 
+            type || 'finish-to-start', 
+            delay || 0
+        );
+        
+        // Log activity
+        await project.addActivity(
+            'dependency_added',
+            `Dependency added between tasks "${dependencyTask.title}" and "${task.title}"`,
+            userId
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'Task dependency added successfully',
+            task: await Task.findById(taskId)
+                .populate('dependencies.task', 'title status')
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to add task dependency',
+            error: error.message
+        });
+    }
+};
+
+export const removeTaskDependency = async (req, res) => {
+    try {
+        const { taskId, dependencyId } = req.params;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId) || !mongoose.Types.ObjectId.isValid(dependencyId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task or dependency ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        // Check permissions
+        const project = await Project.findById(task.project);
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to manage task dependencies' 
+            });
+        }
+        
+        // Remove dependency
+        await task.removeDependency(dependencyId);
+        
+        // Log activity
+        await project.addActivity(
+            'dependency_removed',
+            `Dependency removed from task "${task.title}"`,
+            userId
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'Task dependency removed successfully',
+            task: await Task.findById(taskId)
+                .populate('dependencies.task', 'title status')
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove task dependency',
+            error: error.message
+        });
+    }
+};
+
+// Helper function to check for circular dependencies
+async function hasCircularDependency(startTaskId, targetTaskId, visited = new Set()) {
+    if (startTaskId === targetTaskId) return true;
+    if (visited.has(startTaskId)) return false;
+    
+    visited.add(startTaskId);
+    
+    const task = await Task.findById(startTaskId);
+    if (!task) return false;
+    
+    const dependentTasks = await Task.find({
+        'dependencies.task': startTaskId
+    });
+    
+    for (const dependentTask of dependentTasks) {
+        if (await hasCircularDependency(dependentTask._id, targetTaskId, visited)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Time tracking
+export const startTimeTracking = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        // Check if user has access to this task
+        const project = await Project.findById(task.project);
+        const isMember = project.members.some(m => m.user.equals(userId)) || 
+                       project.createdBy.equals(userId);
+                       
+        if (!isMember) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have access to this task' 
+            });
+        }
+        
+        // Check if task has blocked dependencies
+        if (task.status === 'Blocked' && task.blockedReason === 'Waiting for dependencies') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot start time tracking on a blocked task. Complete dependencies first.' 
+            });
+        }
+        
+        // Check if user is already tracking time on another task
+        const activeTracking = await Task.findOne({
+            'timeEntries': { 
+                $elemMatch: { 
+                    user: userId, 
+                    endTime: null 
+                } 
+            }
+        });
+        
+        if (activeTracking && !activeTracking._id.equals(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `You are already tracking time on task "${activeTracking.title}". Stop that timer first.` 
+            });
+        }
+        
+        // Start time tracking
+        const timeEntry = await task.startTimeTracking(userId);
+        
+        // Log activity
+        await project.addActivity(
+            'time_tracking_started',
+            `Time tracking started on task "${task.title}"`,
+            userId
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'Time tracking started successfully',
+            timeEntry
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to start time tracking',
+            error: error.message
+        });
+    }
+};
+
+export const stopTimeTracking = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { notes } = req.body;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        // Stop time tracking
+        const timeEntry = await task.stopTimeTracking(userId, notes);
+        
+        // Get project for activity logging
+        const project = await Project.findById(task.project);
+        
+        // Log activity with duration information
+        const durationMinutes = timeEntry.duration;
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = durationMinutes % 60;
+        
+        await project.addActivity(
+            'time_tracking_stopped',
+            `Time tracking stopped on task "${task.title}" (${hours}h ${minutes}m)`,
+            userId
+        );
+        
+        // Calculate task health based on time spent vs estimated
+        await task.calculateHealth();
+        
+        res.status(200).json({
+            success: true,
+            message: 'Time tracking stopped successfully',
+            timeEntry
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to stop time tracking',
+            error: error.message
+        });
+    }
+};
+
+export const getTimeEntries = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId)
+            .populate('timeEntries.user', 'username email avatar');
+            
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        // Check if user has access to this task
+        const project = await Project.findById(task.project);
+        const isMember = project.members.some(m => m.user.equals(userId)) || 
+                       project.createdBy.equals(userId);
+                       
+        if (!isMember) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have access to this task' 
+            });
+        }
+        
+        res.status(200).json({
+            success: true,
+            timeEntries: task.timeEntries,
+            totalTime: task.timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0)
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch time entries',
+            error: error.message
+        });
+    }
+};
+
+// Recurring tasks
+export const createRecurringTask = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const userId = req.user._id;
+        
+        const { 
+            title, 
+            description, 
+            priority,
+            estimatedHours,
+            recurrence,
+            tags
+        } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid project ID' 
+            });
+        }
+        
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Project not found' 
+            });
+        }
+        
+        // Check if user has permission
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to create tasks in this project' 
+            });
+        }
+        
+        // Validate recurrence
+        if (!recurrence || !recurrence.frequency) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Recurrence frequency is required' 
+            });
+        }
+        
+        // Create the task template
+        const task = new Task({
+            title,
+            description,
+            project: projectId,
+            priority: priority || 'Medium',
+            estimatedHours,
+            createdBy: userId,
+            tags: tags || [],
+            recurrence: {
+                isRecurring: true,
+                frequency: recurrence.frequency,
+                interval: recurrence.interval || 1,
+                daysOfWeek: recurrence.daysOfWeek,
+                endDate: recurrence.endDate || null,
+                occurrences: recurrence.occurrences || null
+            }
+        });
+        
+        await task.save();
+        project.tasks.push(task._id);
+        await project.save();
+        
+        // Log activity
+        await project.addActivity(
+            'recurring_task_created',
+            `Recurring task "${title}" was created`,
+            userId
+        );
+        
+        // Create the first instance if requested
+        if (req.body.createFirstInstance) {
+            // Clone the template task but mark it as non-recurring instance
+            const instance = await Task.cloneTask(task._id, userId, {
+                title: task.title,
+                includeAttachments: false,
+                includeSubtasks: false
+            });
+            
+            instance.recurrence = {
+                isRecurring: false,
+                parentRecurringTaskId: task._id
+            };
+            
+            await instance.save();
+            
+            // Return both template and first instance
+            res.status(201).json({
+                success: true,
+                message: 'Recurring task created successfully with first instance',
+                template: task,
+                instance
+            });
+        } else {
+            res.status(201).json({
+                success: true,
+                message: 'Recurring task template created successfully',
+                task
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create recurring task',
+            error: error.message
+        });
+    }
+};
+
+export const generateRecurringInstances = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { days = 30 } = req.query; // Default to 30 days ahead
+        
+        // Generate instances for up to X days in the future
+        const upToDate = new Date(Date.now() + parseInt(days) * 24 * 60 * 60 * 1000);
+        
+        // Administrative check - only admins can do bulk generation
+        const user = await User.findById(userId);
+        if (!user || !user.isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only administrators can generate recurring tasks in bulk'
+            });
+        }
+        
+        // Generate instances
+        await Task.createRecurringInstances(upToDate);
+        
+        res.status(200).json({
+            success: true,
+            message: `Recurring task instances generated for the next ${days} days`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate recurring task instances',
+            error: error.message
+        });
+    }
+};
+
+// Task cloning
+export const cloneTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const userId = req.user._id;
+        const { options } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task ID' 
+            });
+        }
+        
+        const sourceTask = await Task.findById(taskId);
+        if (!sourceTask) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Source task not found' 
+            });
+        }
+        
+        // Check if user has permission (at least contributor)
+        const project = await Project.findById(sourceTask.project);
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to clone tasks in this project' 
+            });
+        }
+        
+        // Clone the task
+        const clonedTask = await Task.cloneTask(taskId, userId, {
+            title: options?.title,
+            adjustDates: options?.adjustDates || false,
+            dateOffset: options?.dateOffset || 0,
+            includeSubtasks: options?.includeSubtasks || false,
+            includeAttachments: options?.includeAttachments || false,
+            includeAssignees: options?.includeAssignees || false
+        });
+        
+        // Log activity
+        await project.addActivity(
+            'task_cloned',
+            `Task "${sourceTask.title}" was cloned to "${clonedTask.title}"`,
+            userId
+        );
+        
+        res.status(201).json({
+            success: true,
+            message: 'Task cloned successfully',
+            task: clonedTask
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to clone task',
+            error: error.message
+        });
+    }
+};
+
+// Task health calculation
+export const calculateTaskHealth = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid task ID' 
+            });
+        }
+        
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Task not found' 
+            });
+        }
+        
+        // Check if user has permission
+        const project = await Project.findById(task.project);
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to manage this task' 
+            });
+        }
+        
+        // Calculate health
+        await task.calculateHealth();
+        
+        res.status(200).json({
+            success: true,
+            message: 'Task health calculated successfully',
+            health: task.health
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to calculate task health',
+            error: error.message
+        });
+    }
+};
+
+// Calculate health for all tasks in a project
+export const calculateProjectTasksHealth = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const userId = req.user._id;
+        
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid project ID' 
+            });
+        }
+        
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Project not found' 
+            });
+        }
+        
+        // Check if user has permission
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You do not have permission to manage tasks in this project' 
+            });
+        }
+        
+        // Get all tasks for this project
+        const tasks = await Task.find({ project: projectId });
+        const results = {
+            total: tasks.length,
+            updated: 0,
+            byStatus: {
+                'on-track': 0,
+                'at-risk': 0,
+                'delayed': 0,
+                'ahead': 0
+            }
+        };
+        
+        // Calculate health for each task
+        for (const task of tasks) {
+            await task.calculateHealth();
+            results.updated++;
+            results.byStatus[task.health.status]++;
+        }
+        
+        // Log activity
+        await project.addActivity(
+            'health_calculated',
+            `Health calculated for all tasks in the project`,
+            userId
+        );
+        
+        res.status(200).json({
+            success: true,
+            message: 'Task health calculated for all tasks in the project',
+            results
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to calculate task health',
             error: error.message
         });
     }

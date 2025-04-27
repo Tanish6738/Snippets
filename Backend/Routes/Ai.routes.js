@@ -1,25 +1,32 @@
 import express from 'express';
-import { generateExplanation, generateCheatSheet, convertCode, generateDocumentation, generateBulkDocumentation, generateProjectTasks } from '../controllers/Ai.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
+import {
+    generateExplanation,
+    generateCheatSheet,
+    convertCode,
+    generateDocumentation,
+    generateBulkDocumentation,
+    generateProjectTasks,
+    generateTaskHealthInsights,
+    generateRecurringTaskRecommendations
+} from '../controllers/Ai.controller.js';
 
 const router = express.Router();
 
-// Generate explanation for code snippets
-router.post('/explain', authMiddleware, generateExplanation);
+// Code explanation routes
+router.post('/explanation', authMiddleware, generateExplanation);
+router.post('/cheatsheet', authMiddleware, generateCheatSheet);
+router.post('/convert', authMiddleware, convertCode);
 
-// Generate cheat sheet from snippets
-router.post('/generate-cheatsheet', authMiddleware, generateCheatSheet);
+// Documentation routes
+router.post('/documentation', authMiddleware, generateDocumentation);
+router.post('/documentation/bulk', authMiddleware, generateBulkDocumentation);
 
-// Convert code between programming languages
-router.post('/convert-code', authMiddleware, convertCode);
+// Project and task management routes
+router.post('/tasks/generate', authMiddleware, generateProjectTasks);
 
-// Generate documentation for code snippets
-router.post('/generate-documentation', authMiddleware, generateDocumentation);
-
-// Generate documentation for multiple snippets
-router.post('/generate-bulk-documentation', authMiddleware, generateBulkDocumentation);
-
-// Generate project task breakdown from description
-router.post('/generate-tasks', authMiddleware, generateProjectTasks);
+// New advanced AI task features
+router.post('/tasks/health/:projectId', authMiddleware, generateTaskHealthInsights);
+router.post('/tasks/recurring/:projectId', authMiddleware, generateRecurringTaskRecommendations);
 
 export default router;

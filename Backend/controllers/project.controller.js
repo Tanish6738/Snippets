@@ -6,8 +6,53 @@ import mongoose from "mongoose";
 // Create a new project
 export const createProject = async (req, res) => {
     try {
-        const { title, description, deadline, priority, tags } = req.body;
+        const { 
+            title, 
+            description, 
+            deadline, 
+            priority, 
+            tags, 
+            projectType, 
+            visibility, 
+            initialMembers 
+        } = req.body;
         const userId = req.user._id;
+        
+        // Initial members array always includes the creator as Admin
+        const members = [{ user: userId, role: 'Admin', joinedAt: new Date() }];
+        
+        // Process initial members if provided and is a non-empty array
+        if (initialMembers && Array.isArray(initialMembers) && initialMembers.length > 0) {
+            try {
+                // Find users by email and add them to the project
+                const emails = initialMembers.map(member => member.email).filter(email => email && typeof email === 'string');
+                
+                if (emails.length > 0) {
+                    const users = await User.find({ email: { $in: emails } });
+                    
+                    // Map emails to user IDs and roles
+                    for (const user of users) {
+                        // Skip if it's the creator (already added)
+                        if (user._id.equals(userId)) continue;
+                        
+                        // Find the role for this user from the request
+                        const memberData = initialMembers.find(m => m.email === user.email);
+                        const role = memberData?.role || 'Contributor';
+                        
+                        // Add to members array
+                        members.push({
+                            user: user._id,
+                            role,
+                            joinedAt: new Date()
+                        });
+                    }
+                }
+            } catch (memberError) {
+                // Just log the error but continue creating the project with just the creator
+                console.error('Error processing initial members:', memberError);
+                // We'll still create the project with just the creator
+            }
+        }
         
         const project = new Project({
             title,
@@ -16,11 +61,34 @@ export const createProject = async (req, res) => {
             priority,
             tags: tags || [],
             createdBy: userId,
-            members: [{ user: userId, role: 'Admin', joinedAt: new Date() }]
+            members,
+            projectType: projectType || 'Standard', // Standard, Development, Research, etc.
+            visibility: visibility || 'private', // public or private
         });
         
         await project.save();
         await project.addActivity('project_created', `Project "${title}" was created`, userId);
+        
+        // If there were initial members, add activity entries for them
+        const addedMembers = members.filter(member => !member.user.equals(userId));
+        if (addedMembers.length > 0) {
+            try {
+                // Get usernames for the activity log
+                const addedUserIds = addedMembers.map(m => m.user);
+                const addedUsers = await User.find({ _id: { $in: addedUserIds } }).select('username');
+                
+                for (const user of addedUsers) {
+                    await project.addActivity(
+                        'member_added', 
+                        `${user.username} was added to the project at creation`, 
+                        userId
+                    );
+                }
+            } catch (activityError) {
+                // Log but don't fail if we can't add the activities
+                console.error('Error adding member activities:', activityError);
+            }
+        }
         
         res.status(201).json({ 
             success: true, 
@@ -41,11 +109,12 @@ export const getUserProjects = async (req, res) => {
     try {
         const userId = req.user._id;
         
-        // Find projects where user is a member or creator
+        // Find projects where user is a member or creator, OR public projects
         const projects = await Project.find({
             $or: [
                 { createdBy: userId },
-                { 'members.user': userId }
+                { 'members.user': userId },
+                { visibility: 'public' }
             ]
         })
         .sort({ createdAt: -1 })
@@ -61,6 +130,28 @@ export const getUserProjects = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch projects',
+            error: error.message
+        });
+    }
+};
+
+// Get all public projects
+export const getPublicProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ visibility: 'public' })
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'username email avatar')
+            .populate('members.user', 'username email avatar');
+        
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch public projects',
             error: error.message
         });
     }
@@ -98,10 +189,11 @@ export const getProjectById = async (req, res) => {
         }
         
         // Check if user has access to this project
+        // Allow access if the project is public
         const isMember = project.members.some(m => m.user._id.equals(userId)) || 
                        project.createdBy._id.equals(userId);
                        
-        if (!isMember) {
+        if (!isMember && project.visibility !== 'public') {
             return res.status(403).json({ 
                 success: false, 
                 message: 'You do not have access to this project' 
@@ -144,7 +236,16 @@ export const updateProject = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user._id;
-        const { title, description, deadline, priority, tags, status } = req.body;
+        const { 
+            title, 
+            description, 
+            deadline, 
+            priority, 
+            tags, 
+            status,
+            visibility,
+            projectType
+        } = req.body;
         
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ 
@@ -177,6 +278,8 @@ export const updateProject = async (req, res) => {
         if (priority !== undefined) project.priority = priority;
         if (tags !== undefined) project.tags = tags;
         if (status !== undefined) project.status = status;
+        if (visibility !== undefined) project.visibility = visibility;
+        if (projectType !== undefined) project.projectType = projectType;
         
         await project.save();
         await project.addActivity('project_updated', `Project "${project.title}" was updated`, userId);
