@@ -16,6 +16,8 @@ import publicRouter from './Routes/public.routes.js';
 import runCodeRouter from './Routes/run-code.routes.js'; 
 import scrapeRouter from './Routes/scraper.routes.js';  
 import pdfRouter from './Routes/pdf.routes.js';   
+import projectRouter from './Routes/project.routes.js';
+import taskRouter from './Routes/task.routes.js';
 
 dotenv.config();
 
@@ -97,6 +99,8 @@ app.use('/api/public', publicRouter);  // Add public routes
 app.use('/api/run-code', runCodeRouter); // Add this line with the other route declarations
 app.use('/api/scraper', scrapeRouter);  // Add scraper routes
 app.use('/api/pdf', pdfRouter);         // Add PDF routes
+app.use('/api/projects', projectRouter);
+app.use('/api/tasks', taskRouter);
 
 // Base route
 app.get('/', (req, res) => {

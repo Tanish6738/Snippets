@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateExplanation, generateCheatSheet, convertCode, generateDocumentation, generateBulkDocumentation } from '../controllers/Ai.controller.js';
+import { generateExplanation, generateCheatSheet, convertCode, generateDocumentation, generateBulkDocumentation, generateProjectTasks } from '../controllers/Ai.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -18,5 +18,8 @@ router.post('/generate-documentation', authMiddleware, generateDocumentation);
 
 // Generate documentation for multiple snippets
 router.post('/generate-bulk-documentation', authMiddleware, generateBulkDocumentation);
+
+// Generate project task breakdown from description
+router.post('/generate-tasks', authMiddleware, generateProjectTasks);
 
 export default router;

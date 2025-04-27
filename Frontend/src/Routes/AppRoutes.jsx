@@ -18,6 +18,29 @@ import Pdf from '../components/Layouts/Pdf';
 import Snippets from '../components/Modals/SnippetModals/Snippets';
 import Directories from '../components/Modals/DirectoryModals/Directories';
 
+// Import Project Management components
+import { ProjectProvider } from '../Context/ProjectContext';
+import ProjectList from '../components/Projects/ProjectList';
+import ProjectForm from '../components/Projects/ProjectForm';
+import ProjectDetails from '../components/Projects/ProjectDetails';
+import ProjectDashboard from '../components/ProjectManagement/ProjectDashboard';
+import TaskList from '../components/Tasks/TaskList';
+
+// Project Management route wrapper component
+const ProjectManagementRoute = ({ children }) => {
+  const { isAuthenticated } = useUser();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return (
+    <ProjectProvider>
+      {children}
+    </ProjectProvider>
+  );
+};
+
 const AppRoutes = () => {
   const { isAuthenticated } = useUser();
 
@@ -52,6 +75,34 @@ const AppRoutes = () => {
             <Navigate to="/login" />
           } 
         />
+
+        {/* Project Management Routes */}
+        <Route path="/projects" element={
+          <ProjectManagementRoute>
+            <ProjectList />
+          </ProjectManagementRoute>
+        } />
+        <Route path="/projects/new" element={
+          <ProjectManagementRoute>
+            <ProjectForm />
+          </ProjectManagementRoute>
+        } />
+        <Route path="/projects/:projectId" element={
+          <ProjectManagementRoute>
+            <ProjectDetails />
+          </ProjectManagementRoute>
+        } />
+        <Route path="/projects/dashboard" element={
+          <ProjectManagementRoute>
+            <ProjectDashboard />
+          </ProjectManagementRoute>
+        } />
+        <Route path="/tasks" element={
+          <ProjectManagementRoute>
+            <TaskList />
+          </ProjectManagementRoute>
+        } />
+
         <Route 
           path="/run-code" 
           element={ <CodeRunner /> } 

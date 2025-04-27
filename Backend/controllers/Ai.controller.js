@@ -497,3 +497,117 @@ function generateCombinedDocumentation(results, style, originalSnippets) {
         format: 'markdown'
     };
 }
+
+// Generate tasks for a project based on a description
+export const generateProjectTasks = async (req, res) => {
+    try {
+        const { description, projectTitle } = req.body;
+        
+        if (!description) {
+            return res.status(400).json({
+                success: false,
+                message: 'Project description is required'
+            });
+        }
+        
+        const prompt = `
+        Generate a comprehensive task breakdown for a project management system.
+        
+        Project Title: ${projectTitle || 'New Project'}
+        Project Description: ${description}
+        
+        Return a JSON response with the following structure:
+        {
+          "tasks": [
+            {
+              "title": "Task title",
+              "description": "Detailed description of the task",
+              "priority": "High/Medium/Low",
+              "estimatedHours": number,
+              "subtasks": [
+                {
+                  "title": "Subtask title",
+                  "description": "Detailed description of the subtask",
+                  "priority": "High/Medium/Low",
+                  "estimatedHours": number,
+                  "subtasks": [
+                    // Can have additional nested subtasks
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        
+        Make sure to:
+        1. Create a logical task breakdown with 3-7 main tasks
+        2. Each main task should have 2-5 subtasks
+        3. Some subtasks can have their own subtasks (maximum 3 levels deep)
+        4. Tasks should cover the entire project lifecycle
+        5. Include appropriate priorities (High, Medium, Low)
+        6. Include realistic time estimates for each task in hours
+        `;
+
+        // Call the AI model
+        const rawResponse = await generateResult(prompt);
+        
+        // Parse and clean the response
+        let response;
+        try {
+            // Try to parse as JSON directly
+            response = JSON.parse(rawResponse);
+        } catch (e) {
+            // If that fails, try to extract JSON from the text
+            const jsonMatch = rawResponse.match(/(\{[\s\S]*\})/);
+            if (jsonMatch) {
+                try {
+                    response = JSON.parse(jsonMatch[0]);
+                } catch (e2) {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Failed to parse AI response',
+                        error: e2.message
+                    });
+                }
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Invalid response format from AI',
+                    error: e.message
+                });
+            }
+        }
+        
+        // If tasks are in fileTree format (due to existing AI system instruction), 
+        // transform to expected format
+        if (response.fileTree && !response.tasks) {
+            try {
+                // Try to convert from fileTree format to tasks format
+                response = {
+                    tasks: JSON.parse(response.fileTree.snippet.file.content)
+                };
+            } catch (e) {
+                // If conversion fails, return error
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to convert AI response to task format',
+                    error: e.message,
+                    rawResponse
+                });
+            }
+        }
+        
+        res.status(200).json({
+            success: true,
+            message: 'Tasks generated successfully',
+            tasks: response.tasks || []
+        });
+    } catch (error) {
+        console.error('Task generation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate tasks',
+            error: error.message
+        });
+    }
+};

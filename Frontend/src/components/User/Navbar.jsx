@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../../Context/UserContext';
 import AiSnippet from '../Modals/SnippetModals/AiSnippet';
 import { motion, AnimatePresence } from "framer-motion";
-import { FiMenu, FiX, FiHome, FiCode, FiUsers, FiFolder, FiPlus, FiZap, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
+import { FiMenu, FiX, FiHome, FiCode, FiUsers, FiFolder, FiPlus, FiZap, FiUser, FiLogOut, FiSettings, FiTrello, FiCalendar, FiCheckSquare } from 'react-icons/fi';
 
 const Navbar = () => {
   const { isAuthenticated, user, logout } = useUser();
@@ -42,6 +42,15 @@ const Navbar = () => {
         { to: '/blog', label: 'Blog' },
         { to: '/blog/create', label: 'Create Blog' },
         { to: '/create-pdf', label: 'Create Pdf' },
+      ]
+    },
+    projects: {
+      label: 'Project Management',
+      items: [
+        { to: '/projects', label: 'All Projects' },
+        { to: '/projects/new', label: 'Create Project' },
+        { to: '/projects/dashboard', label: 'Project Dashboard' },
+        { to: '/tasks', label: 'My Tasks' },
       ]
     }
   };

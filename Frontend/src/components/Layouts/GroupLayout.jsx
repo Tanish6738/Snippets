@@ -36,7 +36,7 @@ import EditDirectoryDetails from '../Modals/DirectoryModals/EditDirectoryDetails
 import ExportDirectoryModal from '../Modals/DirectoryModals/ExportDirectoryModal';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../../Config/Axios';
-import { initializeSocket, recieveMessage, sendMessage } from '../../Config/Socket';
+import { initializeSocket, receiveMessage, sendMessage } from '../../Config/Socket';
 import { useUser } from '../../Context/UserContext';
 import Chat from '../Modals/Chat';
 import GroupSideBar from '../Modals/GroupModals/GroupSideBar';
@@ -192,7 +192,7 @@ const GroupLayout = () => {
 
     initializeSocket(groupId);
 
-    recieveMessage('message', (data) => {
+    receiveMessage('message', (data) => {
         console.log('Chat message received:', {
             message: data.message,
             sender: data.sender,

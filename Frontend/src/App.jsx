@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { UserProvider } from './Context/UserContext'
+import { AuthProvider } from './Context/AuthContext'
 import AppRoutes from './Routes/AppRoutes'
 
 const App = () => {
@@ -14,7 +15,9 @@ const App = () => {
 
   return (
     <UserProvider>
-      <AppRoutes />
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </UserProvider>
   )
 }
