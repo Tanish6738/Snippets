@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiCode, FiLayout, FiGrid, FiList, FiSearch, FiTrash2, FiFilter, FiDownload, FiEye, FiStar, FiBook } from 'react-icons/fi';
+import { FiCode, FiLayout, FiGrid, FiList, FiSearch, FiTrash2, FiFilter, FiDownload, FiEye, FiStar, FiBook, FiFileText } from 'react-icons/fi';
 import { useUser } from '../../Context/UserContext';
 import axios from '../../Config/Axios';
 import ViewSnippetModal from '../Modals/SnippetModals/ViewSnippetModal';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
 import BulkCreateSnippetModal from '../Modals/SnippetModals/BulkCreateSnippetModal';
 import CheatSheetModal from '../Modals/SnippetModals/CheatSheetModal';
+import BulkDocumentationModal from '../Modals/SnippetModals/BulkDocumentationModal';
 
 const SnippetLayout = () => {
   const { isAuthenticated, user } = useUser();
@@ -19,6 +20,7 @@ const SnippetLayout = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
+  const [bulkDocumentationModalOpen, setBulkDocumentationModalOpen] = useState(false);
   const [cheatSheetModalOpen, setCheatSheetModalOpen] = useState(false);
   const [filterBy, setFilterBy] = useState('all'); // 'all', 'title', 'tags', 'language'
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -243,6 +245,15 @@ const SnippetLayout = () => {
               >
                 Bulk Create
               </button>
+              <button
+                onClick={() => setBulkDocumentationModalOpen(true)}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-slate-300 hover:text-slate-200 hover:bg-slate-800/60 border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200"
+              >
+                <span className="flex items-center gap-2">
+                  <FiFileText size={16} />
+                  <span className="hidden sm:inline">Generate Docs</span>
+                </span>
+              </button>
             </div>
           )}
         </div>
@@ -384,6 +395,14 @@ const SnippetLayout = () => {
           <CheatSheetModal
             isOpen={cheatSheetModalOpen}
             onClose={() => setCheatSheetModalOpen(false)}
+            snippets={snippets}
+          />
+        )}
+        
+        {bulkDocumentationModalOpen && (
+          <BulkDocumentationModal
+            isOpen={bulkDocumentationModalOpen}
+            onClose={() => setBulkDocumentationModalOpen(false)}
             snippets={snippets}
           />
         )}

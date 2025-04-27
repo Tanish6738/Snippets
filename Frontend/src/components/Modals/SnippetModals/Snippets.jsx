@@ -5,6 +5,9 @@ import axios from '../../../Config/Axios';
 import ViewSnippetModal from './ViewSnippetModal';
 import BulkCreateSnippetModal from './BulkCreateSnippetModal';
 import CreateSnippetModal from './CreateSnippetModal';
+import BulkDocumentationModal from './BulkDocumentationModal';
+import EditSnippetDetailsModal from './EditSnippetDetailsModal';
+import { FiFileText, FiPlus, FiUploadCloud } from 'react-icons/fi';
 
 const Snippets = () => {
   const { isAuthenticated, user } = useUser();
@@ -22,6 +25,7 @@ const Snippets = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [bulkCreateModalOpen, setBulkCreateModalOpen] = useState(false);
+  const [bulkDocumentationModalOpen, setBulkDocumentationModalOpen] = useState(false);
   const [selectedSnippetId, setSelectedSnippetId] = useState(null);
 
   const location = useLocation();
@@ -109,13 +113,28 @@ const Snippets = () => {
               onClick={() => setCreateModalOpen(true)}
               className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.35)]"
             >
-              Create Snippet
+              <span className="flex items-center gap-2">
+                <FiPlus size={16} />
+                Create Snippet
+              </span>
             </button>
             <button
               onClick={() => setBulkCreateModalOpen(true)}
               className="px-6 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
             >
-              Bulk Create
+              <span className="flex items-center gap-2">
+                <FiUploadCloud size={16} />
+                Bulk Create
+              </span>
+            </button>
+            <button
+              onClick={() => setBulkDocumentationModalOpen(true)}
+              className="px-6 py-2 rounded-xl text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition-all duration-200"
+            >
+              <span className="flex items-center gap-2">
+                <FiFileText size={16} />
+                Generate Docs
+              </span>
             </button>
           </div>
         )}
@@ -249,6 +268,13 @@ const Snippets = () => {
           isOpen={bulkCreateModalOpen}
           onClose={() => setBulkCreateModalOpen(false)}
           onSnippetsCreated={handleSnippetCreated}
+        />
+      )}
+
+      {bulkDocumentationModalOpen && (
+        <BulkDocumentationModal
+          isOpen={bulkDocumentationModalOpen}
+          onClose={() => setBulkDocumentationModalOpen(false)}
         />
       )}
 

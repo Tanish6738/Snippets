@@ -71,10 +71,33 @@ const DocumentationModal = ({ isOpen, onClose, snippet }) => {
     
     // Create file content based on documentation
     const content = documentation.formattedDocumentation;
-    const fileName = `${snippet.title || 'code'}_documentation.${docStyle === 'standard' ? 'md' : 'txt'}`;
+    
+    // Allow selection of file format
+    let fileExtension;
+    let mimeType;
+    
+    switch(docStyle) {
+      case 'jsdoc':
+        fileExtension = 'js';
+        mimeType = 'text/javascript';
+        break;
+      case 'javadoc':
+        fileExtension = 'java';
+        mimeType = 'text/plain';
+        break;
+      case 'docstring':
+        fileExtension = 'py';
+        mimeType = 'text/plain';
+        break;
+      default:
+        fileExtension = 'md';
+        mimeType = 'text/markdown';
+    }
+    
+    const fileName = `${snippet.title || 'code'}_documentation.${fileExtension}`;
     
     // Create a blob and download it
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

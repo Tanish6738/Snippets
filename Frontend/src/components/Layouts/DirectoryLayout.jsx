@@ -18,13 +18,15 @@ import {
   FaDatabase,
   FaCopy,
   FaPlay,
-  FaBook
+  FaBook,
+  FaFileAlt
 } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CreateSnippetModal from '../Modals/SnippetModals/CreateSnippetModal';
 import CreateDirectoryModal from '../Modals/DirectoryModals/CreateDirectoryModal';
 import EditSnippetModal from '../Modals/SnippetModals/EditSnippetModal';
 import CheatSheetModal from '../Modals/SnippetModals/CheatSheetModal';
+import BulkDocumentationModal from '../Modals/SnippetModals/BulkDocumentationModal';
 import axios from '../../Config/Axios';
 import { Container, LoadingSpinner, ScrollbarStyles } from '../User/Home/HComponents';
 import { GlassCard, IconButton, Button, QuickActionButton } from '../User/Home/Cards';
@@ -646,6 +648,7 @@ const DirectoryLayout = () => {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [showEditSnippetModal, setShowEditSnippetModal] = useState(false);
   const [showCheatSheetModal, setShowCheatSheetModal] = useState(false);
+  const [showBulkDocumentationModal, setShowBulkDocumentationModal] = useState(false);
   const [snippetToEdit, setSnippetToEdit] = useState(null);
   
   const location = useLocation();
@@ -762,11 +765,20 @@ const DirectoryLayout = () => {
                   title={isCollapsed ? '' : 'Directory'}
                   icon={<FaFolder />}
                   action={
-                    <IconButton
-                      icon={isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
-                      onClick={() => setIsCollapsed(!isCollapsed)}
-                      tooltip={isCollapsed ? 'Expand' : 'Collapse'}
-                    />
+                    <div className="flex items-center gap-2">
+                      {!isCollapsed && (
+                        <IconButton
+                          icon={<FaFileAlt size={14} />}
+                          onClick={() => setShowBulkDocumentationModal(true)}
+                          tooltip="Generate Documentation"
+                        />
+                      )}
+                      <IconButton
+                        icon={isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        tooltip={isCollapsed ? 'Expand' : 'Collapse'}
+                      />
+                    </div>
                   }
                 >
                   {!isCollapsed && (
@@ -860,15 +872,26 @@ const DirectoryLayout = () => {
                       <h2 className="text-2xl font-bold text-white">
                         {currentDirectory.name}
                       </h2>
-                      {currentDirectory.directSnippets?.length > 0 && (
-                        <Button 
-                          onClick={() => setShowCheatSheetModal(true)}
-                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-                        >
-                          <FaBook size={14} />
-                          Create Cheat Sheet
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {currentDirectory.directSnippets?.length > 0 && (
+                          <>
+                            <Button 
+                              onClick={() => setShowCheatSheetModal(true)}
+                              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              <FaBook size={14} />
+                              Create Cheat Sheet
+                            </Button>
+                            <Button 
+                              onClick={() => setShowBulkDocumentationModal(true)}
+                              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              <FaFileAlt size={14} />
+                              Generate Docs
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     
                     <GlassCard
@@ -938,6 +961,17 @@ const DirectoryLayout = () => {
                 New Folder
               </Button>
             </div>
+            
+            <Button
+              onClick={() => {
+                setShowBulkDocumentationModal(true);
+                setIsMobileDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+            >
+              <FaFileAlt size={14} />
+              Generate Docs
+            </Button>
 
             <div className="relative">
               <input
@@ -1003,6 +1037,10 @@ const DirectoryLayout = () => {
         onClose={() => setShowCheatSheetModal(false)}
         snippets={currentDirectory?.directSnippets || []}
         directories={currentDirectory ? [currentDirectory] : []}
+      />
+      <BulkDocumentationModal
+        isOpen={showBulkDocumentationModal}
+        onClose={() => setShowBulkDocumentationModal(false)}
       />
     </>
   );

@@ -308,3 +308,192 @@ export const generateDocumentation = async (req, res) => {
         res.status(500).json({ error: error.message || 'Failed to generate documentation' });
     }
 };
+
+// Generate documentation for multiple code snippets
+export const generateBulkDocumentation = async (req, res) => {
+    try {
+        const { snippets, style, level } = req.body;
+
+        // Validate input
+        if (!snippets || !Array.isArray(snippets) || snippets.length === 0) {
+            return res.status(400).json({ error: 'At least one snippet is required' });
+        }
+
+        // Configure the model
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Determine documentation style
+        const docStyle = style || 'standard'; // Options: standard, jsdoc, javadoc, docstring, etc.
+        const detailLevel = level || 'medium'; // Options: basic, medium, comprehensive
+
+        // Process snippets in batches to avoid hitting context limits
+        const batchSize = 3; // Process 3 snippets at a time
+        const results = [];
+        let failureCount = 0;
+
+        // Process snippets in batches
+        for (let i = 0; i < snippets.length; i += batchSize) {
+            const batchSnippets = snippets.slice(i, i + batchSize);
+            const batchPromises = batchSnippets.map(async (snippet) => {
+                try {
+                    // Prepare the prompt for each snippet
+                    const prompt = `
+                        You are a documentation expert. Generate professional documentation for the following code snippet titled "${snippet.title}" written in ${snippet.programmingLanguage || 'the appropriate programming language'}.
+                        
+                        Use the ${docStyle} documentation style with ${detailLevel} detail level.
+                        
+                        Format your response as a JSON object with the following structure:
+                        {
+                            "title": "${snippet.title}",
+                            "language": "${snippet.programmingLanguage}",
+                            "documentation": {
+                                "overview": "Brief overview of the code",
+                                "sections": [
+                                    {
+                                        "title": "Section title (e.g., function name, class name, etc.)",
+                                        "content": "Documentation content for this section",
+                                        "params": [{"name": "paramName", "description": "param description", "type": "param type"}],
+                                        "returns": {"description": "return description", "type": "return type"}
+                                    }
+                                ]
+                            },
+                            "formattedDocumentation": "The full documentation formatted according to the specified style"
+                        }
+                        
+                        IMPORTANT: Return valid JSON only. No markdown code blocks. No extra text. No prefix or suffix. Just the raw JSON object.
+
+                        Here is the code:
+                        \`\`\`${snippet.programmingLanguage || ''}
+                        ${snippet.content}
+                        \`\`\`
+                    `;
+
+                    // Generate content
+                    const result = await model.generateContent(prompt);
+                    const response = result.response;
+                    const text = response.text();
+                    
+                    // Clean up response text to ensure it's valid JSON
+                    let cleanedText = text;
+                    cleanedText = cleanedText.replace(/```json\s*|```\s*|```javascript\s*/g, '');
+                    cleanedText = cleanedText.replace(/\s*```\s*$/g, '');
+                    cleanedText = cleanedText.trim();
+                    
+                    // Parse the JSON
+                    let data;
+                    try {
+                        data = JSON.parse(cleanedText);
+                        
+                        // Ensure all required properties exist
+                        data.documentation = data.documentation || {};
+                        data.documentation.overview = data.documentation.overview || `Documentation for ${snippet.title}`;
+                        data.formattedDocumentation = data.formattedDocumentation || `# ${snippet.title}\n\n${data.documentation.overview}`;
+                        
+                        return {
+                            snippetId: snippet._id,
+                            title: snippet.title,
+                            documentation: data
+                        };
+                    } catch (e) {
+                        console.error(`Failed to parse JSON response for ${snippet.title}:`, e);
+                        console.error("Response text:", cleanedText.substring(0, 200) + "..."); 
+                        
+                        throw new Error("Failed to parse documentation response");
+                    }
+                } catch (error) {
+                    console.error(`Error generating documentation for snippet ${snippet.title}:`, error);
+                    failureCount++;
+                    
+                    // Create a consistent error response with all required fields
+                    return {
+                        snippetId: snippet._id,
+                        title: snippet.title,
+                        error: 'Failed to generate documentation for this snippet',
+                        documentation: {
+                            overview: `The AI couldn't generate documentation for "${snippet.title}"`,
+                            formattedDocumentation: `# ${snippet.title} - Documentation Generation Failed\n\nUnable to process this ${snippet.programmingLanguage} snippet.\n\nThis may be due to the complexity of the code or limitations of the AI model.`,
+                            documentation: {
+                                overview: `The AI couldn't generate documentation for "${snippet.title}"`
+                            }
+                        }
+                    };
+                }
+            });
+
+            // Wait for all snippets in the current batch to be processed
+            const batchResults = await Promise.all(batchPromises);
+            results.push(...batchResults);
+        }
+
+        // Generate combined documentation if requested
+        const combinedDocumentation = generateCombinedDocumentation(results, docStyle, snippets);
+
+        res.status(200).json({ 
+            success: true, 
+            results,
+            failureCount,
+            totalProcessed: snippets.length,
+            combinedDocumentation
+        });
+    } catch (error) {
+        console.error("Error generating bulk documentation:", error);
+        res.status(500).json({ error: error.message || 'Failed to generate bulk documentation' });
+    }
+};
+
+// Helper function to generate combined documentation for multiple snippets
+function generateCombinedDocumentation(results, style, originalSnippets) {
+    // Create a title for the combined documentation
+    const title = originalSnippets.length > 1 
+        ? `Combined Documentation for ${originalSnippets.length} Snippets`
+        : `Documentation for ${originalSnippets[0]?.title || 'Snippet'}`;
+    
+    // Generate markdown or chosen documentation style
+    let combinedContent = `# ${title}\n\n`;
+    
+    // Table of contents
+    combinedContent += `## Table of Contents\n\n`;
+    results.forEach((result, index) => {
+        if (result.documentation) {
+            combinedContent += `${index + 1}. [${result.title}](#snippet-${index + 1})\n`;
+        }
+    });
+    
+    combinedContent += `\n---\n\n`;
+    
+    // Add each snippet's documentation
+    results.forEach((result, index) => {
+        if (!result.documentation) return;
+        
+        combinedContent += `<a id="snippet-${index + 1}"></a>\n`;
+        combinedContent += `## ${index + 1}. ${result.title}\n\n`;
+        
+        // Add programming language if available
+        const snippet = originalSnippets.find(s => s._id === result.snippetId);
+        if (snippet && snippet.programmingLanguage) {
+            combinedContent += `**Language:** ${snippet.programmingLanguage}\n\n`;
+        }
+        
+        // Add overview
+        if (result.documentation.overview) {
+            combinedContent += `### Overview\n\n${result.documentation.overview}\n\n`;
+        }
+        
+        // Use the formatted documentation if available
+        if (result.documentation.formattedDocumentation) {
+            combinedContent += `### Documentation\n\n${result.documentation.formattedDocumentation}\n\n`;
+        }
+        
+        combinedContent += `---\n\n`;
+    });
+    
+    // Add generation metadata
+    const date = new Date().toLocaleDateString();
+    combinedContent += `\n\n*Documentation generated on ${date}*\n`;
+    
+    return {
+        title,
+        content: combinedContent,
+        format: 'markdown'
+    };
+}
