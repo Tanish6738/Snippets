@@ -356,144 +356,139 @@ const Navbar = () => {
         <motion.div 
           initial={false}
           animate={{
-            height: isMobileMenuOpen ? 'auto' : 0,
+            height: isMobileMenuOpen ? '90vh' : 0,
             opacity: isMobileMenuOpen ? 1 : 0
           }}
-          transition={{ duration: 0.2 }}
-          className={`md:hidden overflow-hidden ${colors.background} backdrop-blur-xl ${colors.border} border-t`}
+          transition={{ duration: 0.25 }}
+          className={`md:hidden fixed left-0 right-0 top-0 z-50 overflow-hidden ${colors.background} ${colors.border} border-t backdrop-blur-xl`}
         >
-          <div className="px-4 py-2 space-y-1">
-            {isAuthenticated ? (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-2"
+          <div className="relative max-w-md w-full mx-auto h-full flex flex-col bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-x border-slate-800/40 shadow-2xl">
+            {/* Close button */}
+            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-800/50">
+              <span className="text-lg font-bold text-white">Menu</span>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors duration-200"
+                aria-label="Close menu"
               >
-                <Link
-                  to="/home"
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                <FiX className="text-2xl" />
+              </button>
+            </div>
+            <div className="flex-1 px-4 py-2 space-y-1 overflow-y-auto styled-scrollbar" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+              {isAuthenticated ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="space-y-2"
                 >
-                  <FiHome className="w-4 h-4" />
-                  Home
-                </Link>
-
-                {Object.entries(navCategories).map(([key, { label, items }]) => (
-                  <div key={key}>
-                    <div className="px-4 py-1 text-xs uppercase text-slate-500 font-medium tracking-wider">
-                      {label}
+                  <Link
+                    to="/home"
+                    className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiHome className="w-4 h-4" />
+                    Home
+                  </Link>
+                  {Object.entries(navCategories).map(([key, { label, items }]) => (
+                    <div key={key}>
+                      <div className="px-4 py-1 text-xs uppercase text-slate-500 font-medium tracking-wider">
+                        {label}
+                      </div>
+                      <div className="space-y-1 pl-2">
+                        {items.map(item => (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            className={`px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2 ${isActivePath(item.to) ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-white' : ''}`}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            {item.icon && <item.icon className="w-4 h-4" />}
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-1 pl-2">
-                      {items.map(item => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          className={`px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                                   hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2 
-                                   ${isActivePath(item.to) ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-white' : ''}`}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          {item.icon && <item.icon className="w-4 h-4" />}
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                
-                <button
-                  onClick={() => {
-                    setIsAiModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 rounded-xl text-slate-300 
-                           hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  ))}
+                  <button
+                    onClick={() => {
+                      setIsAiModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  >
+                    <FiZap className="w-4 h-4" />
+                    AI Snippet
+                  </button>
+                  <hr className="border-slate-700/30 my-2" />
+                  <Link
+                    to="/profile"
+                    className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiSettings className="w-4 h-4" />
+                    Profile
+                  </Link>
+                  <Link
+                    to="/my-snippets"
+                    className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiCode className="w-4 h-4" />
+                    My Snippets
+                  </Link>
+                  <Link
+                    to="/my-directories"
+                    className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiFolder className="w-4 h-4" />
+                    My Directories
+                  </Link>
+                  <Link
+                    to="/projects/dashboard"
+                    className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FiTrello className="w-4 h-4" />
+                    Project Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  >
+                    <FiLogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col gap-2 p-4"
                 >
-                  <FiZap className="w-4 h-4" />
-                  AI Snippet
-                </button>
-                
-                <hr className="border-slate-700/30 my-2" />
-                
-                <Link
-                  to="/profile"
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <FiSettings className="w-4 h-4" />
-                  Profile
-                </Link>
-                <Link
-                  to="/my-snippets"
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <FiCode className="w-4 h-4" />
-                  My Snippets
-                </Link>
-                <Link
-                  to="/my-directories"
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <FiFolder className="w-4 h-4" />
-                  My Directories
-                </Link>
-                <Link
-                  to="/projects/dashboard"
-                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <FiTrello className="w-4 h-4" />
-                  Project Dashboard
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 rounded-xl text-slate-300 
-                           hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                >
-                  <FiLogOut className="w-4 h-4" />
-                  Sign out
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-2 p-4"
-              >
-                <Link
-                  to="/login"
-                  className="w-full px-4 py-2 rounded-xl text-center text-slate-300 
-                           hover:text-white border border-slate-700/50 transition-all"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/register"
-                  className={`w-full px-4 py-2 rounded-xl text-center text-white relative group overflow-hidden
-                           ${colors.button.primary.base} ${colors.button.primary.hover} 
-                           ${colors.button.primary.glow} transition-all duration-300`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-r ${colors.gradient.shimmer} 
-                                translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000`} />
-                  <div className={`absolute inset-0 bg-gradient-to-tr ${colors.gradient.overlay} 
-                                opacity-0 group-hover:opacity-100 transition-all duration-300`} />
-                  <span className="relative z-10">Register</span>
-                </Link>
-              </motion.div>
-            )}
+                  <Link
+                    to="/login"
+                    className="w-full px-4 py-2 rounded-xl text-center text-slate-300 hover:text-white border border-slate-700/50 transition-all"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/register"
+                    className={`w-full px-4 py-2 rounded-xl text-center text-white relative group overflow-hidden ${colors.button.primary.base} ${colors.button.primary.hover} ${colors.button.primary.glow} transition-all duration-300`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${colors.gradient.shimmer} translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000`} />
+                    <div className={`absolute inset-0 bg-gradient-to-tr ${colors.gradient.overlay} opacity-0 group-hover:opacity-100 transition-all duration-300`} />
+                    <span className="relative z-10">Register</span>
+                  </Link>
+                </motion.div>
+              )}
+            </div>
           </div>
         </motion.div>
       </motion.nav>

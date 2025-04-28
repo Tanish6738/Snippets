@@ -17,6 +17,7 @@ This document provides an overview of the exclusive features in our advanced pro
    - [Recurring Task Recommendations](#recurring-task-recommendations)
 4. [Project Types and Visibility](#project-types-and-visibility)
 5. [API Testing Guide with Postman](#api-testing-guide-with-postman)
+6. [Detailed Postman Collection Setup for Testing](#detailed-postman-collection-setup-for-testing)
 
 ## System Overview
 
@@ -288,26 +289,57 @@ This section provides detailed guidance for testing all API endpoints in this ap
      - `member_id`: Will store a member ID for testing
      - `task_id`: Will store a task ID for testing
      - `dependency_id`: Will store a dependency task ID for testing
+     - `user_id1`: Will store a user ID for member testing
+     - `ai_task_id`: Will store an AI-generated task ID for testing
 
 3. **Import the Collection**
    - You can export this collection from Postman and share it with team members
 
-### Authentication
+## Detailed Postman Collection Setup for Testing
 
-Before testing any endpoints, you need to authenticate:
+This section provides step-by-step instructions on setting up a Postman collection to thoroughly test all backend API endpoints. Follow these instructions to create a complete testing environment.
 
-#### Register a User (if needed)
+### Creating Your Postman Environment
 
-```
-POST {{base_url}}/api/users/register
-```
+1. **Launch Postman** and click on "Environments" in the sidebar
+2. **Create a new environment** named "Project Management API"
+3. **Add the following variables**:
+   - `base_url`: Set to your backend URL (e.g., `http://localhost:5000`)
+   - `token`: Leave this empty (will be populated after login)
+   - `project_id`: Leave empty
+   - `task_id`: Leave empty
+   - `dependency_id`: Leave empty
+   - `user_id`: Leave empty
+   - `member_id`: Leave empty 
+4. **Save the environment** and select it from the environment dropdown
 
-Headers:
-```
-Content-Type: application/json
-```
+### Creating the Collection
 
-Body:
+1. Click on "Collections" in the sidebar
+2. Create a new collection named "Project Management API Testing"
+3. Use the "..." menu on the collection to "Add Folder"
+4. Create the following folders:
+   - Authentication
+   - Projects
+   - Tasks
+   - Task Dependencies
+   - Task Comments
+   - Time Tracking
+   - Task Health
+   - Advanced Features
+   - AI Features
+
+### Authentication Endpoints
+
+#### Register User
+
+1. Right-click on the Authentication folder → Add Request
+2. Name it "Register User"
+3. Set method to **POST**
+4. URL: `{{base_url}}/api/users/register`
+5. Headers:
+   - Content-Type: application/json
+6. Body (raw JSON):
 ```json
 {
   "username": "testuser",
@@ -318,184 +350,275 @@ Body:
 
 #### Login
 
-```
-POST {{base_url}}/api/users/login
-```
-
-Headers:
-```
-Content-Type: application/json
-```
-
-Body:
+1. Add another request named "Login"
+2. Set method to **POST**
+3. URL: `{{base_url}}/api/users/login`
+4. Headers:
+   - Content-Type: application/json
+5. Body (raw JSON):
 ```json
 {
   "email": "test@example.com",
   "password": "Password123!"
 }
 ```
-
-After successful login, copy the token from the response and set it to your `token` environment variable.
-
-### Project Management
-
-All project endpoints require authentication. Include this header in all requests:
-
-```
-Authorization: Bearer {{token}}
-```
-
-#### Create a Project
-
-```
-POST {{base_url}}/api/projects
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Basic project creation:
-```json
-{
-  "title": "Test Project",
-  "description": "This is a test project created via Postman",
-  "deadline": "2025-06-30T00:00:00.000Z",
-  "priority": "Medium",
-  "tags": ["api", "testing", "postman"]
+6. Tests tab (to automatically save the token):
+```javascript
+const jsonData = pm.response.json();
+if (jsonData.token) {
+    pm.environment.set("token", jsonData.token);
+    console.log("Token saved to environment");
+} else {
+    console.error("No token found in response");
 }
 ```
 
-Project with type and visibility settings:
-```json
-{
-  "title": "Public Development Project",
-  "description": "This is a public development project created via Postman",
-  "deadline": "2025-06-30T00:00:00.000Z",
-  "priority": "Medium",
-  "tags": ["public", "development", "postman"],
-  "projectType": "Development",
-  "visibility": "public"
-}
-```
+### Project Management Endpoints
 
-Project with initial members:
+#### Create Project
+
+1. Right-click on the Projects folder → Add Request
+2. Name it "Create Project"
+3. Set method to **POST**
+4. URL: `{{base_url}}/api/projects`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
 ```json
 {
-  "title": "Team Project",
-  "description": "Project with members added during creation",
+  "title": "Development Project",
+  "description": "A comprehensive project management system with task dependencies and time tracking",
   "deadline": "2025-06-30T00:00:00.000Z",
   "priority": "High",
-  "projectType": "Research",
+  "tags": ["development", "api", "mongodb"],
+  "projectType": "Development",
   "visibility": "private",
   "initialMembers": [
     {
-      "email": "contributor@example.com",
+      "email": "teammate@example.com",
       "role": "Contributor"
-    },
-    {
-      "email": "viewer@example.com",
-      "role": "Viewer"
     }
   ]
 }
 ```
-
-**Response**: After successful creation, save the project ID from the response to your `project_id` environment variable.
-
-**Tests**:
+7. Tests tab:
 ```javascript
-// Save project ID to environment variable
-var jsonData = pm.response.json();
+const jsonData = pm.response.json();
 if (jsonData.success && jsonData.project && jsonData.project._id) {
     pm.environment.set("project_id", jsonData.project._id);
+    console.log("Project ID saved: " + jsonData.project._id);
 }
-
-// Verify response structure
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Project has required fields", function() {
-    pm.expect(jsonData.project).to.have.property("title");
-    pm.expect(jsonData.project).to.have.property("description");
-    pm.expect(jsonData.project).to.have.property("createdBy");
-    pm.expect(jsonData.project).to.have.property("members");
-    
-    // Check new fields
-    if (pm.request.body) {
-        const requestBody = JSON.parse(pm.request.body.raw);
-        if (requestBody.projectType) {
-            pm.expect(jsonData.project.projectType).to.equal(requestBody.projectType);
-        }
-        if (requestBody.visibility) {
-            pm.expect(jsonData.project.visibility).to.equal(requestBody.visibility);
-        }
-    }
-});
 ```
 
-### Task Management with Exclusive Features
+#### Get All Projects
 
-#### Create a Task
+1. Add request: "Get All Projects"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/projects`
+4. Headers:
+   - Authorization: Bearer {{token}}
 
-```
-POST {{base_url}}/api/tasks/projects/{{project_id}}
-```
+#### Get Project By ID
 
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
+1. Add request: "Get Project By ID"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/projects/{{project_id}}`
+4. Headers:
+   - Authorization: Bearer {{token}}
 
-Body:
+#### Get Project Dashboard
+
+1. Add request: "Get Project Dashboard"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/projects/{{project_id}}/dashboard`
+4. Headers:
+   - Authorization: Bearer {{token}}
+
+#### Update Project
+
+1. Add request: "Update Project"
+2. Method: **PATCH**
+3. URL: `{{base_url}}/api/projects/{{project_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
 ```json
 {
-  "title": "Test Task",
-  "description": "This is a test task created via Postman",
+  "description": "Updated description with more details",
+  "priority": "Urgent",
+  "status": "In Progress",
+  "tags": ["development", "api", "mongodb", "urgent"]
+}
+```
+
+#### Add Project Member
+
+1. Add request: "Add Project Member"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/projects/{{project_id}}/members`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "email": "teammate@example.com",
+  "role": "Contributor"
+}
+```
+6. Tests tab:
+```javascript
+const jsonData = pm.response.json();
+if (jsonData.success && jsonData.member && jsonData.member.user && jsonData.member.user._id) {
+    pm.environment.set("member_id", jsonData.member.user._id);
+    console.log("Member ID saved: " + jsonData.member.user._id);
+}
+```
+
+#### Update Member Role
+
+1. Add request: "Update Member Role"
+2. Method: **PATCH**
+3. URL: `{{base_url}}/api/projects/{{project_id}}/members/{{member_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "role": "Admin"
+}
+```
+
+#### Remove Project Member
+
+1. Add request: "Remove Project Member"
+2. Method: **DELETE**
+3. URL: `{{base_url}}/api/projects/{{project_id}}/members/{{member_id}}`
+4. Headers:
+   - Authorization: Bearer {{token}}
+
+### Task Management Endpoints
+
+#### Create Task
+
+1. Right-click on the Tasks folder → Add Request
+2. Name it "Create Task"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/projects/{{project_id}}`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
+```json
+{
+  "title": "Implement Authentication System",
+  "description": "Create JWT authentication system with registration, login and password reset",
   "priority": "High",
   "dueDate": "2025-05-30T00:00:00.000Z",
-  "tags": ["bug", "frontend", "urgent"],
-  "estimatedHours": 8
+  "tags": ["backend", "security", "authentication"],
+  "estimatedHours": 20
 }
 ```
-
-**Response**: After successful creation, save the task ID from the response to your `task_id` environment variable:
-
+7. Tests tab:
 ```javascript
-var jsonData = pm.response.json();
+const jsonData = pm.response.json();
 if (jsonData.success && jsonData.task && jsonData.task._id) {
     pm.environment.set("task_id", jsonData.task._id);
+    console.log("Task ID saved: " + jsonData.task._id);
 }
 ```
 
-#### Create a Second Task for Dependencies
+#### Create Dependency Task
 
-To test dependencies, create another task and save its ID to the `dependency_id` variable:
-
+1. Add request: "Create Dependency Task"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/projects/{{project_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "title": "Design Database Schema",
+  "description": "Create MongoDB schema for users, projects, tasks and time tracking",
+  "priority": "High",
+  "dueDate": "2025-05-15T00:00:00.000Z",
+  "tags": ["backend", "database", "mongodb"],
+  "estimatedHours": 10
+}
+```
+6. Tests tab:
 ```javascript
-var jsonData = pm.response.json();
+const jsonData = pm.response.json();
 if (jsonData.success && jsonData.task && jsonData.task._id) {
     pm.environment.set("dependency_id", jsonData.task._id);
+    console.log("Dependency Task ID saved: " + jsonData.task._id);
 }
 ```
+
+#### Get Tasks By Project
+
+1. Add request: "Get Tasks By Project"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/tasks/projects/{{project_id}}`
+4. Headers:
+   - Authorization: Bearer {{token}}
+
+#### Get Task By ID
+
+1. Add request: "Get Task By ID"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}`
+4. Headers:
+   - Authorization: Bearer {{token}}
+
+#### Update Task
+
+1. Add request: "Update Task"
+2. Method: **PATCH**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "status": "In Progress",
+  "description": "Updated description with more implementation details",
+  "priority": "Urgent"
+}
+```
+
+#### Assign Task
+
+1. Add request: "Assign Task"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}/assign`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "userIds": ["{{member_id}}"]
+}
+```
+
+### Task Dependencies
 
 #### Add Task Dependency
 
-```
-POST {{base_url}}/api/tasks/{{task_id}}/dependencies/{{dependency_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Right-click on the Task Dependencies folder → Add Request
+2. Name it "Add Task Dependency"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/{{task_id}}/dependencies/{{dependency_id}}`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
 ```json
 {
   "type": "finish-to-start",
@@ -503,636 +626,412 @@ Body:
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Task has dependency", function() {
-    pm.expect(jsonData.task.dependencies).to.be.an("array");
-    pm.expect(jsonData.task.dependencies.length).to.be.greaterThan(0);
-    pm.expect(jsonData.task.dependencies[0].task._id).to.equal(pm.environment.get("dependency_id"));
-});
-```
-
 #### Remove Task Dependency
 
-```
-DELETE {{base_url}}/api/tasks/{{task_id}}/dependencies/{{dependency_id}}
-```
+1. Add request: "Remove Task Dependency"
+2. Method: **DELETE**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}/dependencies/{{dependency_id}}`
+4. Headers:
+   - Authorization: Bearer {{token}}
 
-Headers:
-```
-Authorization: Bearer {{token}}
-```
+### Task Comments
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+#### Add Comment
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Dependency was removed", function() {
-    if (jsonData.task.dependencies) {
-        const hasDependency = jsonData.task.dependencies.some(
-            d => d.task._id === pm.environment.get("dependency_id")
-        );
-        pm.expect(hasDependency).to.be.false;
-    }
-});
-```
-
-#### Start Time Tracking
-
-```
-POST {{base_url}}/api/tasks/{{task_id}}/time/start
-```
-
-Headers:
-```
-Authorization: Bearer {{token}}
-```
-
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Time entry was created", function() {
-    pm.expect(jsonData.timeEntry).to.have.property("startTime");
-    pm.expect(jsonData.timeEntry).to.not.have.property("endTime");
-});
-```
-
-#### Stop Time Tracking
-
-```
-POST {{base_url}}/api/tasks/{{task_id}}/time/stop
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Right-click on the Task Comments folder → Add Request
+2. Name it "Add Comment"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/{{task_id}}/comments`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
 ```json
 {
-  "notes": "Fixed the login form validation issue"
+  "text": "We should consider using Passport.js for authentication strategies",
+  "mentions": ["{{member_id}}"]
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+### Time Tracking
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
+#### Start Time Tracking
 
-pm.test("Time entry was completed", function() {
-    pm.expect(jsonData.timeEntry).to.have.property("startTime");
-    pm.expect(jsonData.timeEntry).to.have.property("endTime");
-    pm.expect(jsonData.timeEntry).to.have.property("duration");
-    pm.expect(jsonData.timeEntry.notes).to.equal("Fixed the login form validation issue");
-});
+1. Right-click on the Time Tracking folder → Add Request
+2. Name it "Start Time Tracking"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/{{task_id}}/time/start`
+5. Headers:
+   - Authorization: Bearer {{token}}
+
+#### Stop Time Tracking
+
+1. Add request: "Stop Time Tracking"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}/time/stop`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
+```json
+{
+  "notes": "Implemented JWT authentication middleware and token validation"
+}
 ```
 
 #### Get Time Entries
 
-```
-GET {{base_url}}/api/tasks/{{task_id}}/time
-```
+1. Add request: "Get Time Entries"
+2. Method: **GET**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}/time`
+4. Headers:
+   - Authorization: Bearer {{token}}
 
-Headers:
-```
-Authorization: Bearer {{token}}
-```
+### Task Health
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+#### Calculate Task Health
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
+1. Right-click on the Task Health folder → Add Request
+2. Name it "Calculate Task Health"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/{{task_id}}/health`
+5. Headers:
+   - Authorization: Bearer {{token}}
 
-pm.test("Time entries exist", function() {
-    pm.expect(jsonData.timeEntries).to.be.an("array");
-    pm.expect(jsonData.timeEntries.length).to.be.greaterThan(0);
-});
-```
+#### Calculate Project Tasks Health
 
-### Get Task by ID
+1. Add request: "Calculate Project Tasks Health"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/projects/{{project_id}}/health`
+4. Headers:
+   - Authorization: Bearer {{token}}
 
-```
-GET {{base_url}}/api/tasks/{{task_id}}
-```
+### Advanced Features
 
-Headers:
-```
-Authorization: Bearer {{token}}
-```
+#### Create Recurring Task
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Task has correct ID", function() {
-    pm.expect(jsonData.task._id).to.equal(pm.environment.get("task_id"));
-});
-
-pm.test("Subtasks array exists", function() {
-    pm.expect(jsonData.task).to.have.property("subtasks");
-});
-```
-
-### Update Task
-
-```
-PATCH {{base_url}}/api/tasks/{{task_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Right-click on the Advanced Features folder → Add Request
+2. Name it "Create Recurring Task"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/recurring/projects/{{project_id}}`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
 ```json
 {
-  "title": "Updated Task Title",
-  "description": "This description was updated via Postman",
-  "status": "In Progress",
-  "priority": "Urgent"
+  "title": "Weekly Team Meeting",
+  "description": "Regular team sync to discuss progress and blockers",
+  "priority": "Medium",
+  "estimatedHours": 1,
+  "recurrence": {
+    "frequency": "weekly",
+    "interval": 1,
+    "daysOfWeek": [1],
+    "occurrences": 12
+  },
+  "tags": ["meeting", "team", "recurring"],
+  "createFirstInstance": true
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+#### Clone Task
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Task is updated", function() {
-    pm.expect(jsonData.task.title).to.equal("Updated Task Title");
-    pm.expect(jsonData.task.status).to.equal("In Progress");
-    pm.expect(jsonData.task.priority).to.equal("Urgent");
-});
-```
-
-### Assign Task
-
-```
-POST {{base_url}}/api/tasks/{{task_id}}/assign
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Add request: "Clone Task"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/{{task_id}}/clone`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
 ```json
 {
-  "userIds": ["{{user_id1}}", "{{user_id2}}"]
+  "options": {
+    "title": "Implement OAuth Authentication",
+    "includeSubtasks": true,
+    "includeAttachments": true,
+    "includeAssignees": true
+  }
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+### AI Features
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
+#### Generate Tasks with AI
 
-pm.test("Task has assignees", function() {
-    pm.expect(jsonData.task.assignedTo).to.be.an("array");
-    pm.expect(jsonData.task.assignedTo.length).to.be.greaterThan(0);
-});
-```
-
-### Add Comment to Task
-
-```
-POST {{base_url}}/api/tasks/{{task_id}}/comments
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Right-click on the AI Features folder → Add Request
+2. Name it "Generate Tasks with AI"
+3. Method: **POST**
+4. URL: `{{base_url}}/api/tasks/ai/generate/{{project_id}}`
+5. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+6. Body (raw JSON):
 ```json
 {
-  "text": "This is a test comment from Postman",
-  "mentions": ["{{user_id1}}"]
+  "description": "Build a responsive project management web application with user authentication, project creation, task management, time tracking, and reporting features."
+}
+```
+7. Tests tab:
+```javascript
+const jsonData = pm.response.json();
+if (jsonData.success && jsonData.tasks) {
+    pm.environment.set("generated_tasks", JSON.stringify(jsonData.tasks));
+    console.log("AI-generated tasks saved to environment");
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+#### Save AI-Generated Tasks
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Comment is added", function() {
-    pm.expect(jsonData.comment).to.have.property("text");
-    pm.expect(jsonData.comment.text).to.equal("This is a test comment from Postman");
-    
-    if (jsonData.comment.mentions && jsonData.comment.mentions.length > 0) {
-        pm.expect(jsonData.comment.mentions[0]).to.equal(pm.environment.get("user_id1"));
-    }
-});
-```
-
-### Delete Task
-
-```
-DELETE {{base_url}}/api/tasks/{{task_id}}
-```
-
-Headers:
-```
-Authorization: Bearer {{token}}
-```
-
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Success message exists", function() {
-    pm.expect(jsonData.message).to.include("deleted successfully");
-});
-```
-
-## AI-Assisted Features
-
-These endpoints use AI capabilities to enhance project management functionalities.
-
-### Generate Tasks with AI
-
-```
-POST {{base_url}}/api/tasks/ai/generate/{{project_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
-```json
-{
-  "description": "Create a responsive web application with user authentication, dashboard, and profile management using React, Node.js, and MongoDB."
-}
-```
-
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Tasks were generated", function() {
-    pm.expect(jsonData.tasks).to.be.an("array");
-    pm.expect(jsonData.tasks.length).to.be.greaterThan(0);
-});
-
-pm.test("Generated tasks have required structure", function() {
-    const firstTask = jsonData.tasks[0];
-    pm.expect(firstTask).to.have.property("title");
-    pm.expect(firstTask).to.have.property("description");
-    pm.expect(firstTask).to.have.property("priority");
-    
-    if (firstTask.subtasks) {
-        pm.expect(firstTask.subtasks).to.be.an("array");
-    }
-});
-
-// Save the generated tasks to an environment variable for the next step
-pm.environment.set("generated_tasks", JSON.stringify(jsonData.tasks));
-```
-
-### Save AI-Generated Tasks
-
-```
-POST {{base_url}}/api/tasks/ai/save/{{project_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Add request: "Save AI-Generated Tasks"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/tasks/ai/save/{{project_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
 ```json
 {
   "tasks": {{generated_tasks}}
 }
 ```
-
-Pre-request Script:
+6. Tests tab:
 ```javascript
-// Get the tasks from the environment and parse them
-const tasksString = pm.environment.get("generated_tasks");
-if (tasksString) {
-    try {
-        const tasks = JSON.parse(tasksString);
-        // You can modify tasks here if needed before saving
-        pm.variables.set("generated_tasks", JSON.stringify(tasks));
-    } catch (e) {
-        console.error("Error parsing generated tasks:", e);
-    }
-}
-```
-
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Tasks were saved", function() {
-    pm.expect(jsonData.tasks).to.be.an("array");
-    pm.expect(jsonData.tasks.length).to.be.greaterThan(0);
-});
-
-pm.test("Saved tasks have correct properties", function() {
-    const firstTask = jsonData.tasks[0];
-    pm.expect(firstTask).to.have.property("_id");
-    pm.expect(firstTask).to.have.property("title");
-    pm.expect(firstTask).to.have.property("project");
-    pm.expect(firstTask).to.have.property("aiGenerated");
-    pm.expect(firstTask.aiGenerated).to.be.true;
-    pm.expect(firstTask).to.have.property("assignedTo");
-    pm.expect(firstTask.assignedTo).to.be.an("array");
-});
-
-// Save the first task ID for potential further testing
-if (jsonData.tasks && jsonData.tasks[0] && jsonData.tasks[0]._id) {
+const jsonData = pm.response.json();
+if (jsonData.success && jsonData.tasks && jsonData.tasks[0] && jsonData.tasks[0]._id) {
     pm.environment.set("ai_task_id", jsonData.tasks[0]._id);
+    console.log("AI Task ID saved: " + jsonData.tasks[0]._id);
 }
 ```
 
-## Troubleshooting
+#### Generate Health Insights with AI
 
-### Common Issues:
-
-1. **Authentication Errors (401)**
-   - Check that the token is correctly set in the environment
-   - Token may have expired - try logging in again
-   - Make sure you're using the Bearer prefix before the token
-
-2. **Permission Errors (403)**
-   - Ensure you have the correct role (Admin/Contributor) for operations like creating tasks, assigning tasks
-   - Project creator can always perform admin actions
-
-3. **Not Found Errors (404)**
-   - Double-check that the project_id, task_id or member_id is correct
-   - The resource may have been deleted
-
-4. **Bad Request Errors (400)**
-   - Verify the request body format matches the expected schema
-   - Check for required fields (e.g., title for creating projects, userIds for task assignment)
-
-5. **Server Errors (500)**
-   - Check server logs for details
-   - Make sure MongoDB is running and accessible
-
-### Project Creation Specific Troubleshooting:
-
-1. **Initial Member Issues**
-   - Verify that email addresses for initial members are correct and exist in the system
-   - Non-existent members will be ignored, but the project will still be created 
-   - Check that member roles are valid ('Admin', 'Contributor', 'Viewer')
-
-2. **Project Type Issues**
-   - Valid project types are: 'Standard', 'Development', 'Research', 'Marketing', 'Event', 'Other'
-   - Invalid project types will default to 'Standard'
-
-3. **Visibility Issues**
-   - Valid visibility options are: 'public' and 'private'
-   - Invalid visibility will default to 'private'
-
-### AI Task Generation Troubleshooting:
-
-1. **AI Generation Issues**
-   - Provide clear and detailed project descriptions for better AI-generated tasks
-   - The more specific the description, the more relevant the generated tasks will be
-
-2. **Task Saving Issues**
-   - Make sure the tasks array structure matches what's expected by the API
-   - Tasks need title and description at minimum
-   - Check that the project ID is valid
-   - Ensure you have at least Contributor permissions in the project
-
-3. **Task Assignment Issues**
-   - AI-generated tasks are automatically assigned to project admin by default
-   - If there are issues with assignments, check that the admin user still exists and is a member of the project
-
-## New AI-Assisted Testing Guide
-
-### Testing AI Task Features
-
-#### Generate Project Tasks
-
-```
-POST {{base_url}}/api/ai/tasks/generate
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
-```json
-{
-  "description": "Create a responsive e-commerce website with product catalog, user authentication, shopping cart, payment processing, and order management system",
-  "projectTitle": "E-Commerce Platform",
-  "projectType": "Development",
-  "generateDependencies": true
-}
-```
-
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
-
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Tasks array exists and has items", function() {
-    pm.expect(jsonData.tasks).to.be.an("array");
-    pm.expect(jsonData.tasks.length).to.be.greaterThan(0);
-});
-
-pm.test("Tasks have required structure", function() {
-    const firstTask = jsonData.tasks[0];
-    pm.expect(firstTask).to.have.property("title");
-    pm.expect(firstTask).to.have.property("description");
-    pm.expect(firstTask).to.have.property("priority");
-    pm.expect(firstTask).to.have.property("estimatedHours");
-    
-    if (pm.request.body) {
-        const requestBody = JSON.parse(pm.request.body.raw);
-        if (requestBody.generateDependencies) {
-            pm.expect(firstTask).to.have.property("dependencies");
-        }
-    }
-});
-
-// Save generated tasks for other tests
-if (jsonData.tasks) {
-    pm.environment.set("ai_generated_tasks", JSON.stringify(jsonData.tasks));
-}
-```
-
-#### Generate Project Health Insights
-
-```
-POST {{base_url}}/api/ai/tasks/health/{{project_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Add request: "Generate Health Insights"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/ai/tasks/health/{{project_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
 ```json
 {
   "tasks": [
     {
       "_id": "{{task_id}}",
-      "title": "Implement user authentication",
+      "title": "Implement Authentication System",
       "status": "In Progress",
       "priority": "High",
-      "dueDate": "2025-05-15T00:00:00.000Z",
-      "estimatedHours": 10,
-      "actualHours": 6,
-      "timeEntries": [{"duration": 360}],
+      "dueDate": "2025-05-30T00:00:00.000Z",
+      "estimatedHours": 20,
+      "timeEntries": [{"duration": 8}],
       "dependencies": [{"task": "{{dependency_id}}"}],
-      "health": {"status": "at-risk"}
+      "health": {"status": "on-track"}
     },
     {
       "_id": "{{dependency_id}}",
-      "title": "Set up database schema",
+      "title": "Design Database Schema",
       "status": "Completed",
       "priority": "High",
-      "dueDate": "2025-05-10T00:00:00.000Z",
-      "estimatedHours": 4,
-      "actualHours": 5,
+      "dueDate": "2025-05-15T00:00:00.000Z",
+      "estimatedHours": 10,
+      "timeEntries": [{"duration": 12}],
       "health": {"status": "completed"}
     }
   ]
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+#### Get Recurring Task Recommendations
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
-
-pm.test("Health insights exist", function() {
-    pm.expect(jsonData.insights).to.have.property("overallProjectHealth");
-    pm.expect(jsonData.insights).to.have.property("healthSummary");
-    pm.expect(jsonData.insights).to.have.property("criticalTasks");
-    pm.expect(jsonData.insights).to.have.property("recommendations");
-    pm.expect(jsonData.insights).to.have.property("timeManagementInsights");
-    pm.expect(jsonData.insights).to.have.property("dependencyInsights");
-});
-```
-
-#### Generate Recurring Task Recommendations
-
-```
-POST {{base_url}}/api/ai/tasks/recurring/{{project_id}}
-```
-
-Headers:
-```
-Content-Type: application/json
-Authorization: Bearer {{token}}
-```
-
-Body:
+1. Add request: "Get Recurring Task Recommendations"
+2. Method: **POST**
+3. URL: `{{base_url}}/api/ai/tasks/recurring/{{project_id}}`
+4. Headers:
+   - Content-Type: application/json
+   - Authorization: Bearer {{token}}
+5. Body (raw JSON):
 ```json
 {
   "projectType": "Development",
   "existingTasks": [
     {
-      "title": "Frontend Development",
-      "description": "Implement user interface components"
+      "title": "Implement Authentication System",
+      "description": "Create JWT authentication system with registration, login and password reset"
     },
     {
-      "title": "Backend API Development",
-      "description": "Create RESTful API endpoints"
+      "title": "Design Database Schema",
+      "description": "Create MongoDB schema for users, projects, tasks and time tracking"
     }
   ]
 }
 ```
 
-**Tests**:
-```javascript
-var jsonData = pm.response.json();
+## Sequential API Testing Instructions
 
-pm.test("Response is successful", function() {
-    pm.expect(jsonData.success).to.be.true;
-});
+To thoroughly test the backend API endpoints, follow this testing sequence. This will help you verify that all features are working properly while ensuring dependencies are satisfied.
 
-pm.test("Recurring tasks recommendations exist", function() {
-    pm.expect(jsonData.recommendations).to.have.property("recurringTasks");
-    pm.expect(jsonData.recommendations.recurringTasks).to.be.an("array");
-});
+### 1. Initial Setup
 
-pm.test("Recurring tasks have required structure", function() {
-    if (jsonData.recommendations.recurringTasks.length > 0) {
-        const firstTask = jsonData.recommendations.recurringTasks[0];
-        pm.expect(firstTask).to.have.property("title");
-        pm.expect(firstTask).to.have.property("description");
-        pm.expect(firstTask).to.have.property("frequency");
-        pm.expect(firstTask).to.have.property("estimatedHours");
-        pm.expect(firstTask).to.have.property("priority");
-    }
-});
-```
+1. First run the **Register User** request (skip if you already have a user)
+2. Run the **Login** request to get an authentication token
+3. Verify in the Postman console that the token was saved to your environment
+
+### 2. Project Management Testing
+
+1. Run **Create Project** request
+   - Verify response contains a success message and project details
+   - Confirm the project_id was saved to your environment
+   
+2. Run **Get All Projects** request
+   - Verify your new project appears in the list
+   
+3. Run **Get Project By ID** request
+   - Confirm you can retrieve your specific project
+   
+4. Run **Get Project Dashboard** request
+   - This should show project analytics including task status
+
+5. Run **Add Project Member** request
+   - Verify a team member was added successfully
+   - Confirm the member_id was saved to environment
+
+### 3. Task Management Testing
+
+1. Run **Create Task** request
+   - This creates your main task
+   - Verify the task_id is saved to environment
+   
+2. Run **Create Dependency Task** request
+   - This creates a task that will be a dependency for the main task
+   - Verify the dependency_id is saved to environment
+   
+3. Run **Get Tasks By Project** request
+   - Confirm both tasks appear in the project
+   
+4. Run **Add Task Dependency** request
+   - This establishes the dependency relationship
+
+5. Run **Get Task By ID** on the main task
+   - Verify that the dependency appears in the task's dependencies array
+
+6. Run **Assign Task** request
+   - This assigns the main task to a team member
+
+### 4. Time Tracking Testing
+
+1. Run **Start Time Tracking** on the dependency task
+   - Verify time tracking started successfully
+
+2. Wait a minute or two to simulate work time
+   
+3. Run **Stop Time Tracking** request
+   - Verify time entry was completed with duration
+   
+4. Run **Get Time Entries** request
+   - Confirm the completed time entry appears with the right duration and notes
+
+### 5. Health Analysis Testing
+
+1. Run **Calculate Task Health** on the main task
+   - Verify health status is calculated
+
+2. Run **Calculate Project Tasks Health**
+   - This calculates health for all tasks in the project
+
+### 6. Advanced Features Testing
+
+1. Run **Create Recurring Task** request
+   - Verify the recurring task template and first instance were created
+   
+2. Run **Clone Task** request
+   - Verify a new cloned task was created with the specified options
+   
+3. Run **Update Task** on the dependency task
+   - Set status to "Completed" to satisfy the dependency
+
+4. Run **Add Comment** to the main task
+   - Verify comment was added with proper mention
+
+### 7. AI Features Testing
+
+1. Run **Generate Tasks with AI** request
+   - Verify AI-generated task structures are returned
+   - Confirm the generated_tasks are saved to environment
+   
+2. Run **Save AI-Generated Tasks** request
+   - Verify the tasks were saved to the database
+   
+3. Run **Generate Health Insights with AI** request
+   - Verify project health analysis is provided
+   
+4. Run **Get Recurring Task Recommendations** request
+   - Verify AI suggests appropriate recurring tasks for your project type
+
+### 8. Project Updates Testing
+
+1. Run **Update Project** request
+   - Verify project details are updated
+   
+2. Run **Update Member Role** request
+   - Verify team member's role is updated
+
+### 9. API Test Completion (Optional)
+
+1. Run **Remove Project Member** request (optional)
+   - Verify member was removed from project
+   
+2. Run **Delete Task** on one of the AI-generated tasks (optional)
+   - Verify task was deleted successfully
+
+### Suggested Timeline for Testing
+
+For a comprehensive test of all backend functionality, allow approximately 30-45 minutes. This will give you time to examine responses, verify data consistency, and ensure everything is working properly.
+
+1. **Authentication & Project Setup**: 5 minutes
+2. **Task Creation & Dependency Setup**: 10 minutes
+3. **Time Tracking & Health Analysis**: 5 minutes
+4. **Advanced Features**: 10 minutes
+5. **AI Features**: 10 minutes
+6. **Project Updates & Cleanup**: 5 minutes
+
+## Common Testing Issues and Solutions
+
+### Authentication Problems
+
+**Issue**: Token not recognized or 401 errors
+**Solution**: 
+- Check that the token was saved correctly to environment
+- Try logging in again to refresh the token
+- Verify token format in Authorization header (should be `Bearer [token]`)
+
+### Task Creation Issues
+
+**Issue**: Cannot create task in project
+**Solution**:
+- Verify project_id is correct
+- Ensure you have sufficient permissions (Admin or Contributor role)
+- Check that all required fields are provided (title is mandatory)
+
+### Task Dependencies
+
+**Issue**: Cannot add dependency between tasks
+**Solution**:
+- Make sure both tasks exist and IDs are correct
+- Verify tasks are in the same project
+- Check for circular dependency issues (task1 → task2 → task3 → task1)
+
+### Time Tracking
+
+**Issue**: Cannot stop time tracking
+**Solution**:
+- Verify you started tracking on the same task
+- Check that you're using the same user account that started tracking
+- Ensure backend server hasn't restarted (which might reset active tracking)
+
+### AI Feature Issues
+
+**Issue**: AI-generated tasks not saving
+**Solution**:
+- Check that the generated_tasks variable was properly set
+- Verify the JSON structure matches what the API expects
+- Ensure you have contributor permissions on the project

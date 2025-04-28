@@ -841,15 +841,18 @@ const DirectoryLayout = () => {
             </motion.div>
 
             {/* Mobile header */}
-            <div className="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-3 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800/50">
-              <div className="flex items-center justify-between">
-                <h1 className="text-lg font-semibold text-slate-200">
-                  {currentDirectory?.name || 'Directory'}
-                </h1>
+            <div className="lg:hidden sticky top-0 z-40 w-full bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-4 py-3">
+              <h1 className="text-lg font-bold text-white truncate max-w-[70vw]">{currentDirectory?.name || 'Directory'}</h1>
+              <div className="flex items-center gap-2">
                 <IconButton
                   icon={<FaFolder />}
                   onClick={() => setIsMobileDrawerOpen(true)}
                   tooltip="Open menu"
+                />
+                <IconButton
+                  icon={<FaPlus />}
+                  onClick={() => setShowCreateSnippetModal(true)}
+                  tooltip="New Snippet"
                 />
               </div>
             </div>
@@ -858,7 +861,7 @@ const DirectoryLayout = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 min-w-0"
+              className="flex-1 min-w-0 pb-24 md:pb-0"
             >
               <div className="space-y-6">
                 {selectedSnippet ? (
@@ -922,15 +925,16 @@ const DirectoryLayout = () => {
         </Container>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer - improved for mobile UX */}
       <motion.div
         initial={{ x: '100%' }}
         animate={{ x: isMobileDrawerOpen ? 0 : '100%' }}
         transition={{ type: 'spring', damping: 20 }}
         className="fixed inset-y-0 right-0 w-full max-w-sm z-50 lg:hidden"
+        style={{ touchAction: 'pan-y' }}
       >
-        <div className="h-full bg-slate-900/95 backdrop-blur-xl border-l border-slate-800/50 shadow-xl">
-          <div className="p-4 border-b border-slate-800/50 flex items-center justify-between">
+        <div className="h-full flex flex-col bg-slate-900/95 backdrop-blur-xl border-l border-slate-800/50 shadow-xl">
+          <div className="sticky top-0 z-10 p-4 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/95">
             <h2 className="text-lg font-semibold text-slate-200">Directory</h2>
             <IconButton
               icon={<FaChevronRight />}
@@ -938,7 +942,7 @@ const DirectoryLayout = () => {
               tooltip="Close menu"
             />
           </div>
-          <div className="p-4 space-y-4">
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto styled-scrollbar">
             <div className="flex gap-2">
               <Button
                 onClick={() => {
@@ -1011,6 +1015,15 @@ const DirectoryLayout = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Floating Action Button for mobile */}
+      <button
+        className="lg:hidden fixed bottom-6 right-6 z-50 p-4 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl hover:scale-105 transition-transform"
+        onClick={() => setShowCreateSnippetModal(true)}
+        aria-label="Create new snippet"
+      >
+        <FaPlus className="w-6 h-6" />
+      </button>
 
       {/* Modals */}
       <CreateSnippetModal

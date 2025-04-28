@@ -509,13 +509,14 @@ const GroupLayout = () => {
         </button>
       </div>
 
-      <div className="flex h-screen md:h-[calc(100vh-4rem)] pt-16 md:pt-20">
+      <div className="flex h-screen md:h-screen pt-16 md:pt-20 overflow-hidden">
         {/* Sidebar */}
         <div className={`fixed inset-y-0 left-0 z-40 w-72 transform 
                       ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                       md:relative md:translate-x-0 transition-transform duration-300
                       bg-slate-900/95 backdrop-blur-xl border-r border-slate-800/50
-                      ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}>
+                      ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}
+                      overflow-hidden flex flex-col`}>
           <GroupSideBar
             isMobile={isMobile}
             isSidebarOpen={isSidebarOpen}
@@ -542,12 +543,12 @@ const GroupLayout = () => {
             }}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            className="h-full"
+            className="h-full overflow-y-auto"
           />
         </div>
 
         {/* Chat Panel */}
-        <div className={`fixed inset-y-0 right-0 z-30 w-96 transform
+        <div className={`fixed inset-y-0 right-0 z-30 transform flex flex-col
                       ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}
                       transition-transform duration-300
                       bg-slate-900/95 backdrop-blur-xl border-l border-slate-800/50
@@ -561,24 +562,32 @@ const GroupLayout = () => {
             isFullScreen={isFullScreenChat}
             onToggleFullScreen={() => setIsFullScreenChat(!isFullScreenChat)}
             user={user}
-            className="h-full"
+            className="h-full overflow-hidden flex-1 flex flex-col"
           />
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <motion.div 
             layout
+            initial={{ opacity: 0.9, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className={`
-              flex-1 p-6 md:p-8
+              flex-1 p-4 md:p-6 lg:p-8 overflow-hidden flex flex-col
               transition-all duration-300 ease-out
               ${!isMobile && isChatOpen ? 'mr-96' : ''}
               relative
             `}>
-            <div className="bg-slate-900/90 backdrop-blur-xl h-full 
-                          rounded-2xl p-6 md:p-8
-                          border border-slate-800/50
-                          shadow-2xl shadow-slate-950/20">
+            <div className="bg-gradient-to-br from-slate-900/95 to-slate-950/90 backdrop-blur-xl 
+                          rounded-2xl p-5 md:p-6 lg:p-8
+                          border border-slate-800/40
+                          shadow-[0_8px_30px_rgb(0,0,0,0.12)]
+                          relative flex-1 overflow-auto">
+              {/* Decorative elements */}
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-500/20 to-transparent"></div>
+              <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-slate-500/20 via-transparent to-transparent"></div>
+              
               <MainContent 
                 directory={currentDirectory}
                 selectedSnippet={selectedSnippet}
@@ -592,20 +601,40 @@ const GroupLayout = () => {
       {/* Chat Toggle Button */}
       {!isChatOpen && !isMobile && (
         <motion.button
-          whileHover={{ scale: 1.05 }}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setChatOpen(true)}
           className="fixed bottom-8 right-8 p-4 rounded-xl
                      bg-gradient-to-br from-slate-800 to-slate-900
                      text-slate-300 hover:text-slate-200
-                     border border-slate-700/50 hover:border-slate-600/50
-                     shadow-lg shadow-slate-950/20
-                     transition-all duration-200 z-20 group"
+                     border border-slate-700/30 hover:border-slate-600/40
+                     shadow-lg shadow-slate-950/30 hover:shadow-xl
+                     transition-all duration-300 z-20 group
+                     flex items-center justify-center"
         >
-          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-700 text-xs flex items-center justify-center border border-slate-600">
-            {messages.length > 0 ? Math.min(messages.length, 9) : 0}
-          </div>
-          <FaComments size={20} className="group-hover:scale-110 transition-transform duration-200" />
+          {messages.length > 0 && (
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-2 -right-2 w-5 h-5 rounded-full 
+                       bg-gradient-to-r from-indigo-500 to-blue-500
+                       text-xs font-medium text-white 
+                       flex items-center justify-center 
+                       border border-slate-600/50 shadow-sm"
+            >
+              {messages.length > 9 ? '9+' : messages.length}
+            </motion.div>
+          )}
+          <FaComments size={20} className="group-hover:scale-110 transition-transform duration-300" />
+          <motion.span 
+            initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+            whileHover={{ width: 'auto', opacity: 1, marginLeft: 8 }}
+            className="overflow-hidden whitespace-nowrap text-sm font-medium">
+            Chat
+          </motion.span>
         </motion.button>
       )}
 
@@ -670,6 +699,9 @@ const GroupLayout = () => {
         directoryId={selectedDirectory?._id}
         onDirectoryUpdated={(updatedDirectory) => {
           // Handle updated directory
+          setEditDirectoryModalOpen(false);
+          // Refresh content
+          fetchGroupContent();
         }}
       />
 
@@ -1049,6 +1081,14 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
   const [isExportSnippetModalOpen, setExportSnippetModalOpen] = useState(false);
   const [isExportDirectoryModalOpen, setExportDirectoryModalOpen] = useState(false);
   const [isEditDirectoryModalOpen, setEditDirectoryModalOpen] = useState(false);
+  const [selectedDirectory, setSelectedDirectory] = useState(null);
+  
+  // When directory prop changes, update the selectedDirectory state
+  useEffect(() => {
+    if (directory) {
+      setSelectedDirectory(directory);
+    }
+  }, [directory]);
   
   // Add logging for current directory and snippets
   useEffect(() => {
@@ -1233,11 +1273,11 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
       
       <EditDirectoryDetails
         isOpen={isEditDirectoryModalOpen}
-        onClose={() => setIsEditDirectoryModalOpen(false)}
-        directoryId={directory?._id}
+        onClose={() => setEditDirectoryModalOpen(false)}
+        directoryId={selectedDirectory?._id}
         onDirectoryUpdated={(updatedDirectory) => {
           // Handle updated directory
-          setIsEditDirectoryModalOpen(false);
+          setEditDirectoryModalOpen(false);
           // Refresh content
           fetchGroupContent();
         }}
@@ -1245,8 +1285,8 @@ const MainContent = ({ directory, selectedSnippet, searchTerm }) => {
       
       <ExportDirectoryModal
         isOpen={isExportDirectoryModalOpen}
-        onClose={() => setIsExportDirectoryModalOpen(false)}
-        directoryId={directory?._id}
+        onClose={() => setExportDirectoryModalOpen(false)}
+        directoryId={selectedDirectory?._id}
       />
     </div>
   );

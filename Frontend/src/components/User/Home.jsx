@@ -270,7 +270,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900">
       <TopBar user={user} />
-      <main className="pt-20 pb-20 md:pb-0">
+      <main className="pt-2 pb-20 md:pb-0">
         <DashboardTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {activeTab === "overview" && (
