@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProject } from '../../Context/ProjectContext';
+import { useAuth } from '../../Context/UserContext';
 import { 
   FiEdit2, 
   FiTrash2, 
@@ -18,7 +20,6 @@ import ProjectMembers from './ProjectMembers';
 import AiTaskGenerator from '../Tasks/AiTaskGenerator';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import { format } from 'date-fns';
-import { useAuth } from '../../Context/AuthContext';
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -231,7 +232,7 @@ const ProjectDetails = () => {
       {/* Tab Content */}
       <div>
         {activeTab === 'dashboard' && <ProjectDashboard projectId={projectId} />}
-        
+
         {activeTab === 'tasks' && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">

@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import * as projectService from '../services/projectService';
+import taskService from '../services/taskService';
 import {
   initializeSocket,
   sendMessage,
@@ -9,15 +9,66 @@ import {
   getSocket
 } from '../Config/Socket';
 import { toast } from 'react-toastify';
-import { useAuth } from './AuthContext';
+import { useAuth } from './UserContext';
+import { useNotification } from './NotificationContext';
 
 const ProjectContext = createContext();
 
-export const useProject = () => useContext(ProjectContext);
+export const useProject = () => {
+  const context = useContext(ProjectContext);
+  if (!context) {
+    throw new Error('useProject must be used within a ProjectProvider');
+  }
+  return context;
+}
+
+// Error Boundary for ProjectProvider
+class ProjectErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error, errorInfo) {
+    // Log error to a service
+    console.error('ProjectProvider error:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 bg-red-50 border border-red-200 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold text-red-800 mb-3">Something went wrong in the Project Provider</h2>
+          <p className="text-red-600 mb-4">We encountered an error while loading project data.</p>
+          <pre className="bg-red-100 p-4 rounded text-red-800 text-sm overflow-auto max-h-60 mb-4">
+            {this.state.error?.message || 'Unknown error'}
+          </pre>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.href = '/projects';
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors"
+          >
+            Return to Projects
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export const ProjectProvider = ({ children }) => {
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
+  const { currentUser, loading: authLoading } = useAuth();
+  const { addNotification } = useNotification();
+  const socketRef = useRef(null);
+  
+  // State
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -28,10 +79,78 @@ export const ProjectProvider = ({ children }) => {
   const [projectDashboard, setProjectDashboard] = useState(null);
   const [aiGeneratedTasks, setAiGeneratedTasks] = useState(null);
   const [refresh, setRefresh] = useState(0);
-
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [taskFilters, setTaskFilters] = useState({
+    status: 'all',
+    assignee: 'all',
+    priority: 'all',
+    dueDate: 'all',
+    search: ''
+  });
+  
   // Force refresh function
-  const refreshData = () => setRefresh(prev => prev + 1);
-
+  const refreshData = useCallback(() => setRefresh(prev => prev + 1), []);
+  
+  // Socket management
+  const setupSocketConnection = useCallback((projectId) => {
+    if (!currentUser?.token) return;
+    
+    try {
+      // Clean up previous connection if it exists
+      if (socketRef.current) {
+        disconnectSocket();
+      }
+      
+      // Initialize new connection
+      initializeSocket({ 
+        projectId, 
+        token: currentUser.token, 
+        namespace: '/projects' 
+      });
+      
+      socketRef.current = getSocket();
+      
+      // Event for connection status
+      socketRef.current.on('connect', () => {
+        setSocketConnected(true);
+        console.log('Socket connected');
+      });
+      
+      socketRef.current.on('disconnect', (reason) => {
+        setSocketConnected(false);
+        console.log('Socket disconnected:', reason);
+        
+        // Auto reconnect except if manually disconnected
+        if (reason !== 'io client disconnect') {
+          setTimeout(() => {
+            setupSocketConnection(projectId);
+          }, 5000);
+        }
+      });
+      
+      socketRef.current.on('connect_error', (err) => {
+        console.error('Socket connection error:', err);
+        setSocketConnected(false);
+      });
+      
+      setupSocketListeners();
+      
+    } catch (err) {
+      console.error('Error setting up socket connection:', err);
+      setSocketConnected(false);
+    }
+  }, [currentUser]);
+  
+  // Clean up socket on unmount
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        disconnectSocket();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+  
   // Fetch user's projects
   useEffect(() => {
     const loadProjects = async () => {
@@ -39,83 +158,133 @@ export const ProjectProvider = ({ children }) => {
       
       try {
         setLoading(true);
-        const data = await projectService.fetchProjects();
-        setProjects(data.projects);
+        const response = await projectService.fetchProjects();
+        setProjects(response.data.projects || []);
       } catch (err) {
         console.error('Error loading projects:', err);
         setError(err.message || 'Failed to load projects');
+        
+        // Show notification
+        addNotification({
+          type: 'error',
+          message: 'Failed to load projects'
+        });
       } finally {
         setLoading(false);
       }
     };
-
+    
     loadProjects();
-  }, [currentUser, refresh]);
-
+  }, [currentUser, refresh, addNotification]);
+  
   // Load project by ID
-  const loadProject = async (projectId) => {
-    if (!projectId) return;
+  const loadProject = useCallback(async (projectId) => {
+    if (!projectId || !currentUser) return;
+    
     try {
       setLoading(true);
-      const data = await projectService.fetchProjectById(projectId);
-      setCurrentProject(data.project);
+      
+      // Reset states when loading a new project
+      setCurrentProject(null);
+      setTasks([]);
+      setProjectMembers([]);
+      setProjectDashboard(null);
+      setActiveUsers([]);
+      
+      const response = await projectService.fetchProjectById(projectId);
+      setCurrentProject(response.data.project);
+      
+      // Load associated data
       await loadTasks(projectId);
-      setProjectMembers(data.project.members);
+      await loadProjectMembers(projectId);
       await loadProjectDashboard(projectId);
-      // Connect to project socket
-      if (currentUser) {
-        initializeSocket({ projectId, token: currentUser.token, namespace: '/projects' });
-        setupSocketListeners();
-      }
+      
+      // Set up socket connection
+      setupSocketConnection(projectId);
+      
+      return response.data.project;
     } catch (err) {
       console.error(`Error loading project ${projectId}:`, err);
       setError(err.message || 'Failed to load project');
-      toast.error('Failed to load project');
+      
+      // Show notification
+      addNotification({
+        type: 'error',
+        message: 'Failed to load project'
+      });
+      
+      return null;
     } finally {
       setLoading(false);
     }
-  };
-
-  // Load project dashboard
+  }, [currentUser, addNotification, setupSocketConnection]);
+  
+  // Load project dashboard data
   const loadProjectDashboard = async (projectId) => {
     try {
-      const data = await projectService.fetchProjectDashboard(projectId);
-      setProjectDashboard(data.dashboard);
+      const response = await projectService.fetchProjectDashboard(projectId);
+      setProjectDashboard(response.data);
     } catch (err) {
       console.error(`Error loading project dashboard ${projectId}:`, err);
     }
   };
-
+  
   // Load tasks for a project
   const loadTasks = async (projectId) => {
     try {
-      const data = await projectService.fetchTasks(projectId);
-      setTasks(data.tasks || []);
+      const response = await taskService.getTasksByProject(projectId);
+      setTasks(response.data.tasks || []);
+      return response.data.tasks;
     } catch (err) {
       console.error(`Error loading tasks for project ${projectId}:`, err);
-      toast.error('Failed to load tasks');
+      addNotification({
+        type: 'error',
+        message: 'Failed to load tasks'
+      });
+      return [];
     }
   };
-
-  // Create new project
+  
+  // Load project members
+  const loadProjectMembers = async (projectId) => {
+    try {
+      const response = await projectService.fetchProjectMembers(projectId);
+      setProjectMembers(response.data.members || []);
+      return response.data.members;
+    } catch (err) {
+      console.error(`Error loading members for project ${projectId}:`, err);
+      return [];
+    }
+  };
+  
+  // Create a new project
   const createNewProject = async (projectData) => {
     try {
       setLoading(true);
       const response = await projectService.createProject(projectData);
-      setProjects([...projects, response.project]);
-      toast.success('Project created successfully');
-      navigate(`/projects/${response.project._id}`);
-      return response.project;
+      
+      setProjects(prev => [...prev, response.data.project]);
+      
+      addNotification({
+        type: 'success',
+        message: 'Project created successfully'
+      });
+      
+      return response.data.project;
     } catch (err) {
-      console.error('Error creating project:', err);
       setError(err.message || 'Failed to create project');
-      toast.error('Failed to create project');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to create project'
+      });
+      
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Update project
   const updateProject = async (projectId, projectData) => {
     try {
@@ -123,445 +292,622 @@ export const ProjectProvider = ({ children }) => {
       const response = await projectService.updateProject(projectId, projectData);
       
       // Update projects list
-      setProjects(projects.map(p => 
-        p._id === projectId ? { ...p, ...response.project } : p
-      ));
+      setProjects(prev => 
+        prev.map(p => p._id === projectId ? response.data.project : p)
+      );
       
-      // Update current project if it's the one being edited
+      // Update current project if it's the active one
       if (currentProject && currentProject._id === projectId) {
-        setCurrentProject({ ...currentProject, ...response.project });
+        setCurrentProject(response.data.project);
       }
       
-      // Emit socket event for real-time updates
-      sendMessage('projectUpdate', {
-        projectId,
-        updates: projectData
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('project_update', { projectId });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Project updated successfully'
       });
       
-      toast.success('Project updated successfully');
-      return response.project;
+      return response.data.project;
     } catch (err) {
-      console.error(`Error updating project ${projectId}:`, err);
       setError(err.message || 'Failed to update project');
-      toast.error('Failed to update project');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to update project'
+      });
+      
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Delete project
   const deleteProject = async (projectId) => {
     try {
       setLoading(true);
       await projectService.deleteProject(projectId);
       
-      // Remove from projects list
-      setProjects(projects.filter(p => p._id !== projectId));
+      // Update projects list
+      setProjects(prev => prev.filter(p => p._id !== projectId));
       
-      // Clear current project if it's the one being deleted
+      // If current project is deleted, reset data
       if (currentProject && currentProject._id === projectId) {
         setCurrentProject(null);
-        disconnectSocket();
+        setTasks([]);
+        setProjectMembers([]);
+        setProjectDashboard(null);
+        
+        // Clean up socket connection
+        if (socketRef.current) {
+          disconnectSocket();
+          socketRef.current = null;
+        }
       }
       
-      toast.success('Project deleted successfully');
-      navigate('/projects');
-    } catch (err) {
-      console.error(`Error deleting project ${projectId}:`, err);
-      setError(err.message || 'Failed to delete project');
-      toast.error('Failed to delete project');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add member to project
-  const addMember = async (projectId, memberData) => {
-    try {
-      setLoading(true);
-      const response = await projectService.addProjectMember(projectId, memberData);
-      
-      // Update current project members
-      if (currentProject && currentProject._id === projectId) {
-        setProjectMembers([...projectMembers, response.member]);
-      }
-      
-      // Emit socket event for real-time updates
-      sendMessage('projectUpdate', {
-        projectId,
-        action: 'member_added',
-        member: response.member
+      addNotification({
+        type: 'success',
+        message: 'Project deleted successfully'
       });
       
-      toast.success('Member added successfully');
-      return response.member;
+      return { success: true, redirectTo: '/projects' };
     } catch (err) {
-      console.error(`Error adding member to project ${projectId}:`, err);
-      setError(err.message || 'Failed to add member');
-      toast.error(err.response?.data?.message || 'Failed to add member');
+      setError(err.message || 'Failed to delete project');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to delete project'
+      });
+      
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
+  
+  // Create task
+  const createTask = async (projectId, taskData) => {
+    try {
+      setLoading(true);
+      const response = await taskService.createTask(projectId, taskData);
+      
+      // Add task to state if not a subtask
+      if (!taskData.parentTaskId) {
+        setTasks(prev => [...prev, response.data.task]);
+      } else {
+        // If it's a subtask, reload all tasks to get the correct hierarchy
+        await loadTasks(projectId);
+      }
+      
+      // Update dashboard data
+      await loadProjectDashboard(projectId);
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('new_task', {
+          projectId,
+          task: response.data.task
+        });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Task created successfully'
+      });
+      
+      return response.data.task;
+    } catch (err) {
+      setError(err.message || 'Failed to create task');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to create task'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Update task
+  const updateTask = async (taskId, taskData) => {
+    try {
+      setLoading(true);
+      const response = await taskService.updateTask(taskId, taskData);
+      
+      if (currentProject) {
+        // Reload tasks to get updated structure
+        await loadTasks(currentProject._id);
+        
+        // Update dashboard if status changed
+        if (taskData.status) {
+          await loadProjectDashboard(currentProject._id);
+        }
+      }
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('task_update', {
+          taskId,
+          updates: taskData
+        });
+        
+        // Send special event for status changes
+        if (taskData.status) {
+          sendMessage('status_change', {
+            taskId,
+            status: taskData.status
+          });
+        }
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Task updated successfully'
+      });
+      
+      return response.data.task;
+    } catch (err) {
+      setError(err.message || 'Failed to update task');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to update task'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Delete task
+  const deleteTask = async (taskId) => {
+    try {
+      setLoading(true);
+      await taskService.deleteTask(taskId);
+      
+      if (currentProject) {
+        // Reload tasks to refresh the list
+        await loadTasks(currentProject._id);
+        await loadProjectDashboard(currentProject._id);
+      }
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('task_deleted', { taskId });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Task deleted successfully'
+      });
+      
+      return true;
+    } catch (err) {
+      setError(err.message || 'Failed to delete task');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to delete task'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Assign task to users
+  const assignTask = async (taskId, userIds) => {
+    try {
+      setLoading(true);
+      const response = await taskService.assignTask(taskId, userIds);
+      
+      if (currentProject) {
+        await loadTasks(currentProject._id);
+      }
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('task_assigned', {
+          taskId,
+          userIds
+        });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Task assigned successfully'
+      });
+      
+      return response.data.task;
+    } catch (err) {
+      setError(err.message || 'Failed to assign task');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to assign task'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Add comment to task
+  const addComment = async (taskId, commentData) => {
+    try {
+      setLoading(true);
+      const response = await taskService.addTaskComment(taskId, commentData);
+      
+      if (currentProject) {
+        await loadTasks(currentProject._id);
+      }
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('new_comment', {
+          taskId,
+          comment: response.data.comment
+        });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Comment added successfully'
+      });
+      
+      return response.data.comment;
+    } catch (err) {
+      setError(err.message || 'Failed to add comment');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to add comment'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Generate tasks with AI
+  const generateTasks = async (description) => {
+    try {
+      setLoading(true);
+      
+      if (!currentProject?._id) {
+        throw new Error('No project selected');
+      }
+      
+      const response = await taskService.generateTasksWithAI(currentProject._id, { description });
+      setAiGeneratedTasks(response.data.tasks);
+      
+      addNotification({
+        type: 'success',
+        message: 'Tasks generated successfully'
+      });
+      
+      return response.data.tasks;
+    } catch (err) {
+      setError(err.message || 'Failed to generate tasks');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to generate tasks'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Add AI-generated tasks to project
+  const addGeneratedTasksToProject = async (projectId, tasks) => {
+    try {
+      setLoading(true);
+      await taskService.saveGeneratedTasks(projectId, tasks);
+      setAiGeneratedTasks(null);
+      
+      // Refresh data
+      await loadTasks(projectId);
+      await loadProjectDashboard(projectId);
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('tasks_added', { projectId });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Tasks added to project successfully'
+      });
+      
+      return true;
+    } catch (err) {
+      setError(err.message || 'Failed to add generated tasks');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to add generated tasks'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Add member to project
+  const addMember = async (projectId, { email, role }) => {
+    try {
+      setLoading(true);
+      await projectService.addProjectMember(projectId, email, role);
+      
+      // Refresh members
+      await loadProjectMembers(projectId);
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('member_added', { projectId, email });
+      }
+      
+      addNotification({
+        type: 'success',
+        message: 'Member added successfully'
+      });
+      
+      return true;
+    } catch (err) {
+      setError(err.message || 'Failed to add member');
+      
+      addNotification({
+        type: 'error',
+        message: err.response?.data?.message || err.message || 'Failed to add member'
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Remove member from project
   const removeMember = async (projectId, memberId) => {
     try {
       setLoading(true);
       await projectService.removeProjectMember(projectId, memberId);
       
-      // Update current project members
-      if (currentProject && currentProject._id === projectId) {
-        setProjectMembers(projectMembers.filter(m => m.user._id !== memberId));
+      // Refresh members
+      await loadProjectMembers(projectId);
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('member_removed', { projectId, memberId });
       }
       
-      // Emit socket event for real-time updates
-      sendMessage('projectUpdate', {
-        projectId,
-        action: 'member_removed',
-        memberId
+      addNotification({
+        type: 'success',
+        message: 'Member removed successfully'
       });
       
-      toast.success('Member removed successfully');
+      return true;
     } catch (err) {
-      console.error(`Error removing member ${memberId} from project ${projectId}:`, err);
       setError(err.message || 'Failed to remove member');
-      toast.error('Failed to remove member');
+      
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to remove member'
+      });
+      
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Update member role
   const updateMemberRole = async (projectId, memberId, role) => {
     try {
       setLoading(true);
-      const response = await projectService.updateMemberRole(projectId, memberId, { role });
+      await projectService.updateMemberRole(projectId, memberId, role);
       
-      // Update current project members
-      if (currentProject && currentProject._id === projectId) {
-        setProjectMembers(projectMembers.map(m => 
-          m.user._id === memberId ? { ...m, role: response.member.role } : m
-        ));
+      // Refresh members
+      await loadProjectMembers(projectId);
+      
+      // Broadcast update via socket
+      if (socketConnected) {
+        sendMessage('member_role_updated', { projectId, memberId, role });
       }
       
-      // Emit socket event for real-time updates
-      sendMessage('projectUpdate', {
-        projectId,
-        action: 'role_updated',
-        memberId,
-        role
+      addNotification({
+        type: 'success',
+        message: 'Member role updated successfully'
       });
       
-      toast.success('Member role updated successfully');
+      return true;
     } catch (err) {
-      console.error(`Error updating role for member ${memberId} in project ${projectId}:`, err);
-      setError(err.message || 'Failed to update role');
-      toast.error('Failed to update member role');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create task
-  const createTask = async (projectId, taskData) => {
-    try {
-      setLoading(true);
-      const response = await projectService.createTask(projectId, taskData);
+      setError(err.message || 'Failed to update member role');
       
-      // Update tasks list
-      if (!taskData.parentTaskId) {
-        // Add as root level task
-        setTasks([...tasks, response.task]);
-      } else {
-        // Add as subtask - we'll need to reload tasks to get the updated hierarchy
-        await loadTasks(projectId);
-      }
-      
-      // Emit socket event for real-time updates
-      sendMessage('newTask', {
-        projectId,
-        task: response.task
+      addNotification({
+        type: 'error',
+        message: err.message || 'Failed to update member role'
       });
       
-      toast.success('Task created successfully');
-      return response.task;
-    } catch (err) {
-      console.error(`Error creating task in project ${projectId}:`, err);
-      setError(err.message || 'Failed to create task');
-      toast.error('Failed to create task');
       throw err;
     } finally {
       setLoading(false);
     }
   };
-
-  // Update task
-  const updateTaskFunc = async (taskId, taskData) => {
+  
+  // Filter tasks
+  const filterTasks = async (filters) => {
     try {
-      setLoading(true);
-      const response = await projectService.updateTask(taskId, taskData);
+      setTaskFilters(prev => ({ ...prev, ...filters }));
       
-      // Update tasks list - reload tasks to ensure hierarchy is correct
-      if (currentProject) {
-        await loadTasks(currentProject._id);
-      }
+      if (!currentProject) return tasks;
       
-      // Emit socket event for real-time updates
-      sendMessage('taskUpdate', {
-        taskId,
-        updates: taskData
-      });
-      
-      // If status was changed, emit a specific status change event
-      if (taskData.status) {
-        sendMessage('statusChange', {
-          taskId,
-          status: taskData.status
-        });
-      }
-      
-      toast.success('Task updated successfully');
-      return response.task;
+      const response = await taskService.filterTasks(currentProject._id, filters);
+      return response.data.tasks;
     } catch (err) {
-      console.error(`Error updating task ${taskId}:`, err);
-      setError(err.message || 'Failed to update task');
-      toast.error('Failed to update task');
-      throw err;
-    } finally {
-      setLoading(false);
+      console.error('Error filtering tasks:', err);
+      return tasks;
     }
   };
-
-  // Delete task
-  const deleteTask = async (taskId) => {
-    try {
-      setLoading(true);
-      await projectService.deleteTask(taskId);
-      
-      // Update tasks list - reload tasks to ensure hierarchy is correct
-      if (currentProject) {
-        await loadTasks(currentProject._id);
-        await loadProjectDashboard(currentProject._id); // Also refresh dashboard
-      }
-      
-      toast.success('Task deleted successfully');
-    } catch (err) {
-      console.error(`Error deleting task ${taskId}:`, err);
-      setError(err.message || 'Failed to delete task');
-      toast.error('Failed to delete task');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Assign task to users
-  const assignTask = async (taskId, userIds) => {
-    try {
-      setLoading(true);
-      const response = await projectService.assignTask(taskId, userIds);
-      
-      // Update tasks list - reload tasks to update assignments
-      if (currentProject) {
-        await loadTasks(currentProject._id);
-      }
-      
-      // Emit socket event for real-time updates
-      sendMessage('taskAssigned', {
-        taskId,
-        userIds
-      });
-      
-      toast.success('Task assigned successfully');
-      return response.task;
-    } catch (err) {
-      console.error(`Error assigning users to task ${taskId}:`, err);
-      setError(err.message || 'Failed to assign task');
-      toast.error('Failed to assign task');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add comment to task
-  const addComment = async (taskId, commentData) => {
-    try {
-      setLoading(true);
-      const response = await projectService.addComment(taskId, commentData);
-      
-      // Emit socket event for real-time updates
-      sendMessage('newComment', {
-        taskId,
-        comment: response.comment
-      });
-      
-      toast.success('Comment added successfully');
-      
-      // Reload task data to include the new comment
-      if (currentProject) {
-        await loadTasks(currentProject._id);
-      }
-      
-      return response.comment;
-    } catch (err) {
-      console.error(`Error adding comment to task ${taskId}:`, err);
-      setError(err.message || 'Failed to add comment');
-      toast.error('Failed to add comment');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Generate tasks with AI
-  const generateTasks = async (description) => {
-    try {
-      setLoading(true);
-      const response = await projectService.generateTasksWithAI(
-        currentProject?._id,
-        description
-      );
-      
-      setAiGeneratedTasks(response.tasks);
-      toast.success('Tasks generated successfully');
-      return response.tasks;
-    } catch (err) {
-      console.error('Error generating tasks with AI:', err);
-      setError(err.message || 'Failed to generate tasks');
-      toast.error('Failed to generate tasks');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add AI-generated tasks to project
-  const addGeneratedTasksToProject = async (projectId, tasks) => {
-    try {
-      setLoading(true);
-      
-      // Create tasks one by one, maintaining the hierarchy
-      const rootTaskIds = [];
-      
-      // First create all root tasks
-      for (const task of tasks) {
-        const newTask = await projectService.createTask(projectId, {
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          aiGenerated: true
-        });
-        
-        rootTaskIds.push({ taskId: newTask.task._id, subtasks: task.subtasks });
-      }
-      
-      // Then create subtasks for each root task
-      for (const { taskId, subtasks } of rootTaskIds) {
-        if (subtasks && subtasks.length > 0) {
-          await createSubtasks(projectId, taskId, subtasks);
-        }
-      }
-      
-      // Clear generated tasks
-      setAiGeneratedTasks(null);
-      
-      // Reload tasks
-      await loadTasks(projectId);
-      await loadProjectDashboard(projectId);
-      
-      toast.success('AI-generated tasks added to project');
-    } catch (err) {
-      console.error('Error adding generated tasks:', err);
-      setError(err.message || 'Failed to add generated tasks');
-      toast.error('Failed to add generated tasks');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Recursive function to create subtasks
-  const createSubtasks = async (projectId, parentTaskId, subtasks) => {
-    for (const subtask of subtasks) {
-      const newSubtask = await projectService.createTask(projectId, {
-        title: subtask.title,
-        description: subtask.description,
-        priority: subtask.priority,
-        parentTaskId,
-        aiGenerated: true
-      });
-      
-      if (subtask.subtasks && subtask.subtasks.length > 0) {
-        await createSubtasks(projectId, newSubtask.task._id, subtask.subtasks);
-      }
-    }
-  };
-
+  
   // Set up socket listeners for real-time updates
   const setupSocketListeners = () => {
-    receiveMessage('userJoined', (data) => {
-      setActiveUsers(prev => [...prev, data.userId]);
-      toast.info('A team member joined the project');
+    // Track active users
+    receiveMessage('user_joined', (data) => {
+      setActiveUsers(prev => [...prev.filter(id => id !== data.userId), data.userId]);
+      
+      addNotification({
+        type: 'info',
+        message: 'A team member joined the project'
+      });
     });
-    receiveMessage('userLeft', (data) => {
+    
+    receiveMessage('user_left', (data) => {
       setActiveUsers(prev => prev.filter(id => id !== data.userId));
-      toast.info('A team member left the project');
+      
+      addNotification({
+        type: 'info',
+        message: 'A team member left the project'
+      });
     });
-    receiveMessage('taskUpdate', (data) => {
+    
+    // Task updates
+    receiveMessage('task_update', async (data) => {
       if (currentProject) {
-        loadTasks(currentProject._id);
+        await loadTasks(currentProject._id);
       }
-      toast.info(`Task updated by a team member`);
+      
+      addNotification({
+        type: 'info',
+        message: `Task updated by a team member`
+      });
     });
-    receiveMessage('taskAssigned', (data) => {
+    
+    receiveMessage('task_assigned', async (data) => {
       if (currentProject) {
-        loadTasks(currentProject._id);
+        await loadTasks(currentProject._id);
       }
-      toast.info('Task assignment changed by a team member');
+      
+      addNotification({
+        type: 'info',
+        message: 'Task assignment changed by a team member'
+      });
     });
-    receiveMessage('newTask', (data) => {
+    
+    receiveMessage('new_task', async (data) => {
       if (currentProject) {
-        loadTasks(currentProject._id);
+        await loadTasks(currentProject._id);
+        await loadProjectDashboard(currentProject._id);
       }
-      toast.info('New task added by a team member');
+      
+      addNotification({
+        type: 'info',
+        message: 'New task added by a team member'
+      });
     });
-    receiveMessage('statusChange', (data) => {
+    
+    receiveMessage('task_deleted', async (data) => {
       if (currentProject) {
-        loadTasks(currentProject._id);
-        loadProjectDashboard(currentProject._id);
+        await loadTasks(currentProject._id);
+        await loadProjectDashboard(currentProject._id);
       }
-      toast.info(`Task status changed to ${data.status}`);
+      
+      addNotification({
+        type: 'info',
+        message: 'A task was deleted by a team member'
+      });
     });
-    receiveMessage('newComment', (data) => {
+    
+    receiveMessage('status_change', async (data) => {
       if (currentProject) {
-        loadTasks(currentProject._id);
+        await loadTasks(currentProject._id);
+        await loadProjectDashboard(currentProject._id);
       }
-      toast.info('New comment added by a team member');
+      
+      addNotification({
+        type: 'info',
+        message: `Task status changed to ${data.status}`
+      });
     });
-    receiveMessage('projectUpdate', (data) => {
+    
+    receiveMessage('new_comment', async (data) => {
+      if (currentProject) {
+        await loadTasks(currentProject._id);
+      }
+      
+      addNotification({
+        type: 'info',
+        message: 'New comment added by a team member'
+      });
+    });
+    
+    // Project updates
+    receiveMessage('project_update', async (data) => {
       if (currentProject && currentProject._id === data.projectId) {
-        loadProject(currentProject._id);
+        await loadProject(currentProject._id);
       }
+      
+      // Refresh projects list
       refreshData();
-      toast.info('Project updated by a team member');
+      
+      addNotification({
+        type: 'info',
+        message: 'Project updated by a team member'
+      });
+    });
+    
+    // Member updates
+    receiveMessage('member_added', async (data) => {
+      if (currentProject && currentProject._id === data.projectId) {
+        await loadProjectMembers(currentProject._id);
+      }
+      
+      addNotification({
+        type: 'info',
+        message: 'New member added to the project'
+      });
+    });
+    
+    receiveMessage('member_removed', async (data) => {
+      if (currentProject && currentProject._id === data.projectId) {
+        await loadProjectMembers(currentProject._id);
+      }
+      
+      addNotification({
+        type: 'info',
+        message: 'A member was removed from the project'
+      });
+    });
+    
+    receiveMessage('member_role_updated', async (data) => {
+      if (currentProject && currentProject._id === data.projectId) {
+        await loadProjectMembers(currentProject._id);
+      }
+      
+      addNotification({
+        type: 'info',
+        message: 'A member role was updated'
+      });
     });
   };
-
-  // Clean up socket connection when unmounting
-  useEffect(() => {
-    return () => {
-      disconnectSocket();
-    };
-  }, []);
-
+  
   // Values to provide to consumers
-  const value = {
+  const contextValue = {
+    // Data
     projects,
     currentProject,
     tasks,
@@ -571,6 +917,10 @@ export const ProjectProvider = ({ children }) => {
     activeUsers,
     projectDashboard,
     aiGeneratedTasks,
+    socketConnected,
+    taskFilters,
+    
+    // Actions
     loadProject,
     createNewProject,
     updateProject,
@@ -579,19 +929,100 @@ export const ProjectProvider = ({ children }) => {
     removeMember,
     updateMemberRole,
     createTask,
-    updateTask: updateTaskFunc,
+    updateTask,
     deleteTask,
     assignTask,
     addComment,
     generateTasks,
     addGeneratedTasksToProject,
-    refreshData
+    refreshData,
+    filterTasks,
+    setTaskFilters,
+    
+    // Getter methods
+    getProjects: async () => {
+      try {
+        const response = await projectService.fetchProjects();
+        return response.data.projects || [];
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        return [];
+      }
+    },
+    
+    getProject: async (projectId) => {
+      try {
+        const response = await projectService.fetchProjectById(projectId);
+        return response.data.project;
+      } catch (err) {
+        console.error(`Error fetching project ${projectId}:`, err);
+        return null;
+      }
+    },
+    
+    getProjectMembers: async (projectId) => {
+      try {
+        const response = await projectService.fetchProjectMembers(projectId);
+        return response.data.members || [];
+      } catch (err) {
+        console.error(`Error fetching members for project ${projectId}:`, err);
+        return [];
+      }
+    },
+    
+    // Analytics and reporting
+    getTaskMetrics: async (projectId) => {
+      try {
+        // This function doesn't exist in projectService, using fetchProjectDashboard instead
+        const response = await projectService.fetchProjectDashboard(projectId);
+        return response.data;
+      } catch (err) {
+        console.error(`Error fetching task metrics for project ${projectId}:`, err);
+        return null;
+      }
+    },
+    
+    getTaskStatusDistribution: async (projectId) => {
+      try {
+        // This function doesn't exist in projectService, using fetchProjectDashboard instead
+        const response = await projectService.fetchProjectDashboard(projectId);
+        return response.data;
+      } catch (err) {
+        console.error(`Error fetching task status distribution for project ${projectId}:`, err);
+        return null;
+      }
+    },
+    
+    getTaskCompletionTrend: async (projectId, timeRange) => {
+      try {
+        // This function doesn't exist in projectService, using fetchProjectDashboard instead
+        const response = await projectService.fetchProjectDashboard(projectId);
+        return response.data;
+      } catch (err) {
+        console.error(`Error fetching task completion trend for project ${projectId}:`, err);
+        return null;
+      }
+    }
   };
-
+  
+  // Prevent rendering if AuthContext is not ready
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100">
+        <div className="p-6 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-4 text-slate-600 font-medium">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <ProjectContext.Provider value={value}>
-      {children}
-    </ProjectContext.Provider>
+    <ProjectErrorBoundary>
+      <ProjectContext.Provider value={contextValue}>
+        {children}
+      </ProjectContext.Provider>
+    </ProjectErrorBoundary>
   );
 };
 

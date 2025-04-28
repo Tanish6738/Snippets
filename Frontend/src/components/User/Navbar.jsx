@@ -1,34 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../Context/AuthContext';
-import AiSnippet from '../Modals/SnippetModals/AiSnippet';
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../Context/UserContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FiMenu, FiX, FiHome, FiCode, FiUsers, FiFolder, 
-  FiPlus, FiZap, FiUser, FiLogOut, FiSettings, 
-  FiTrello, FiCalendar, FiCheckSquare, FiActivity,
-  FiClock, FiArrowUpRight, FiLayers, FiStar
+  FiMenu, FiX, FiHome, FiCode, FiActivity, FiUser, FiLogOut, FiSettings,
+  FiFolder, FiLayers, FiStar, FiPlus, FiTrello, FiCheckSquare, FiZap 
 } from 'react-icons/fi';
+import AiSnippet from '../Modals/SnippetModals/AiSnippet';
 
 const Navbar = () => {
   const { currentUser, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const dropdownRefs = useRef({});
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (activeDropdown && !dropdownRefs.current[activeDropdown]?.contains(event.target)) {
-        setActiveDropdown(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [activeDropdown]);
 
   const isActivePath = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 

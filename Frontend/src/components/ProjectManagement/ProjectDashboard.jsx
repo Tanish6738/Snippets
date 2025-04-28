@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ProjectTasksProvider, useProjectTasks } from '../../Context/ProjectTasksContext';
 import { useProject } from '../../Context/ProjectContext';
-import { useAuth } from '../../Context/AuthContext';
+import { useAuth } from '../../Context/UserContext';
 import { useNotification } from '../../Context/NotificationContext';
 import AiTaskGenerator from './AiTaskGenerator';
 import { motion, AnimatePresence } from 'framer-motion';

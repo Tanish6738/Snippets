@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../../Context/ProjectContext';
-import { useAuth } from '../../Context/AuthContext';
+import { useAuth } from '../../Context/UserContext';
 import { 
   FiUsers, FiClock, FiFlag, FiCalendar, FiTag, 
   FiEdit2, FiTrash2, FiPlus, FiChevronDown, FiSettings
