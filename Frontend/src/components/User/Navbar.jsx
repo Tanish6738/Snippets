@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUser } from '../../Context/UserContext';
+import { useAuth } from '../../Context/AuthContext';
 import AiSnippet from '../Modals/SnippetModals/AiSnippet';
 import { motion, AnimatePresence } from "framer-motion";
-import { FiMenu, FiX, FiHome, FiCode, FiUsers, FiFolder, FiPlus, FiZap, FiUser, FiLogOut, FiSettings, FiTrello, FiCalendar, FiCheckSquare } from 'react-icons/fi';
+import { 
+  FiMenu, FiX, FiHome, FiCode, FiUsers, FiFolder, 
+  FiPlus, FiZap, FiUser, FiLogOut, FiSettings, 
+  FiTrello, FiCalendar, FiCheckSquare, FiActivity,
+  FiClock, FiArrowUpRight, FiLayers, FiStar
+} from 'react-icons/fi';
 
 const Navbar = () => {
-  const { isAuthenticated, user, logout } = useUser();
+  const { currentUser, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -25,32 +30,33 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeDropdown]);
 
-  const isActivePath = (path) => location.pathname === path;
+  const isActivePath = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const navCategories = {
     tools: {
       label: 'Developer Tools',
       items: [
-        { to: "/public", label: "All content" },
-        { to: '/run-code', label: 'Code Runner' },
-        { to: '/scrape', label: 'Web Scrapper' },
+        { to: "/public", label: "All content", icon: FiLayers },
+        { to: '/run-code', label: 'Code Runner', icon: FiCode },
+        { to: '/scrape', label: 'Web Scrapper', icon: FiActivity },
       ]
     },
     media: {
       label: 'Media',
       items: [
-        { to: '/blog', label: 'Blog' },
-        { to: '/blog/create', label: 'Create Blog' },
-        { to: '/create-pdf', label: 'Create Pdf' },
+        { to: '/blog', label: 'Blog', icon: FiStar },
+        { to: '/blog/create', label: 'Create Blog', icon: FiPlus },
+        { to: '/create-pdf', label: 'Create Pdf', icon: FiFolder },
       ]
     },
     projects: {
       label: 'Project Management',
       items: [
-        { to: '/projects', label: 'All Projects' },
-        { to: '/projects/new', label: 'Create Project' },
-        { to: '/projects/dashboard', label: 'Project Dashboard' },
-        { to: '/tasks', label: 'My Tasks' },
+        { to: '/projects', label: 'All Projects', icon: FiTrello },
+        { to: '/projects/new', label: 'Create Project', icon: FiPlus },
+        { to: '/projects/dashboard', label: 'Project Dashboard', icon: FiActivity },
+        { to: '/tasks', label: 'My Tasks', icon: FiCheckSquare },
+        { to: '/projects/ai-tasks', label: 'AI Task Generator', icon: FiZap },
       ]
     }
   };
@@ -145,7 +151,7 @@ const Navbar = () => {
             animate="visible"
             exit="hidden"
             className={`absolute top-full left-0 mt-2 py-2 ${colors.background} rounded-xl ${colors.border} 
-                      border shadow-lg min-w-[200px] backdrop-blur-xl z-50`}
+                      border shadow-lg min-w-[220px] backdrop-blur-xl z-50`}
           >
             {items.map((item) => (
               <motion.div
@@ -155,7 +161,8 @@ const Navbar = () => {
               >
                 <Link
                   to={item.to}
-                  className={`block px-4 py-2 text-sm ${colors.text.secondary} ${colors.text.hover} transition-all duration-200 ${
+                  className={`block px-4 py-2 text-sm ${colors.text.secondary} ${colors.text.hover} transition-all duration-200 
+                           flex items-center gap-2 ${
                     isActivePath(item.to) ? `bg-gradient-to-r ${colors.accent.light} ${colors.text.primary}` : ''
                   }`}
                   onClick={() => {
@@ -163,6 +170,7 @@ const Navbar = () => {
                     setIsMobileMenuOpen(false);
                   }}
                 >
+                  {item.icon && <item.icon className="w-4 h-4" />}
                   {item.label}
                 </Link>
               </motion.div>
@@ -176,6 +184,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -287,7 +296,7 @@ const Navbar = () => {
                                 border border-slate-700/50 hover:border-slate-600/50`}
                     >
                       <FiUser className="w-4 h-4" />
-                      <span className="text-sm font-medium">{user?.username}</span>
+                      <span className="text-sm font-medium">{currentUser?.username || currentUser?.name || 'User'}</span>
                       <motion.svg 
                         animate={{ rotate: activeDropdown === 'user' ? 180 : 0 }}
                         className="w-4 h-4" 
@@ -300,7 +309,7 @@ const Navbar = () => {
                     </motion.button>
                     <div className={`hidden group-hover:block absolute right-0 mt-1 w-48 rounded-xl 
                                    ${colors.background} backdrop-blur-xl ${colors.border} border 
-                                   shadow-lg py-1`}>
+                                   shadow-lg py-1 z-50`}>
                       <Link to="/profile" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
                                                     ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
                         <FiSettings className="w-4 h-4" />
@@ -315,6 +324,11 @@ const Navbar = () => {
                                                         ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
                         <FiFolder className="w-4 h-4" />
                         My Directories
+                      </Link>
+                      <Link to="/projects/dashboard" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
+                                                          ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
+                        <FiTrello className="w-4 h-4" />
+                        Projects
                       </Link>
                       <button 
                         onClick={handleLogout}
@@ -379,21 +393,29 @@ const Navbar = () => {
                   Home
                 </Link>
 
-                {Object.entries(navCategories).map(([key, { items }]) => (
-                  <div key={key} className="space-y-1">
-                    {items.map(item => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
-                                 hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                {Object.entries(navCategories).map(([key, { label, items }]) => (
+                  <div key={key}>
+                    <div className="px-4 py-1 text-xs uppercase text-slate-500 font-medium tracking-wider">
+                      {label}
+                    </div>
+                    <div className="space-y-1 pl-2">
+                      {items.map(item => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={`px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                                   hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2 
+                                   ${isActivePath(item.to) ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-white' : ''}`}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          {item.icon && <item.icon className="w-4 h-4" />}
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 ))}
+                
                 <button
                   onClick={() => {
                     setIsAiModalOpen(true);
@@ -405,7 +427,9 @@ const Navbar = () => {
                   <FiZap className="w-4 h-4" />
                   AI Snippet
                 </button>
+                
                 <hr className="border-slate-700/30 my-2" />
+                
                 <Link
                   to="/profile"
                   className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
@@ -432,6 +456,15 @@ const Navbar = () => {
                 >
                   <FiFolder className="w-4 h-4" />
                   My Directories
+                </Link>
+                <Link
+                  to="/projects/dashboard"
+                  className="px-4 py-2 rounded-xl text-slate-300 hover:text-white 
+                           hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FiTrello className="w-4 h-4" />
+                  Project Dashboard
                 </Link>
                 <button
                   onClick={() => {
