@@ -8,7 +8,8 @@ import {
     generateBulkDocumentation,
     generateProjectTasks,
     generateTaskHealthInsights,
-    generateRecurringTaskRecommendations
+    generateRecurringTaskRecommendations,
+    generateBulkSnippets
 } from '../controllers/Ai.controller.js';
 
 const router = express.Router();
@@ -21,6 +22,9 @@ router.post('/convert', authMiddleware, convertCode);
 // Documentation routes
 router.post('/documentation', authMiddleware, generateDocumentation);
 router.post('/documentation/bulk', authMiddleware, generateBulkDocumentation);
+
+// Snippets generation routes
+router.post('/snippets/bulk', authMiddleware, generateBulkSnippets);
 
 // Project and task management routes
 router.post('/tasks/generate', authMiddleware, generateProjectTasks);

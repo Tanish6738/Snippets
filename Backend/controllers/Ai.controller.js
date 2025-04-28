@@ -588,6 +588,7 @@ export const generateProjectTasks = async (req, res) => {
         ${projectType === 'Marketing' ? '- Market research and audience analysis\n- Content creation and campaign execution\n- Analytics and performance tracking' : ''}
         ${projectType === 'Research' ? '- Data collection methodology\n- Analysis techniques and verification\n- Publication and presentation of findings' : ''}
         ${projectType === 'Event' ? '- Venue selection and logistics\n- Participant management and communications\n- Day-of coordination and post-event analysis' : ''}
+        ${projectType === 'Standard' ? '- Team meetings\n- Progress reporting\n- Administrative tasks' : ''}
         `;
 
         // Call the AI model with the enhanced prompt
@@ -885,3 +886,92 @@ function processTasksForAdvancedFeatures(tasks, includeDependencies = false) {
         return processedTask;
     });
 }
+
+// Generate multiple snippets at once
+export const generateBulkSnippets = async (req, res) => {
+    try {
+        const { prompt, count = 3, language } = req.body;
+        
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
+
+        // Validate count
+        const snippetCount = Math.min(Math.max(parseInt(count) || 3, 1), 5);
+        
+        // Prepare the prompt for multiple snippets
+        const bulkPrompt = `
+            Generate ${snippetCount} different code snippets based on the following prompt:
+            "${prompt}"
+            
+            ${language ? `Use ${language} as the programming language for all snippets.` : ''}
+            
+            Return a JSON array with ${snippetCount} snippets, each with the following structure:
+            [
+              {
+                "title": "Clear and concise title",
+                "content": "// Your code here\\n// Use proper formatting\\n// Include comments\\n",
+                "programmingLanguage": "${language || 'appropriate language'}",
+                "description": "Detailed explanation of the code's purpose and usage",
+                "tags": ["relevant", "tags"],
+                "visibility": "private"
+              },
+              // ... more snippets
+            ]
+            
+            Make each snippet unique and focused on a different aspect or implementation of the prompt.
+            Ensure all snippets are well-commented and follow best practices.
+            Only return the valid JSON array, nothing else.
+        `;
+
+        // Use the same model configuration from Ai.js but bypass the output formatting
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                temperature: 0.9,
+                topK: 1,
+                topP: 1,
+                responseMimeType: "application/json",
+            }
+        });
+
+        // Generate content
+        const result = await model.generateContent(bulkPrompt);
+        const responseText = result.response.text();
+        
+        // Parse the response
+        let snippets;
+        try {
+            // Try to extract JSON from the response
+            const jsonMatch = responseText.match(/(\[[\s\S]*\])/);
+            if (jsonMatch) {
+                snippets = JSON.parse(jsonMatch[0]);
+            } else {
+                snippets = JSON.parse(responseText);
+            }
+            
+            // Validate result format
+            if (!Array.isArray(snippets)) {
+                throw new Error('Response is not an array');
+            }
+        } catch (err) {
+            console.error('Failed to parse bulk snippets response:', err);
+            console.error('Raw response:', responseText.substring(0, 500) + '...');
+            return res.status(500).json({ 
+                error: 'Failed to parse AI response',
+                message: err.message
+            });
+        }
+
+        // Return the parsed snippets
+        res.status(200).json({
+            success: true,
+            snippets
+        });
+    } catch (error) {
+        console.error('Error generating bulk snippets:', error);
+        res.status(500).json({
+            error: error.message || 'Failed to generate bulk snippets'
+        });
+    }
+};
