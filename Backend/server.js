@@ -142,6 +142,23 @@ projectsNamespace.on('connection', socket => {
     // Handle task updates
     socket.on('task_update', (data) => {
         console.log('Task update:', data);
+        // Log activity to database
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'update',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    changes: data.changes || {}
+                }
+            });
+        } catch (err) {
+            console.error('Error logging task update activity:', err);
+        }
+
         socket.broadcast.to(socket.projectId).emit('task_update', {
             ...data,
             updatedBy: socket.userId,
@@ -151,6 +168,24 @@ projectsNamespace.on('connection', socket => {
     
     // Handle task assignments
     socket.on('task_assigned', (data) => {
+        // Log assignment activity
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'assign',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    assignedTo: data.assignedTo
+                },
+                relatedUsers: [data.assignedTo]
+            });
+        } catch (err) {
+            console.error('Error logging task assignment activity:', err);
+        }
+
         socket.broadcast.to(socket.projectId).emit('task_assigned', {
             ...data,
             assignedBy: socket.userId,
@@ -160,6 +195,24 @@ projectsNamespace.on('connection', socket => {
     
     // Handle new comments
     socket.on('new_comment', (data) => {
+        // Log comment activity
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'comment',
+                targetType: data.targetType || 'task',
+                targetId: data.targetId,
+                metadata: {
+                    projectId: socket.projectId,
+                    commentId: data.commentId,
+                    commentText: data.text && data.text.substring(0, 100) // Store preview
+                }
+            });
+        } catch (err) {
+            console.error('Error logging comment activity:', err);
+        }
+
         socket.broadcast.to(socket.projectId).emit('new_comment', {
             ...data,
             userId: socket.userId,
@@ -169,6 +222,23 @@ projectsNamespace.on('connection', socket => {
     
     // Handle new tasks
     socket.on('new_task', (data) => {
+        // Log task creation activity
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'create',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    taskTitle: data.title
+                }
+            });
+        } catch (err) {
+            console.error('Error logging task creation activity:', err);
+        }
+
         socket.broadcast.to(socket.projectId).emit('new_task', {
             ...data,
             createdBy: socket.userId,
@@ -178,6 +248,24 @@ projectsNamespace.on('connection', socket => {
     
     // Handle task status changes
     socket.on('status_change', (data) => {
+        // Log status change activity
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'status_change',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    oldStatus: data.oldStatus,
+                    newStatus: data.newStatus
+                }
+            });
+        } catch (err) {
+            console.error('Error logging status change activity:', err);
+        }
+
         socket.broadcast.to(socket.projectId).emit('status_change', {
             ...data,
             updatedBy: socket.userId,
@@ -190,6 +278,113 @@ projectsNamespace.on('connection', socket => {
         socket.broadcast.to(socket.projectId).emit('project_update', {
             ...data,
             updatedBy: socket.userId,
+            timestamp: new Date()
+        });
+    });
+
+    // Handle task dependency changes
+    socket.on('dependency_change', (data) => {
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'dependency_change',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    dependency: data.dependency,
+                    changeType: data.changeType // 'add' or 'remove'
+                }
+            });
+        } catch (err) {
+            console.error('Error logging dependency change activity:', err);
+        }
+        socket.broadcast.to(socket.projectId).emit('dependency_change', {
+            ...data,
+            updatedBy: socket.userId,
+            timestamp: new Date()
+        });
+    });
+
+    // Handle time tracking events
+    socket.on('time_tracking', (data) => {
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'time_tracking',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    event: data.event, // 'start' or 'stop'
+                    duration: data.duration || 0,
+                    notes: data.notes || ''
+                }
+            });
+        } catch (err) {
+            console.error('Error logging time tracking activity:', err);
+        }
+        socket.broadcast.to(socket.projectId).emit('time_tracking', {
+            ...data,
+            updatedBy: socket.userId,
+            timestamp: new Date()
+        });
+    });
+
+    // Handle recurring task creation
+    socket.on('recurring_task_created', (data) => {
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'recurring_task_created',
+                targetType: 'task',
+                targetId: data.taskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    recurrence: data.recurrence
+                }
+            });
+        } catch (err) {
+            console.error('Error logging recurring task creation activity:', err);
+        }
+        socket.broadcast.to(socket.projectId).emit('recurring_task_created', {
+            ...data,
+            createdBy: socket.userId,
+            timestamp: new Date()
+        });
+    });
+
+    // Handle task cloning
+    socket.on('task_cloned', (data) => {
+        try {
+            const Activity = mongoose.model('Activity');
+            Activity.logActivity({
+                userId: socket.userId,
+                action: 'task_cloned',
+                targetType: 'task',
+                targetId: data.newTaskId,
+                metadata: {
+                    projectId: socket.projectId,
+                    sourceTaskId: data.sourceTaskId
+                }
+            });
+        } catch (err) {
+            console.error('Error logging task cloning activity:', err);
+        }
+        socket.broadcast.to(socket.projectId).emit('task_cloned', {
+            ...data,
+            clonedBy: socket.userId,
+            timestamp: new Date()
+        });
+    });
+
+    // Broadcast activity logs (for real-time activity feed)
+    socket.on('activity_log', (data) => {
+        socket.broadcast.to(socket.projectId).emit('activity_log', {
+            ...data,
             timestamp: new Date()
         });
     });
