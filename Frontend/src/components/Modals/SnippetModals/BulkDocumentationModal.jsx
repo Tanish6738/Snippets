@@ -238,7 +238,7 @@ const BulkDocumentationModal = ({ isOpen, onClose }) => {
       }
 
       // Generate documentation
-      const { data } = await axios.post('/api/ai/generate-bulk-documentation', {
+      const { data } = await axios.post('/api/ai/documentation/bulk', {
         snippets: snippetsData,
         style: docStyle,
         level: detailLevel

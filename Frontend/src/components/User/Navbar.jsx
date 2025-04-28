@@ -302,7 +302,7 @@ const Navbar = () => {
                         <FiSettings className="w-4 h-4" />
                         Profile
                       </Link>
-                      <Link to="/my-snippets" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
+                      <Link to="/snippets" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
                                                         ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
                         <FiCode className="w-4 h-4" />
                         My Snippets
