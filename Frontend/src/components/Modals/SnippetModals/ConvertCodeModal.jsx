@@ -83,7 +83,7 @@ const ConvertCodeModal = ({ isOpen, onClose, snippet, onSnippetUpdated }) => {
     setError('');
     
     try {
-      const response = await axios.post('/api/ai/convert-code', {
+      const response = await axios.post('/api/ai/convert', {
         code: snippet.content,
         sourceLanguage: snippet.programmingLanguage,
         targetLanguage
