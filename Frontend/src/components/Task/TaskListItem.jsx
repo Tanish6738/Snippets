@@ -92,9 +92,10 @@ const TaskListItem = ({ task, onEdit, onAddSubtask, projectMembers = [], isAdmin
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-5 pt-4 sm:pt-5 pb-2 border-b border-slate-700/40 gap-2 min-w-0">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           <ClipboardDocumentListIcon className="h-5 w-5 text-indigo-400 mr-1 shrink-0" aria-hidden="true" />
-          <h3 className="font-semibold text-white text-base md:text-lg tracking-tight mr-2 truncate min-w-0" title={task.title}>{task.title}</h3>
-          <span className={`px-2 py-0.5 text-xs rounded-full border font-semibold ${getStatusColor(task.status)}`}>{task.status}</span>
-          {task.priority && <span className={`px-2 py-0.5 text-xs rounded-full border font-semibold ${getPriorityColor(task.priority)}`}>{task.priority}</span>}
+          {/* Million-dollar SaaS style: Add a subtle glowing effect to the title */}
+          <h3 className="font-semibold text-white text-base md:text-lg tracking-tight mr-2 truncate min-w-0 drop-shadow-[0_1px_8px_rgba(80,120,255,0.18)]" title={task.title}>{task.title}</h3>
+          <span className={`px-2 py-0.5 text-xs rounded-full border font-semibold ${getStatusColor(task.status)} shadow-sm`}>{task.status}</span>
+          {task.priority && <span className={`px-2 py-0.5 text-xs rounded-full border font-semibold ${getPriorityColor(task.priority)} shadow-sm`}>{task.priority}</span>}
           {task.dueDate && <span className="text-xs text-slate-400 ml-2 whitespace-nowrap">Due: {new Date(task.dueDate).toLocaleDateString()}</span>}
         </div>
         <div className="flex items-center gap-2">

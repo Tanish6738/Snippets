@@ -377,7 +377,7 @@ const AiTaskGenerator = () => {
   // Step 1: Choose mode and project
   const renderStep1 = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ color: '#e2e8f0' }}>
         Step 1: Select Project Type
       </Typography>
       <Grid container spacing={3}>
@@ -386,19 +386,19 @@ const AiTaskGenerator = () => {
             sx={{ 
               p: 2, 
               cursor: 'pointer', 
-              border: mode === 'new' ? '2px solid #1976d2' : '1px solid #e0e0e0',
+              border: mode === 'new' ? '2px solid #38bdf8' : '1px solid rgba(226,232,240,0.2)',
               height: '100%'
             }}
             onClick={() => setMode('new')}
           >
             <CardContent>
               <Box display="flex" justifyContent="center" mb={2}>
-                <MdAdd size={28} color="#1976d2" /> {/* Replaced AddIcon */}
+                <MdAdd size={28} color="#38bdf8" />
               </Box>
-              <Typography variant="h6" align="center" gutterBottom>
+              <Typography variant="h6" align="center" gutterBottom sx={{ color: '#f1f5f9' }}>
                 Create New Project
               </Typography>
-              <Typography variant="body2" align="center" color="textSecondary">
+              <Typography variant="body2" align="center" sx={{ color: '#94a3b8' }}>
                 Start from scratch with AI-generated tasks based on your project description.
               </Typography>
             </CardContent>
@@ -409,19 +409,19 @@ const AiTaskGenerator = () => {
             sx={{ 
               p: 2, 
               cursor: 'pointer', 
-              border: mode === 'existing' ? '2px solid #1976d2' : '1px solid #e0e0e0',
+              border: mode === 'existing' ? '2px solid #38bdf8' : '1px solid rgba(226,232,240,0.2)',
               height: '100%'
             }}
             onClick={() => setMode('existing')}
           >
             <CardContent>
               <Box display="flex" justifyContent="center" mb={2}>
-                <MdEdit size={28} color="#1976d2" /> {/* Replaced EditIcon */}
+                <MdEdit size={28} color="#38bdf8" />
               </Box>
-              <Typography variant="h6" align="center" gutterBottom>
+              <Typography variant="h6" align="center" gutterBottom sx={{ color: '#f1f5f9' }}>
                 Use Existing Project
               </Typography>
-              <Typography variant="body2" align="center" color="textSecondary">
+              <Typography variant="body2" align="center" sx={{ color: '#94a3b8' }}>
                 Generate new tasks, update existing ones, or optimize your project schedule.
               </Typography>
             </CardContent>
@@ -432,7 +432,7 @@ const AiTaskGenerator = () => {
       <Box mt={4}>
         {mode === 'new' ? (
           <Box>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ color: '#e2e8f0' }}>
               New Project Details
             </Typography>
             <Grid container spacing={2}>
@@ -500,7 +500,7 @@ const AiTaskGenerator = () => {
           </Box>
         ) : (
           <Box>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ color: '#e2e8f0' }}>
               Select Existing Project
             </Typography>
             {loading ? (
@@ -514,12 +514,12 @@ const AiTaskGenerator = () => {
                     <Card 
                       sx={{ 
                         cursor: 'pointer',
-                        border: selectedProject?._id === project._id ? '2px solid #1976d2' : '1px solid #e0e0e0'
+                        border: selectedProject?._id === project._id ? '2px solid #38bdf8' : '1px solid rgba(226,232,240,0.2)'
                       }}
                       onClick={() => handleProjectSelect(project)}
                     >
                       <CardContent>
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#f1f5f9' }}>
                           {project.title}
                         </Typography>
                         <Box display="flex" gap={1} mb={1}>
@@ -532,7 +532,7 @@ const AiTaskGenerator = () => {
                                    'default'} 
                           />
                         </Box>
-                        <Typography variant="body2" color="textSecondary" noWrap>
+                        <Typography variant="body2" sx={{ color: '#94a3b8' }} noWrap>
                           {project.description}
                         </Typography>
                       </CardContent>
@@ -541,7 +541,7 @@ const AiTaskGenerator = () => {
                 ))}
               </Grid>
             ) : (
-              <Alert severity="info">
+              <Alert severity="info" sx={{ background: 'rgba(56,189,248,0.1)', color: '#93c5fd' }}>
                 No projects found. Create a new project instead.
               </Alert>
             )}
@@ -567,7 +567,7 @@ const AiTaskGenerator = () => {
   // Step 2: Input for task actions (for existing projects)
   const renderStep2 = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ color: '#e2e8f0' }}>
         Step 2: Choose Task Action
       </Typography>
       
@@ -597,7 +597,7 @@ const AiTaskGenerator = () => {
       
       {(taskAction === 'update' || taskAction === 'breakdown') && (
         <Box mb={4}>
-          <Typography variant="subtitle1" gutterBottom>
+          <Typography variant="subtitle1" gutterBottom sx={{ color: '#cbd5e1' }}>
             Select a task to {taskAction === 'update' ? 'update' : 'break down'}:
           </Typography>
           
@@ -608,7 +608,7 @@ const AiTaskGenerator = () => {
           ) : existingTasks.length > 0 ? (
             renderTaskList(existingTasks)
           ) : (
-            <Alert severity="info">
+            <Alert severity="info" sx={{ background: 'rgba(56,189,248,0.1)', color: '#93c5fd' }}>
               No tasks found in this project. Create some tasks first.
             </Alert>
           )}
@@ -648,7 +648,7 @@ const AiTaskGenerator = () => {
   // Step 3: Review and save generated tasks
   const renderStep3 = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ color: '#e2e8f0' }}>
         Step 3: Review Generated Tasks
       </Typography>
       
@@ -659,13 +659,13 @@ const AiTaskGenerator = () => {
           </Box>
         ) : generatedTasks.length > 0 ? (
           <>
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <Alert severity="success" sx={{ mb: 2, background: 'rgba(34,197,94,0.15)', color: '#86efac' }}>
               AI has generated {generatedTasks.length} {generatedTasks.length === 1 ? 'task' : 'tasks'} based on your input.
             </Alert>
             {renderTaskList(generatedTasks, true)}
           </>
         ) : (
-          <Alert severity="warning" icon={<MdWarning />}> {/* Replaced WarningIcon */}
+          <Alert severity="warning" icon={<MdWarning />} sx={{ background: 'rgba(234,179,8,0.15)', color: '#fcd34d' }}>
             No tasks were generated. Try again with a more detailed description.
           </Alert>
         )}
@@ -688,15 +688,25 @@ const AiTaskGenerator = () => {
         </Button>
       </Box>
       
-      <Dialog open={showConfirmDialog} onClose={() => setShowConfirmDialog(false)}>
-        <DialogTitle>Success!</DialogTitle>
+      <Dialog 
+        open={showConfirmDialog} 
+        onClose={() => setShowConfirmDialog(false)}
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.9) 100%)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(51,65,85,0.4)',
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#f1f5f9' }}>Success!</DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ color: '#e2e8f0' }}>
             {mode === 'new' 
               ? 'Your project has been created with the generated tasks.' 
               : 'The tasks have been added to your project.'}
           </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+          <Typography variant="body2" sx={{ mt: 2, color: '#94a3b8' }}>
             What would you like to do next?
           </Typography>
         </DialogContent>
@@ -716,50 +726,620 @@ const AiTaskGenerator = () => {
   );
   
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom>
-          AI Task Generator
-        </Typography>
-        <Typography variant="body1" color="textSecondary">
-          Use AI to generate tasks, optimize schedules, and improve your project management workflow.
+    <Container maxWidth="lg" sx={{
+      position: 'relative',
+      py: { xs: 3, md: 6 },
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, rgba(15,23,42,0.99) 0%, rgba(30,41,59,0.95) 100%)',
+      borderRadius: { xs: 0, md: 2 },
+      overflow: 'hidden',
+      mt: { xs: 0, md: 2 },
+      mb: { xs: 0, md: 2 },
+      fontFamily: `'Inter', 'Plus Jakarta Sans', 'SF Pro Display', 'Segoe UI', sans-serif`,
+      zIndex: 1,
+    }}>
+      {/* Premium Background Elements */}
+      <Box sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
+        zIndex: -1,
+      }}>
+        {/* Dark Mesh Gradient */}
+        <Box sx={{
+          position: 'absolute',
+          top: '-50%',
+          right: '-20%',
+          width: '70%',
+          height: '70%',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(56,189,248,0.06) 0%, rgba(30,58,138,0.03) 50%, rgba(15,23,42,0) 70%)',
+          filter: 'blur(40px)',
+        }} />
+        
+        {/* Accent Gradient */}
+        <Box sx={{
+          position: 'absolute',
+          bottom: '-30%',
+          left: '-10%',
+          width: '60%',
+          height: '60%',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(79,70,229,0.06) 0%, rgba(124,58,237,0.03) 50%, rgba(15,23,42,0) 70%)',
+          filter: 'blur(45px)',
+        }} />
+        
+        {/* Subtle Grid Pattern */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          opacity: 0.4,
+          backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(to right, #334155 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }} />
+      </Box>
+
+      {/* Enterprise Brand Header */}
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 800,
+          mb: { xs: 3, md: 4 },
+          position: 'relative',
+        }}
+      >
+        {/* Premium Badge */}
+        <Box sx={{
+          position: 'absolute',
+          top: { xs: -6, md: -10 },
+          right: { xs: 10, md: -30 },
+          zIndex: 2,
+          transform: 'rotate(20deg)',
+          display: { xs: 'none', md: 'block' }
+        }}>
+          <Box sx={{
+            px: 2,
+            py: 0.5,
+            borderRadius: '20px',
+            border: '1px solid rgba(99,102,241,0.3)',
+            background: 'rgba(30,41,59,0.8)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 4px 24px -2px rgba(56,189,248,0.18)',
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            color: '#a5b4fc',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+          }}>
+            Enterprise
+          </Box>
+        </Box>
+
+        {/* Main Title with Professional Typography */}
+        <Box sx={{ position: 'relative', mb: 1.5 }}>
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.1,
+              fontSize: { xs: '2.4rem', sm: '3rem', md: '3.5rem' },
+              textAlign: { xs: 'center', md: 'left' },
+              background: 'linear-gradient(90deg, #e0f2fe 10%, #bfdbfe 35%, #c7d2fe 60%, #ddd6fe 85%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 10px 8px rgb(0 0 0 / 0.3))',
+            }}
+          >
+            <Box component="span" sx={{ display: 'inline-block', position: 'relative' }}>
+              AI Task Generator
+              <Box 
+                sx={{
+                  position: 'absolute',
+                  height: '6px',
+                  width: '45%',
+                  bottom: '-4px',
+                  left: '5%',
+                  background: 'linear-gradient(90deg, rgba(56,189,248,0.7) 0%, rgba(99,102,241,0.5) 100%)',
+                  borderRadius: '3px',
+                  filter: 'blur(2px)',
+                }}
+              />
+            </Box>
+          </Typography>
+        </Box>
+
+        {/* Professional Subtitle */}
+        <Typography 
+          variant="h6" 
+          sx={{
+            color: '#94a3b8',
+            fontWeight: 400,
+            fontSize: { xs: '1.05rem', md: '1.2rem' },
+            lineHeight: 1.5,
+            mb: 2,
+            maxWidth: '800px',
+            textAlign: { xs: 'center', md: 'left' },
+            textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            letterSpacing: '0.01em',
+          }}
+        >
+          Leverage enterprise-grade AI to transform your workflow, automate task generation, 
+          and optimize your project management with precision.
         </Typography>
       </Box>
-      
-      {/* Error and success messages */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)} icon={<MdWarning />}> {/* Replaced WarningIcon */}
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)} icon={<MdCheckCircle />}> {/* Replaced CheckCircleIcon */}
-          {success}
-        </Alert>
-      )}
-      
-      {/* Stepper */}
-      <Stepper activeStep={step - 1} sx={{ mb: 4 }}>
-        <Step>
-          <StepLabel>Select Project</StepLabel>
-        </Step>
-        <Step>
-          <StepLabel>
-            {mode === 'new' ? 'Generate Tasks' : 'Choose Action'}
-          </StepLabel>
-        </Step>
-        <Step>
-          <StepLabel>Review & Save</StepLabel>
-        </Step>
-      </Stepper>
-      
-      {/* Dynamic content based on current step */}
-      <Paper sx={{ p: 3 }}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
+
+      {/* Notification Alerts with Premium Styling */}
+      <Box sx={{ width: '100%', maxWidth: 800, mb: 3 }}>
+        {error && (
+          <Box 
+            sx={{
+              py: 1.5,
+              px: 2.5,
+              mb: 2, 
+              borderRadius: 2, 
+              background: 'rgba(239,68,68,0.15)', 
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05), 0 8px 16px -2px rgba(239,68,68,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              animation: 'fadeIn 0.5s ease-out'
+            }}
+          >
+            <Box sx={{ 
+              p: 0.8, 
+              borderRadius: '50%', 
+              backgroundColor: 'rgba(239,68,68,0.2)',
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <MdWarning size={20} color="#f87171" />
+            </Box>
+            <Typography 
+              sx={{ 
+                fontSize: '0.95rem', 
+                fontWeight: 500, 
+                color: '#fca5a5',
+                flex: 1 
+              }}
+            >
+              {error}
+            </Typography>
+            <IconButton 
+              onClick={() => setError(null)} 
+              sx={{ 
+                color: '#f87171', 
+                p: 0.5, 
+                '&:hover': { 
+                  backgroundColor: 'rgba(239,68,68,0.1)' 
+                } 
+              }}
+            >
+              <MdRefresh size={18} />
+            </IconButton>
+          </Box>
+        )}
+        
+        {success && (
+          <Box 
+            sx={{
+              py: 1.5,
+              px: 2.5,
+              mb: 2, 
+              borderRadius: 2, 
+              background: 'rgba(34,197,94,0.15)', 
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(34,197,94,0.3)',
+              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05), 0 8px 16px -2px rgba(34,197,94,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              animation: 'fadeIn 0.3s ease-out'
+            }}
+          >
+            <Box sx={{ 
+              p: 0.8, 
+              borderRadius: '50%', 
+              backgroundColor: 'rgba(34,197,94,0.2)',
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <MdCheckCircle size={20} color="#4ade80" />
+            </Box>
+            <Typography 
+              sx={{ 
+                fontSize: '0.95rem', 
+                fontWeight: 500, 
+                color: '#86efac',
+                flex: 1 
+              }}
+            >
+              {success}
+            </Typography>
+            <IconButton 
+              onClick={() => setSuccess(null)} 
+              sx={{ 
+                color: '#4ade80', 
+                p: 0.5, 
+                '&:hover': { 
+                  backgroundColor: 'rgba(34,197,94,0.1)' 
+                } 
+              }}
+            >
+              <MdRefresh size={18} />
+            </IconButton>
+          </Box>
+        )}
+      </Box>
+
+      {/* Professional Stepper with Premium Styling */}
+      <Paper 
+        elevation={0} 
+        sx={{
+          width: '100%',
+          maxWidth: 800,
+          mb: { xs: 3, md: 4 },
+          p: { xs: 1.5, md: 2.5 },
+          background: 'linear-gradient(180deg, rgba(30,41,59,0.85) 0%, rgba(30,41,59,0.75) 100%)',
+          backdropFilter: 'blur(16px)',
+          borderRadius: 3,
+          border: '1px solid rgba(71,85,105,0.3)',
+          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(15,23,42,0.5), 0 8px 24px -4px rgba(15,23,42,0.4)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Subtle Glow Effect */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: step === 1 ? '15%' : step === 2 ? '50%' : '85%',
+          width: '30%',
+          height: '100%',
+          background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(15,23,42,0) 70%)',
+          filter: 'blur(20px)',
+          transition: 'left 0.3s ease-out',
+          zIndex: 0,
+        }} />
+
+        <Stepper 
+          activeStep={step - 1} 
+          alternativeLabel={true} 
+          sx={{
+            position: 'relative',
+            zIndex: 2,
+            '& .MuiStepLabel-label': {
+              fontWeight: 600,
+              fontSize: { xs: '0.9rem', md: '1.1rem' },
+              mt: 1,
+              color: '#cbd5e1',
+              transition: 'color 0.3s ease',
+              '&.Mui-active': {
+                color: '#e2e8f0',
+                fontWeight: 700,
+                textShadow: '0 0 20px rgba(56,189,248,0.3)'
+              },
+              '&.Mui-completed': {
+                color: '#94a3b8'
+              }
+            },
+            '& .MuiStepIcon-root': {
+              fontSize: { xs: '1.75rem', md: '2rem' },
+              color: 'rgba(51,65,85,0.8)',
+              transition: 'all 0.3s ease',
+              filter: 'drop-shadow(0 2px 1px rgba(15,23,42,0.5))',
+              '&.Mui-active': { 
+                color: '#0ea5e9',
+                filter: 'drop-shadow(0 0 10px rgba(56,189,248,0.5))'
+              },
+              '&.Mui-completed': { 
+                color: '#4ade80',
+              },
+            },
+            '& .MuiStepConnector-root': {
+              marginTop: { xs: 1, md: 1.25 }
+            },
+            '& .MuiStepConnector-line': {
+              borderColor: 'rgba(71,85,105,0.4)',
+              borderTopWidth: 2,
+              transition: 'border-color 0.3s ease'
+            },
+            '& .Mui-active .MuiStepConnector-line': {
+              borderColor: 'rgba(56,189,248,0.4)'
+            },
+            '& .Mui-completed .MuiStepConnector-line': {
+              borderColor: 'rgba(74,222,128,0.4)'
+            },
+          }}
+        >
+          <Step>
+            <StepLabel>Define Project</StepLabel>
+          </Step>
+          <Step>
+            <StepLabel>
+              {mode === 'new' ? 'Generate Tasks' : 'Configure AI'}
+            </StepLabel>
+          </Step>
+          <Step>
+            <StepLabel>Deploy & Integrate</StepLabel>
+          </Step>
+        </Stepper>
       </Paper>
+
+      {/* Main Content Card with Premium Glass Effect */}
+      <Paper 
+        elevation={0} 
+        sx={{
+          width: '100%',
+          maxWidth: 800,
+          p: { xs: 2.5, md: 4 },
+          borderRadius: 4,
+          background: 'linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.9) 100%)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(51,65,85,0.4)',
+          boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.025), 0 0 0 1px rgba(15,23,42,0.5), 0 20px 40px -8px rgba(0,0,0,0.5)',
+          mb: { xs: 3, md: 6 },
+          minHeight: { xs: 350, md: 450 },
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Subtle Gradient Accent Overlay */}
+        <Box sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '30%',
+          background: 'linear-gradient(to top, rgba(15,23,42,0.7) 0%, rgba(15,23,42,0) 100%)',
+          zIndex: 0,
+        }} />
+
+        {/* Main Content Body with Professional Spacing */}
+        <Box sx={{ position: 'relative', zIndex: 1, flex: 1 }}>
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+        </Box>
+      </Paper>
+
+      {/* Enterprise Brand Footer */}
+      <Box 
+        sx={{ 
+          width: '100%', 
+          maxWidth: 800, 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          px: { xs: 1, md: 2 },
+          opacity: 0.7,
+          mb: 1
+        }}
+      >
+        <Typography sx={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>
+          © 2025 CodeArc Enterprise ⋅ v3.2.1
+        </Typography>
+        <Typography sx={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>
+          Enterprise AI Solutions
+        </Typography>
+      </Box>
+
+      {/* Professional Global Styles */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Premium Input Styling */
+        .MuiInputBase-root, .MuiOutlinedInput-root {
+          background: rgba(30,41,59,0.5) !important;
+          color: #e2e8f0 !important;
+          border-radius: 12px !important;
+          backdrop-filter: blur(4px);
+          box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.1);
+          transition: all 0.2s ease;
+          font-weight: 500;
+        }
+        
+        .MuiInputBase-root:hover {
+          background: rgba(30,41,59,0.7) !important;
+        }
+        
+        .MuiInputLabel-root {
+          color: #94a3b8 !important;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+        }
+        
+        .MuiOutlinedInput-notchedOutline {
+          border-color: rgba(71,85,105,0.5) !important;
+          transition: all 0.2s ease;
+        }
+        
+        .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+          border-color: rgba(99,102,241,0.5) !important;
+        }
+        
+        .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+          border-width: 1.5px !important;
+          border-color: rgba(99,102,241,0.7) !important;
+          box-shadow: 0 0 0 4px rgba(99,102,241,0.2);
+        }
+        
+        .MuiFormHelperText-root {
+          color: #94a3b8 !important;
+          margin-top: 6px !important;
+          font-size: 0.75rem !important;
+          font-weight: 500;
+        }
+        
+        /* Premium Button Styling */
+        .MuiButton-contained {
+          background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%) !important;
+          color: white !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.01em !important;
+          text-transform: none !important;
+          padding: 10px 22px !important;
+          box-shadow: 0 0 0 1px rgba(16,24,40,0.1), 0 4px 8px -2px rgba(16,24,40,0.1), 0 0 0 4px rgba(56,189,248,0.08) !important;
+          border-radius: 12px !important;
+          transition: all 0.2s ease !important;
+          position: relative !important;
+          overflow: hidden !important;
+          font-size: 0.95rem !important;
+        }
+        
+        .MuiButton-contained:hover {
+          background: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 100%) !important;
+          box-shadow: 0 0 0 1px rgba(16,24,40,0.1), 0 6px 12px -2px rgba(16,24,40,0.2), 0 0 0 4px rgba(56,189,248,0.16) !important;
+          transform: translateY(-1px) !important;
+        }
+        
+        .MuiButton-contained:active {
+          transform: translateY(0px) !important;
+        }
+        
+        .MuiButton-contained::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -50%;
+          width: 150%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transform: skewX(-20deg);
+          transition: 0.7s;
+          opacity: 0;
+        }
+        
+        .MuiButton-contained:hover::after {
+          left: 100%;
+          opacity: 1;
+        }
+        
+        .MuiButton-contained:disabled {
+          background: linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(99,102,241,0.2) 100%) !important;
+          color: rgba(226,232,240,0.5) !important;
+        }
+
+        .MuiButton-outlined {
+          border: 1px solid rgba(71,85,105,0.5) !important;
+          color: #94a3b8 !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.01em !important;
+          text-transform: none !important;
+          padding: 10px 22px !important;
+          border-radius: 12px !important;
+          background: rgba(30,41,59,0.2) !important;
+          backdrop-filter: blur(4px) !important;
+          transition: all 0.2s ease !important;
+          font-size: 0.95rem !important;
+        }
+        
+        .MuiButton-outlined:hover {
+          border: 1px solid rgba(99,102,241,0.5) !important;
+          background: rgba(30,41,59,0.4) !important;
+          color: #e2e8f0 !important;
+        }
+        
+        /* Premium Card Styling */
+        .MuiCard-root {
+          background: linear-gradient(135deg, rgba(30,41,59,0.5) 0%, rgba(15,23,42,0.5) 100%) !important;
+          border: 1px solid rgba(51,65,85,0.4) !important;
+          box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.05), 0 0 0 1px rgba(15,23,42,0.1), 0 10px 20px -5px rgba(15,23,42,0.4) !important;
+          backdrop-filter: blur(12px) !important;
+          border-radius: 16px !important;
+          overflow: hidden !important;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        }
+        
+        .MuiCard-root:hover {
+          box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.1), 0 0 0 1px rgba(15,23,42,0.1), 0 12px 24px -6px rgba(15,23,42,0.5) !important;
+          transform: translateY(-2px) !important;
+          border-color: rgba(71,85,105,0.7) !important;
+        }
+        
+        .MuiCardContent-root {
+          padding: 20px !important;
+        }
+        
+        /* Premium Chip Styling */
+        .MuiChip-root {
+          font-weight: 600 !important;
+          letter-spacing: 0.01em !important;
+          height: 28px !important;
+          border-radius: 8px !important;
+          backdrop-filter: blur(4px) !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+        }
+        
+        .MuiChip-colorPrimary {
+          background: rgba(56,189,248,0.2) !important;
+          color: #7dd3fc !important;
+        }
+        
+        .MuiChip-colorSuccess {
+          background: rgba(34,197,94,0.2) !important;
+          color: #86efac !important;
+        }
+        
+        .MuiChip-colorError {
+          background: rgba(239,68,68,0.2) !important;
+          color: #fca5a5 !important;
+        }
+        
+        /* Premium Select Styling */
+        .MuiSelect-select {
+          padding: 12px 16px !important;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: rgba(15,23,42,0.3);
+          border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: rgba(71,85,105,0.4);
+          border-radius: 6px;
+          border: 2px solid rgba(15,23,42,0.3);
+          transition: all 0.2s ease;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(99,102,241,0.5);
+        }
+        
+        /* Paper Styling for cards and containers */
+        .MuiPaper-root {
+          font-family: 'Inter', 'Plus Jakarta Sans', 'SF Pro Display', 'Segoe UI', sans-serif !important;
+          letter-spacing: -0.01em !important;
+        }
+      `}</style>
     </Container>
   );
 };
