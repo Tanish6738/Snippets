@@ -39,9 +39,10 @@ export default {
    * @param {string} projectId - The ID of the project
    * @returns {Promise}
    */
-  getProjectHealth: async (projectId) => {
+  getProjectHealth: async (projectId, data) => {
     try {
-      return await axios.post(`/ai/tasks/health/${projectId}`);
+      // Send the required data (e.g., tasks) in the POST body
+      return await axios.post(`/api/ai/tasks/health/${projectId}`, data);
     } catch (error) {
       console.error('Error getting project health insights:', error);
       throw error.response?.data || error;

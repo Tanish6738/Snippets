@@ -41,8 +41,6 @@ const Navbar = () => {
       items: [
         { to: '/projects', label: 'All Projects', icon: FiTrello },
         { to: '/projects/new', label: 'Create Project', icon: FiPlus },
-        { to: '/projects/dashboard', label: 'Project Dashboard', icon: FiActivity },
-        { to: '/tasks', label: 'My Tasks', icon: FiCheckSquare },
         { to: '/projects/ai-tasks', label: 'AI Task Generator', icon: FiZap },
       ]
     }
@@ -312,10 +310,10 @@ const Navbar = () => {
                         <FiFolder className="w-4 h-4" />
                         My Directories
                       </Link>
-                      <Link to="/projects/dashboard" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
+                      <Link to="/projects" className={`block px-4 py-2 text-sm ${colors.text.secondary} 
                                                           ${colors.text.hover} transition-colors duration-200 flex items-center gap-2`}>
                         <FiTrello className="w-4 h-4" />
-                        Projects
+                        All Projects
                       </Link>
                       <button 
                         onClick={handleLogout}
@@ -446,12 +444,12 @@ const Navbar = () => {
                     My Directories
                   </Link>
                   <Link
-                    to="/projects/dashboard"
+                    to="/projects"
                     className="px-4 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/50 transition-all text-sm font-medium flex items-center gap-2"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <FiTrello className="w-4 h-4" />
-                    Project Dashboard
+                    All Projects
                   </Link>
                   <button
                     onClick={() => {
