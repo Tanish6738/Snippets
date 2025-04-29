@@ -23,7 +23,14 @@ const ProjectDetail = () => {
     setEditLoading(true);
     setEditError('');
     try {
+      // First update the task
       await taskService.updateTask(editingTask._id, data);
+      
+      // Then handle assignment separately if needed
+      if (data.assignedTo && data.assignedTo.length > 0) {
+        await taskService.assignUsersToTask(editingTask._id, data.assignedTo);
+      }
+      
       setEditingTask(null);
       setRefresh(r => r + 1);
     } catch (err) {
@@ -89,10 +96,20 @@ const ProjectDetail = () => {
         <div className="p-6 rounded-xl bg-slate-800/60 border border-slate-700/30 shadow">
           <h3 className="font-semibold mb-3 flex items-center gap-2 text-white"><FiList /> Tasks</h3>
           {editingTask && (
-            <div className="mb-4 bg-slate-100 p-4 rounded">
-              <TaskForm initialValues={editingTask} onSubmit={handleEditSubmit} />
-              {editError && <div className="text-red-600 text-xs mt-1">{editError}</div>}
-              <button className="text-xs text-gray-500 mt-2" onClick={() => setEditingTask(null)}>Cancel</button>
+            <div className="mb-4 bg-gradient-to-br from-slate-800/80 to-slate-900/90 p-6 rounded-xl border border-slate-700/30 shadow-lg">
+              <h4 className="text-xl font-semibold text-white mb-4">Edit Task</h4>
+              <TaskForm 
+                initialValues={editingTask} 
+                onSubmit={handleEditSubmit} 
+                projectMembers={project.members || []}
+              />
+              {editError && <div className="text-red-400 text-sm mt-2">{editError}</div>}
+              <button 
+                className="text-slate-400 hover:text-slate-200 mt-3" 
+                onClick={() => setEditingTask(null)}
+              >
+                Cancel
+              </button>
             </div>
           )}
           <TaskList tasks={tasks} onEditTask={handleEditTask} onAddSubtask={() => setRefresh(r => r + 1)} projectId={project._id} />

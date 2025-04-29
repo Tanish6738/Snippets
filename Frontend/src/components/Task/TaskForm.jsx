@@ -50,6 +50,17 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
       })
     : projectMembers;
 
+  // Assignment search state
+  const [assignSearch, setAssignSearch] = useState('');
+
+  // Filter project members for assignment based on search
+  const filteredAssignMembers = assignSearch
+    ? projectMembers.filter(member => {
+        const username = (member.user?.username) || '';
+        return username.toLowerCase().includes(assignSearch.toLowerCase());
+      })
+    : projectMembers;
+
   // Handle comment input change and detect '@' for mentions
   const handleCommentChange = (e) => {
     const newComment = e.target.value;
@@ -175,12 +186,20 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
       {projectMembers.length > 0 && (
         <div>
           <label className="block font-medium mb-2">Assign To</label>
+          {/* Assignment search box */}
+          <input
+            type="text"
+            className="border rounded px-2 py-1 w-full mb-2"
+            placeholder="Search members..."
+            value={assignSearch}
+            onChange={e => setAssignSearch(e.target.value)}
+          />
           <div className="max-h-48 overflow-y-auto border rounded p-2">
-            {projectMembers.map(member => {
-              const user = member.user || member;
-              const username = user.username || 'User';
+            {filteredAssignMembers.map(member => {
+              const user = member.user;
+              const username = user?.username || 'User';
               const avatarColor = getAvatarColor(username);
-              const userId = user._id;
+              const userId = user?._id;
               
               return (
                 <label 
@@ -200,7 +219,7 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
                     className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   <div className={`${avatarColor} w-8 h-8 rounded-full flex items-center justify-center text-white text-xs`}>
-                    {user.avatar ? (
+                    {user?.avatar ? (
                       <img src={user.avatar} alt={username} className="rounded-full w-full h-full object-cover" />
                     ) : (
                       getInitials(username)
@@ -213,8 +232,8 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
                 </label>
               );
             })}
-            {projectMembers.length === 0 && (
-              <div className="text-slate-500 italic text-center py-2">No members available</div>
+            {filteredAssignMembers.length === 0 && (
+              <div className="text-slate-500 italic text-center py-2">No members found</div>
             )}
           </div>
         </div>

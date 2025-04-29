@@ -17,7 +17,9 @@ const TaskCreate = () => {
     const fetchProject = async () => {
       try {
         setLoading(true);
-        const projectData = await fetchProjectById(projectId);
+        const response = await fetchProjectById(projectId);
+        // Extract project from the response which has format {success: true, project: {...}}
+        const projectData = response.project || response;
         setProject(projectData);
       } catch (err) {
         setError('Failed to load project data');
@@ -32,7 +34,15 @@ const TaskCreate = () => {
 
   const handleCreate = async (data) => {
     try {
-      await taskService.createTask(projectId, data);
+      // First create the task
+      const response = await taskService.createTask(projectId, data);
+      const taskId = response.task?._id || response._id;
+      
+      // Then assign users if needed
+      if (data.assignedTo && data.assignedTo.length > 0) {
+        await taskService.assignUsersToTask(taskId, data.assignedTo);
+      }
+      
       navigate(-1); // Go back after creation
     } catch (err) {
       setError(err.message || 'Failed to create task');

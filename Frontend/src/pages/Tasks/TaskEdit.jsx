@@ -17,14 +17,16 @@ const TaskEdit = () => {
     const fetchTaskAndProject = async () => {
       try {
         setLoading(true);
-        const taskData = await taskService.getTaskById(taskId);
+        // Using the correct method name: fetchTaskById instead of getTaskById
+        const taskData = await taskService.fetchTaskById(taskId);
         const taskObj = taskData.task || taskData.data?.task || taskData;
         setTask(taskObj);
         
         // Fetch project using the projectId from the task
         if (taskObj.project) {
           const projectData = await fetchProjectById(taskObj.project);
-          setProject(projectData);
+          // Extract project from the response which has format {success: true, project: {...}}
+          setProject(projectData.project || projectData);
         }
       } catch (err) {
         setError(err.message || 'Failed to load task');
@@ -38,7 +40,14 @@ const TaskEdit = () => {
 
   const handleUpdate = async (data) => {
     try {
+      // First update the task
       await taskService.updateTask(taskId, data);
+      
+      // Then assign users if needed
+      if (data.assignedTo && data.assignedTo.length > 0) {
+        await taskService.assignUsersToTask(taskId, data.assignedTo);
+      }
+      
       navigate(-1);
     } catch (err) {
       setError(err.message || 'Failed to update task');

@@ -1,7 +1,9 @@
 // Task Detail Page
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchTaskById, fetchProjectById } from '../../services/projectService';
+import { fetchTaskById } from '../../services/taskService';
+import { fetchProjectById } from '../../services/projectService';
+import { assignUsersToTask } from '../../services/taskService';
 import TaskSubtasks from '../../components/Task/TaskSubtasks';
 import TaskDependencies from '../../components/Task/TaskDependencies';
 import TaskComments from '../../components/Task/TaskComments';
@@ -29,12 +31,14 @@ const TaskDetail = () => {
         try {
           // Fetch project data to get members for assignment
           const projectData = await fetchProjectById(projectId);
-          setProject(projectData.project || projectData);
-          setProjectMembers(projectData.project?.members || projectData.members || []);
+          // Extract project from the response which has format {success: true, project: {...}}
+          const projectObj = projectData.project || projectData;
+          setProject(projectObj);
+          setProjectMembers(projectObj.members || []);
 
           // Determine if current user is admin
           const currentUser = getCurrentUser(); // Assuming this function exists in your auth context
-          const isUserAdmin = determineIfUserIsAdmin(currentUser, projectData.project || projectData);
+          const isUserAdmin = determineIfUserIsAdmin(currentUser, projectObj);
           setIsAdmin(isUserAdmin);
         } catch (err) {
           console.error("Error fetching project data:", err);
@@ -92,7 +96,7 @@ const TaskDetail = () => {
   const handleAssignUsers = async (selectedUserIds) => {
     try {
       setLoading(true);
-      // Call the assignment service function (implement in projectService.js)
+      // Call the assignment service function 
       const response = await assignUsersToTask(taskId, selectedUserIds);
       
       // Update the task with new assignees
@@ -101,6 +105,10 @@ const TaskDetail = () => {
           ...task,
           assignedTo: response.task.assignedTo
         });
+      } else {
+        // If no "success" field, assume it worked (depends on your API)
+        // Reload the task to get the updated assignees
+        fetchTaskAndProject();
       }
     } catch (err) {
       setError("Failed to assign users to this task");
@@ -191,7 +199,11 @@ const TaskDetail = () => {
       {/* Comments section */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Comments</h2>
-        <TaskComments taskId={taskId} comments={task.comments || []} />
+        <TaskComments 
+          taskId={taskId} 
+          comments={task.comments || []} 
+          projectMembers={projectMembers}
+        />
       </div>
       
       {/* Checklist section */}
