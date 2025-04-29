@@ -102,6 +102,10 @@ const TaskSchema = new mongoose.Schema({
         endDate: { type: Date },
         occurrences: { type: Number }
     },
+    category: {
+        type: String,
+        default: 'General' // e.g., Development, Testing, Documentation, Meeting, Design
+    },
     aiGenerated: {
         type: Boolean,
         default: false

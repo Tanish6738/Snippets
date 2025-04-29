@@ -13,6 +13,7 @@ export const createTask = async (req, res) => {
             dueDate, 
             assignedTo, 
             tags, 
+            category, // Added category
             parentTaskId 
         } = req.body;
         
@@ -115,6 +116,7 @@ export const createTask = async (req, res) => {
             assignedTo: assignedUsers,
             createdBy: userId,
             tags: tags || [],
+            category: category || 'General', // Added category
             level
         });
         
@@ -314,7 +316,8 @@ export const updateTask = async (req, res) => {
             priority, 
             dueDate, 
             assignedTo, 
-            tags 
+            tags, 
+            category // Added category
         } = req.body;
         
         if (!mongoose.Types.ObjectId.isValid(taskId)) {
@@ -325,7 +328,6 @@ export const updateTask = async (req, res) => {
         }
         
         const task = await Task.findById(taskId);
-        
         if (!task) {
             return res.status(404).json({ 
                 success: false, 
@@ -335,7 +337,6 @@ export const updateTask = async (req, res) => {
         
         // Get project to check permissions
         const project = await Project.findById(task.project);
-        
         if (!project) {
             return res.status(404).json({ 
                 success: false, 
@@ -347,16 +348,14 @@ export const updateTask = async (req, res) => {
         if (!project.hasPermission(userId, 'Contributor')) {
             // Allow users to update tasks assigned to them
             const isAssigned = task.assignedTo.some(id => id.equals(userId));
-            
             if (!isAssigned) {
                 return res.status(403).json({ 
                     success: false, 
                     message: 'You do not have permission to update this task' 
                 });
             }
-            
             // If user is only assigned, they can only update status
-            if (title || description || priority || dueDate || assignedTo || tags) {
+            if (title || description || priority || dueDate || assignedTo || tags || category) {
                 return res.status(403).json({ 
                     success: false, 
                     message: 'You can only update the status of tasks assigned to you' 
@@ -385,6 +384,7 @@ export const updateTask = async (req, res) => {
         if (priority !== undefined) task.priority = priority;
         if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : undefined;
         if (tags !== undefined) task.tags = tags;
+        if (category !== undefined) task.category = category;
         
         await task.save();
         
@@ -393,7 +393,6 @@ export const updateTask = async (req, res) => {
         if (status) {
             activityMessage = `Task "${task.title}" was marked as ${status}`;
         }
-        
         await project.addActivity('task_updated', activityMessage, userId);
         
         res.status(200).json({
@@ -1055,32 +1054,26 @@ export const saveGeneratedTasks = async (req, res) => {
         }
         
         const project = await Project.findById(projectId);
-        
         if (!project) {
             return res.status(404).json({ 
                 success: false, 
                 message: 'Project not found' 
             });
         }
-        
-        // Check if user has permission to add tasks
         if (!project.hasPermission(userId, 'Contributor')) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'You do not have permission to add tasks to this project' 
             });
         }
-        
         // Find the project admin for default task assignment
         let adminId = project.createdBy;
         const adminMember = project.members.find(m => m.role === 'Admin');
         if (adminMember) {
             adminId = adminMember.user;
         }
-        
         // Helper function to recursively create tasks and subtasks
         async function createTaskWithSubtasks(taskData, parentId = null, level = 0) {
-            // Create the task
             const task = new Task({
                 title: taskData.title,
                 description: taskData.description || '',
@@ -1088,53 +1081,43 @@ export const saveGeneratedTasks = async (req, res) => {
                 parentTask: parentId,
                 priority: taskData.priority || 'Medium',
                 dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
-                assignedTo: [adminId], // Default assignment to admin
+                assignedTo: (taskData.recommendedAssigneeIds && taskData.recommendedAssigneeIds.length > 0) ? taskData.recommendedAssigneeIds : [adminId],
                 createdBy: userId,
                 tags: taskData.tags || [],
+                category: taskData.category || 'General',
                 level: level,
-                aiGenerated: true
+                aiGenerated: true,
+                dependencies: taskData.dependencies || []
             });
-            
             await task.save();
-            
-            // If this is a top-level task, add it to the project
             if (!parentId) {
                 project.tasks.push(task._id);
             } else {
-                // Otherwise add it as a subtask to its parent
                 const parentTask = await Task.findById(parentId);
                 if (parentTask) {
                     await parentTask.addSubtask(task._id);
                 }
             }
-            
-            // Process subtasks if any
+            // Recursively create subtasks
             if (taskData.subtasks && Array.isArray(taskData.subtasks) && taskData.subtasks.length > 0) {
                 for (const subtaskData of taskData.subtasks) {
                     await createTaskWithSubtasks(subtaskData, task._id, level + 1);
                 }
             }
-            
             return task;
         }
-        
         // Create all tasks
         const savedTasks = [];
         for (const taskData of tasks) {
             const savedTask = await createTaskWithSubtasks(taskData);
             savedTasks.push(savedTask);
         }
-        
-        // Save the project to update the tasks array
         await project.save();
-        
-        // Add activity for task creation
         await project.addActivity(
             'ai_tasks_added',
             `${savedTasks.length} AI-generated tasks were added to the project`,
             userId
         );
-        
         res.status(201).json({
             success: true,
             message: `${savedTasks.length} AI-generated tasks were saved successfully`,

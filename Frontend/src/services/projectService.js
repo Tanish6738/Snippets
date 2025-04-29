@@ -103,7 +103,8 @@ export const updateMemberRole = async (projectId, memberId, role) => {
   }
 };
 
-export const getProjectTasks = async (projectId) => {
+// Get all tasks for a project
+export const getTasksByProject = async (projectId) => {
   try {
     const response = await axios.get(`/api/projects/${projectId}/tasks`);
     return response.data;

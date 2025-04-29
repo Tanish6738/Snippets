@@ -12,7 +12,8 @@ export default {
    */
   generateTasks: async (projectId, data) => {
     try {
-      return await axios.post(`/tasks/ai/generate/${projectId}`, data);
+      // Use correct backend endpoint and pass projectId in body
+      return await axios.post('/api/ai/tasks/generate', { projectId, ...data });
     } catch (error) {
       console.error('Error generating tasks with AI:', error);
       throw error.response?.data || error;
@@ -27,7 +28,8 @@ export default {
    */
   saveGeneratedTasks: async (projectId, tasks) => {
     try {
-      return await axios.post(`/tasks/ai/save/${projectId}`, { tasks });
+      // Use correct backend endpoint
+      return await axios.post(`/api/projects/${projectId}/save-generated-tasks`, { tasks });
     } catch (error) {
       console.error('Error saving generated tasks:', error);
       throw error.response?.data || error;

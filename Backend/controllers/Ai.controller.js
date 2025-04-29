@@ -1,14 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
 import { generateResult } from '../Config/Ai.js';
+import Project from '../Models/project.model.js';
+import Task from '../Models/task.model.js';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize the Google Generative AI API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyAE7HhNsHg-Wp7mGjj9VEUAqFikJdeUbr0");
 
 // Generate Explanations for a given code snippet
 export const generateExplanation = async (req, res) => {
@@ -501,59 +501,52 @@ function generateCombinedDocumentation(results, style, originalSnippets) {
 // Generate tasks for a project based on a description
 export const generateProjectTasks = async (req, res) => {
     try {
-        const { description, projectTitle, projectType, generateDependencies } = req.body;
-        
+        const { description, projectTitle, projectType, generateDependencies, recommendAssignees, projectId } = req.body; // Added recommendAssignees, projectId
+
         if (!description) {
             return res.status(400).json({
                 success: false,
                 message: 'Project description is required'
             });
         }
-        
-        // Determine project context based on project type
+
         let projectContext = '';
-        switch (projectType) {
-            case 'Development':
-                projectContext = 'a software development project with programming, testing, and deployment phases';
-                break;
-            case 'Marketing':
-                projectContext = 'a marketing campaign with research, content creation, and promotion phases';
-                break;
-            case 'Research':
-                projectContext = 'a research project with data collection, analysis, and reporting phases';
-                break;
-            case 'Event':
-                projectContext = 'an event planning project with preparation, execution, and follow-up phases';
-                break;
-            default:
-                projectContext = 'a general project management workflow';
-                break;
+        let membersInfo = '';
+        if (projectId) {
+            const project = await Project.findById(projectId)
+                .select('title description projectType members')
+                .populate('members.user', 'username _id role');
+            if (project) {
+                projectContext = `a ${project.projectType || 'Standard'} project titled "${project.title}"`;
+                if (project.members && project.members.length > 0) {
+                    membersInfo = ` Project members are: ${JSON.stringify(project.members.map(m => ({ id: m.user._id, username: m.user.username, role: m.role })), null, 2)}.`;
+                }
+            }
+        } else {
+             projectContext = `a ${projectType || 'general'} project management workflow`;
         }
-        
+
+
         // Enhanced prompt for more detailed task generation with new features
         const prompt = `
         Generate a comprehensive task breakdown for ${projectContext}.
-        
+        ${membersInfo}
+
         Project Title: ${projectTitle || 'New Project'}
         Project Description: ${description}
-        
+
         Return a JSON response with the following structure:
         {
           "tasks": [
             {
               "title": "Task title",
               "description": "Detailed description of the task",
-              "priority": "High/Medium/Low/Urgent", 
+              "priority": "High/Medium/Low/Urgent",
               "estimatedHours": number,
               "tags": ["tag1", "tag2"],
-              ${generateDependencies ? `
-              "dependencies": [
-                {
-                  "taskTitle": "Title of the prerequisite task",
-                  "type": "finish-to-start",
-                  "delay": 0
-                }
-              ],` : ''}
+              "category": "Development/Testing/etc.", // Add category suggestion
+              ${generateDependencies ? `"dependencies": [ { "taskTitle": "Title of prerequisite task", "type": "finish-to-start", "delay": 0 } ],` : ''}
+              ${recommendAssignees ? `"recommendedAssigneeIds": ["user_id_1", "user_id_2"], // Suggest based on membersInfo if provided` : ''}
               "subtasks": [
                 {
                   "title": "Subtask title",
@@ -561,39 +554,31 @@ export const generateProjectTasks = async (req, res) => {
                   "priority": "High/Medium/Low/Urgent",
                   "estimatedHours": number,
                   "tags": ["tag1", "tag2"],
+                  "category": "Development/Testing/etc.",
                   ${generateDependencies ? `"dependencies": [],` : ''}
-                  "subtasks": []
+                  ${recommendAssignees ? `"recommendedAssigneeIds": ["user_id_1"],` : ''}
+                  "subtasks": [] // Max 3 levels deep
                 }
               ]
             }
           ]
         }
-        
+
         Make sure to:
-        1. Create a logical task breakdown with 4-8 main tasks
-        2. Each main task should have 2-5 subtasks
-        3. Some subtasks can have their own subtasks (maximum 3 levels deep)
-        4. Tasks should cover the entire project lifecycle from planning to completion
-        5. Include appropriate priorities (Urgent, High, Medium, Low)
-        6. Include realistic time estimates for each task in hours
-        7. Add relevant tags to each task based on its nature and purpose
-        ${generateDependencies ? `
-        8. Create meaningful task dependencies between related tasks
-        9. Use mostly "finish-to-start" dependencies, but occasionally use other types
-        10. Set realistic delay values (in days) when appropriate for dependencies
-        ` : ''}
-        
-        For ${projectType || 'standard'} projects, focus on:
-        ${projectType === 'Development' ? '- Technical tasks like coding, testing, deployment\n- Bug fixing and code reviews\n- Documentation and technical standards' : ''}
-        ${projectType === 'Marketing' ? '- Market research and audience analysis\n- Content creation and campaign execution\n- Analytics and performance tracking' : ''}
-        ${projectType === 'Research' ? '- Data collection methodology\n- Analysis techniques and verification\n- Publication and presentation of findings' : ''}
-        ${projectType === 'Event' ? '- Venue selection and logistics\n- Participant management and communications\n- Day-of coordination and post-event analysis' : ''}
-        ${projectType === 'Standard' ? '- Team meetings\n- Progress reporting\n- Administrative tasks' : ''}
+        1. Create a logical task breakdown (4-8 main tasks).
+        2. Each main task can have 2-5 subtasks.
+        3. Tasks cover the project lifecycle.
+        4. Include priorities, time estimates, relevant tags, and a category.
+        ${generateDependencies ? `5. Create meaningful task dependencies (mostly 'finish-to-start').` : ''}
+        ${recommendAssignees && membersInfo ? `6. Recommend assignees (provide user IDs) for tasks based on member roles and potential task relevance.` : ''}
+
+        For ${projectType || 'standard'} projects, focus on relevant task types.
+        Return only the valid JSON object.
         `;
 
-        // Call the AI model with the enhanced prompt
+        // Generate content
         const rawResponse = await generateResult(prompt);
-        
+
         // Parse and clean the response
         let response;
         try {
@@ -620,34 +605,18 @@ export const generateProjectTasks = async (req, res) => {
                 });
             }
         }
-        
-        // If tasks are in fileTree format (due to existing AI system instruction), 
-        // transform to expected format
-        if (response.fileTree && !response.tasks) {
-            try {
-                // Try to convert from fileTree format to tasks format
-                response = {
-                    tasks: JSON.parse(response.fileTree.snippet.file.content)
-                };
-            } catch (e) {
-                // If conversion fails, return error
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to convert AI response to task format',
-                    error: e.message,
-                    rawResponse
-                });
-            }
-        }
 
         // Process the response to ensure all tasks have the required fields
-        const processedTasks = processTasksForAdvancedFeatures(response.tasks || [], generateDependencies);
-        
+        // Pass recommendAssignees flag to the processing function
+        const processedTasks = processTasksForAdvancedFeatures(response.tasks || [], generateDependencies, recommendAssignees);
+
         res.status(200).json({
             success: true,
             message: 'Tasks generated successfully',
             tasks: processedTasks
         });
+
+
     } catch (error) {
         console.error('Task generation error:', error);
         res.status(500).json({
@@ -658,209 +627,338 @@ export const generateProjectTasks = async (req, res) => {
     }
 };
 
-// New function to generate task health insights based on project data
-export const generateTaskHealthInsights = async (req, res) => {
+
+// Generate suggestions for a new task based on description
+export const suggestTaskDetails = async (req, res) => {
     try {
-        const { projectId } = req.params;
-        const { tasks } = req.body;
-        
-        if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Task data is required'
-            });
-        }
-        
-        // Prepare task data for the AI prompt
-        const taskData = tasks.map(task => ({
-            id: task._id.toString(),
-            title: task.title,
-            status: task.status,
-            priority: task.priority,
-            dueDate: task.dueDate,
-            estimatedHours: task.estimatedHours || 0,
-            actualHours: task.actualHours || 0,
-            timeEntries: task.timeEntries?.length || 0,
-            dependencies: task.dependencies?.length || 0,
-            health: task.health?.status || 'unknown',
-        }));
-        
-        // Prompt for analyzing task health and providing recommendations
-        const prompt = `
-        You are a project management expert. Analyze the following project tasks and provide insights on task health and recommendations.
-        
-        Task Data:
-        ${JSON.stringify(taskData, null, 2)}
-        
-        Provide your analysis as a JSON object with the following structure:
-        {
-            "overallProjectHealth": "on-track|at-risk|delayed|ahead",
-            "healthSummary": "A brief summary of the project health status",
-            "criticalTasks": [
-                {
-                    "taskId": "id of the task",
-                    "reason": "Why this task is critical/at risk",
-                    "recommendation": "What should be done to address this task"
-                }
-            ],
-            "recommendations": [
-                "General recommendation for the project",
-                "Another recommendation"
-            ],
-            "timeManagementInsights": "Analysis of time tracking data",
-            "dependencyInsights": "Analysis of task dependencies"
+        const { description, projectId } = req.body;
+
+        if (!description) {
+            return res.status(400).json({ success: false, message: 'Task description is required' });
         }
 
-        Focus on identifying:
-        1. Tasks that are blocking others
-        2. Tasks that are taking longer than estimated
-        3. High priority tasks that are at risk
-        4. Bottlenecks in the workflow
-        5. Resources that might be overallocated
-        6. Opportunities to improve efficiency
-        
-        Only return the JSON object, nothing else.
-        `;
-
-        // Call the AI model
-        const rawResponse = await generateResult(prompt);
-        
-        // Parse and clean the response
-        let insights;
-        try {
-            insights = JSON.parse(rawResponse);
-        } catch (e) {
-            // If parsing fails, try to extract JSON from the text
-            const jsonMatch = rawResponse.match(/(\{[\s\S]*\})/);
-            if (jsonMatch) {
-                try {
-                    insights = JSON.parse(jsonMatch[0]);
-                } catch (e2) {
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Failed to parse AI response',
-                        error: e2.message
-                    });
-                }
-            } else {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Invalid response format from AI',
-                    error: e.message
-                });
+        let projectContext = 'a general project';
+        if (projectId) {
+            const project = await Project.findById(projectId).select('title description projectType');
+            if (project) {
+                projectContext = `the project "${project.title}" (${project.projectType || 'Standard'} type): ${project.description || ''}`;
             }
         }
-        
-        res.status(200).json({
-            success: true,
-            message: 'Health insights generated successfully',
-            insights
-        });
+
+        const prompt = `
+        Based on the following task description for ${projectContext}, suggest details for the task.
+
+        Task Description: "${description}"
+
+        Return a JSON object with suggestions for:
+        - title: A concise and informative task title (max 15 words).
+        - suggestedDescription: A slightly refined or expanded description if needed, otherwise keep the original.
+        - priority: Suggest 'Low', 'Medium', 'High', or 'Urgent'.
+        - tags: Suggest 2-4 relevant tags (e.g., "planning", "bug", "frontend", "urgent", "research").
+        - estimatedHours: A rough estimate in hours.
+        - category: Suggest a category like 'Development', 'Testing', 'Documentation', 'Meeting', 'Design', etc.
+
+        Example JSON structure:
+        {
+          "title": "Implement User Authentication",
+          "suggestedDescription": "Set up user login and registration using JWT.",
+          "priority": "High",
+          "tags": ["backend", "security", "auth"],
+          "estimatedHours": 8,
+          "category": "Development"
+        }
+
+        Return only the valid JSON object.
+        `;
+
+        const rawResponse = await generateResult(prompt);
+        const suggestions = JSON.parse(rawResponse); // Assuming generateResult handles JSON parsing or extraction
+
+        res.status(200).json({ success: true, suggestions });
+
     } catch (error) {
-        console.error('Health insights generation error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to generate health insights',
-            error: error.message
-        });
+        console.error("Error suggesting task details:", error);
+        res.status(500).json({ success: false, message: 'Failed to suggest task details', error: error.message });
     }
 };
 
-// New function to generate recurring task recommendations
-export const generateRecurringTaskRecommendations = async (req, res) => {
+// Check for potential duplicate tasks within a project
+export const checkDuplicateTask = async (req, res) => {
     try {
-        const { projectId } = req.params;
-        const { projectType, existingTasks } = req.body;
-        
-        // Prepare context based on project type
-        let projectTypeContext = projectType || 'Standard';
-        
-        // Prepare the prompt
+        const { description, projectId } = req.body;
+
+        if (!description || !projectId) {
+            return res.status(400).json({ success: false, message: 'Task description and project ID are required' });
+        }
+
+        // Fetch existing tasks for the project
+        const existingTasks = await Task.find({ project: projectId }).select('title description').limit(50); // Limit for performance
+
+        if (existingTasks.length === 0) {
+            return res.status(200).json({ success: true, isDuplicate: false, duplicates: [] });
+        }
+
+        const existingTaskDescriptions = existingTasks.map(task => ({ id: task._id, title: task.title, description: task.description }));
+
         const prompt = `
-        You are a project management expert. Based on the project type "${projectTypeContext}", 
-        recommend recurring tasks that would benefit this type of project.
-        
-        ${existingTasks && existingTasks.length > 0 ? 
-          `Consider these existing tasks in your recommendations:\n${JSON.stringify(existingTasks.map(t => t.title), null, 2)}` : 
-          ''}
-        
+        Analyze the following new task description and compare it semantically to the list of existing tasks in the project.
+        Determine if the new task is likely a duplicate of any existing tasks.
+
+        New Task Description: "${description}"
+
+        Existing Tasks:
+        ${JSON.stringify(existingTaskDescriptions, null, 2)}
+
         Return a JSON object with the following structure:
         {
-            "recurringTasks": [
-                {
-                    "title": "Task title",
-                    "description": "Description of the task and why it should be recurring",
-                    "frequency": "daily|weekly|monthly|yearly",
-                    "daysOfWeek": [1, 3, 5],
-                    "estimatedHours": 2,
-                    "priority": "Medium",
-                    "tags": ["tag1", "tag2"]
-                }
-            ],
-            "recommendations": [
-                "Using recurring tasks for meetings can improve consistency",
-                "Other recommendations about recurring task usage"
-            ]
-        }
-        
-        For ${projectTypeContext} projects, focus on:
-        ${projectTypeContext === 'Development' ? '- Regular code reviews and sprint meetings\n- Testing cycles and quality assurance\n- System health checks and backups' : ''}
-        ${projectTypeContext === 'Marketing' ? '- Content calendar management\n- Analytics reporting\n- Social media posting schedules' : ''}
-        ${projectTypeContext === 'Research' ? '- Regular data collection intervals\n- Team status updates\n- Literature review updates' : ''}
-        ${projectTypeContext === 'Event' ? '- Planning committee meetings\n- Vendor check-ins\n- Timeline milestone verifications' : ''}
-        ${projectTypeContext === 'Standard' ? '- Team meetings\n- Progress reporting\n- Administrative tasks' : ''}
-        
-        Only return the JSON object, nothing else.
-        `;
-        
-        // Call the AI model
-        const rawResponse = await generateResult(prompt);
-        
-        // Parse the response
-        let recommendations;
-        try {
-            recommendations = JSON.parse(rawResponse);
-        } catch (e) {
-            // If parsing fails, try to extract JSON from the text
-            const jsonMatch = rawResponse.match(/(\{[\s\S]*\})/);
-            if (jsonMatch) {
-                try {
-                    recommendations = JSON.parse(jsonMatch[0]);
-                } catch (e2) {
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Failed to parse AI response',
-                        error: e2.message
-                    });
-                }
-            } else {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Invalid response format from AI',
-                    error: e.message
-                });
+          "isDuplicate": boolean, // true if a likely duplicate is found
+          "duplicates": [ // List of likely duplicates
+            {
+              "taskId": "existing_task_id",
+              "title": "Existing Task Title",
+              "similarityScore": number // A score from 0 to 1 indicating similarity
             }
+          ],
+          "reasoning": "Brief explanation if it's a duplicate or not"
         }
-        
-        res.status(200).json({
-            success: true,
-            message: 'Recurring task recommendations generated successfully',
-            recommendations
-        });
+
+        Consider titles and descriptions for similarity. Aim for a high threshold for declaring a duplicate (e.g., similarityScore > 0.85).
+        Return only the valid JSON object.
+        `;
+
+        const rawResponse = await generateResult(prompt);
+        const result = JSON.parse(rawResponse); // Assuming generateResult handles JSON parsing or extraction
+
+        res.status(200).json({ success: true, ...result });
+
     } catch (error) {
-        console.error('Recurring task recommendations error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to generate recurring task recommendations',
-            error: error.message
-        });
+        console.error("Error checking for duplicate tasks:", error);
+        res.status(500).json({ success: false, message: 'Failed to check for duplicate tasks', error: error.message });
     }
 };
 
+// Break down a complex task into subtasks
+export const breakdownTask = async (req, res) => {
+    try {
+        const { description, parentTaskId, projectId } = req.body; // parentTaskId is optional
+
+        if (!description) {
+            return res.status(400).json({ success: false, message: 'Task description is required' });
+        }
+
+        let projectContext = '';
+        if (projectId) {
+             const project = await Project.findById(projectId).select('title projectType');
+             if (project) projectContext = ` within the "${project.title}" (${project.projectType}) project`;
+        }
+
+        const prompt = `
+        Break down the following complex task description into smaller, actionable subtasks${projectContext}.
+
+        Main Task Description: "${description}"
+
+        Generate a list of 2-6 subtasks. For each subtask, provide:
+        - title: A concise title.
+        - description: A brief description (optional).
+        - priority: 'Low', 'Medium', 'High', or 'Urgent'.
+        - estimatedHours: Rough estimate in hours.
+        - tags: 1-2 relevant tags.
+
+        Return a JSON object with the following structure:
+        {
+          "subtasks": [
+            {
+              "title": "Subtask Title 1",
+              "description": "Details for subtask 1",
+              "priority": "Medium",
+              "estimatedHours": 3,
+              "tags": ["tagA"]
+            },
+            {
+              "title": "Subtask Title 2",
+              // ... other fields
+            }
+          ]
+        }
+
+        Ensure subtasks are logical steps to complete the main task.
+        Return only the valid JSON object.
+        `;
+
+        const rawResponse = await generateResult(prompt);
+        const result = JSON.parse(rawResponse); // Assuming generateResult handles JSON parsing or extraction
+
+        // Ensure the response structure is correct
+        const subtasks = (result.subtasks || []).map(st => ({
+             title: st.title || 'Untitled Subtask',
+             description: st.description || '',
+             priority: st.priority || 'Medium',
+             estimatedHours: st.estimatedHours || 0,
+             tags: st.tags || []
+        }));
+
+
+        res.status(200).json({ success: true, subtasks });
+
+    } catch (error) {
+        console.error("Error breaking down task:", error);
+        res.status(500).json({ success: false, message: 'Failed to break down task', error: error.message });
+    }
+};
+
+// Recommend assignees for a task
+export const recommendAssignee = async (req, res) => {
+    try {
+        const { description, projectId, taskId } = req.body; // taskId is optional (for existing tasks)
+
+        if (!projectId) {
+            return res.status(400).json({ success: false, message: 'Project ID is required' });
+        }
+        if (!description && !taskId) {
+             return res.status(400).json({ success: false, message: 'Task description or ID is required' });
+        }
+
+        const project = await Project.findById(projectId)
+            .populate('members.user', 'username email role') // Populate user details
+            .populate({
+                path: 'tasks',
+                select: 'title description assignedTo tags createdBy', // Select relevant task fields
+                populate: { path: 'assignedTo', select: 'username' } // Populate assignees within tasks
+            });
+
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
+
+        const members = project.members.map(m => ({
+            id: m.user._id,
+            username: m.user.username,
+            role: m.role
+        }));
+
+        // Simplified history - count tasks per user (could be more sophisticated)
+        const taskHistory = project.tasks.reduce((acc, task) => {
+            task.assignedTo.forEach(assignee => {
+                const userId = assignee._id.toString();
+                acc[userId] = (acc[userId] || 0) + 1;
+            });
+            return acc;
+        }, {});
+
+        const taskDesc = taskId ? (await Task.findById(taskId).select('title description tags'))?.description : description;
+        if (!taskDesc) {
+             return res.status(404).json({ success: false, message: 'Task description not found' });
+        }
+
+
+        const prompt = `
+        Based on the task description, project members, their roles, and past task assignments, recommend suitable assignees for the task.
+
+        Task Description: "${taskDesc}"
+        Project Members: ${JSON.stringify(members, null, 2)}
+        Task Assignment History (User ID: Task Count): ${JSON.stringify(taskHistory, null, 2)}
+
+        Return a JSON object with a list of recommended assignees, ordered by suitability:
+        {
+          "recommendations": [
+            {
+              "userId": "user_id_1",
+              "username": "username1",
+              "reasoning": "Why this user is recommended (e.g., relevant role, past experience)",
+              "confidenceScore": number // Score from 0 to 1
+            },
+            {
+              "userId": "user_id_2",
+              // ... other fields
+            }
+          ]
+        }
+
+        Consider member roles ('Admin', 'Contributor') and users who have handled similar tasks (based on description/tags if available, or just general activity). Limit to 3 recommendations.
+        Return only the valid JSON object.
+        `;
+
+        const rawResponse = await generateResult(prompt);
+        const result = JSON.parse(rawResponse); // Assuming generateResult handles JSON parsing or extraction
+
+        res.status(200).json({ success: true, recommendations: result.recommendations || [] });
+
+    } catch (error) {
+        console.error("Error recommending assignee:", error);
+        res.status(500).json({ success: false, message: 'Failed to recommend assignee', error: error.message });
+    }
+};
+
+// Generate a natural language summary of project progress
+export const generateProjectSummary = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+
+        const project = await Project.findById(projectId)
+            .select('title description status progress createdAt deadline')
+            .populate({
+                path: 'tasks',
+                select: 'status priority dueDate completedAt createdAt', // Select fields relevant for summary
+            });
+
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
+
+        const taskStats = {
+            total: project.tasks.length,
+            toDo: project.tasks.filter(t => t.status === 'To Do').length,
+            inProgress: project.tasks.filter(t => t.status === 'In Progress').length,
+            completed: project.tasks.filter(t => t.status === 'Completed').length,
+            onHold: project.tasks.filter(t => t.status === 'On Hold').length,
+            cancelled: project.tasks.filter(t => t.status === 'Cancelled').length,
+            overdue: project.tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Completed').length,
+        };
+
+        const prompt = `
+        Generate a concise, natural language summary of the project's progress based on the following data.
+
+        Project Title: "${project.title}"
+        Project Status: ${project.status}
+        Project Progress: ${project.progress}%
+        Project Deadline: ${project.deadline ? new Date(project.deadline).toLocaleDateString() : 'Not set'}
+        Created At: ${new Date(project.createdAt).toLocaleDateString()}
+
+        Task Statistics:
+        - Total Tasks: ${taskStats.total}
+        - To Do: ${taskStats.toDo}
+        - In Progress: ${taskStats.inProgress}
+        - Completed: ${taskStats.completed}
+        - On Hold: ${taskStats.onHold}
+        - Cancelled: ${taskStats.cancelled}
+        - Overdue: ${taskStats.overdue}
+
+        Return a JSON object with the following structure:
+        {
+          "summary": "A paragraph summarizing the project's current state, highlighting key numbers (like completed tasks, progress percentage, overdue tasks) and overall health (e.g., on track, needs attention)."
+        }
+
+        Keep the summary informative but brief (2-4 sentences).
+        Return only the valid JSON object.
+        `;
+
+        const rawResponse = await generateResult(prompt);
+        const result = JSON.parse(rawResponse); // Assuming generateResult handles JSON parsing or extraction
+
+        res.status(200).json({ success: true, summary: result.summary || 'Could not generate summary.' });
+
+    } catch (error) {
+        console.error("Error generating project summary:", error);
+        res.status(500).json({ success: false, message: 'Failed to generate project summary', error: error.message });
+    }
+};
+
+
 // Helper function to process tasks and ensure they have all required fields for advanced features
-function processTasksForAdvancedFeatures(tasks, includeDependencies = false) {
+// Updated to include recommendAssignees
+function processTasksForAdvancedFeatures(tasks, includeDependencies = false, includeAssignees = false) {
     if (!tasks || !Array.isArray(tasks)) return [];
-    
+
     return tasks.map(task => {
         // Ensure all tasks have required fields
         const processedTask = {
@@ -868,21 +966,28 @@ function processTasksForAdvancedFeatures(tasks, includeDependencies = false) {
             description: task.description || '',
             priority: task.priority || 'Medium',
             estimatedHours: task.estimatedHours || 0,
-            tags: task.tags || []
+            tags: task.tags || [],
+            category: task.category || 'General' // Add category
         };
-        
+
         // Add dependencies if requested
         if (includeDependencies) {
             processedTask.dependencies = task.dependencies || [];
         }
-        
+
+        // Add recommended assignees if requested
+        if (includeAssignees) {
+            processedTask.recommendedAssigneeIds = task.recommendedAssigneeIds || [];
+        }
+
+
         // Process subtasks recursively
         if (task.subtasks && Array.isArray(task.subtasks) && task.subtasks.length > 0) {
-            processedTask.subtasks = processTasksForAdvancedFeatures(task.subtasks, includeDependencies);
+            processedTask.subtasks = processTasksForAdvancedFeatures(task.subtasks, includeDependencies, includeAssignees); // Pass flags down
         } else {
             processedTask.subtasks = [];
         }
-        
+
         return processedTask;
     });
 }
@@ -973,5 +1078,160 @@ export const generateBulkSnippets = async (req, res) => {
         res.status(500).json({
             error: error.message || 'Failed to generate bulk snippets'
         });
+    }
+};
+
+// Generate recurring task recommendations for a project
+export const generateRecurringTaskRecommendations = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { projectType, existingTasks = [] } = req.body;
+        const userId = req.user._id;
+
+        if (!projectId || !projectType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Project ID and projectType are required.'
+            });
+        }
+
+        // Fetch project for context (optional, for more advanced logic)
+        const project = await Project.findById(projectId).select('title description projectType deadline');
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                message: 'Project not found.'
+            });
+        }
+
+        // Prepare prompt for AI
+        const prompt = `
+        You are an expert project manager AI. Based on the following project type and existing tasks, recommend a list of recurring tasks that are common and valuable for this type of project.
+        
+        Project Type: ${projectType}
+        Project Title: ${project.title}
+        Project Description: ${project.description}
+        Project Deadline: ${project.deadline ? new Date(project.deadline).toLocaleDateString() : 'Not set'}
+        Existing Tasks: ${JSON.stringify(existingTasks, null, 2)}
+
+        For each recommended recurring task, provide:
+        - title
+        - description
+        - recommended frequency (daily, weekly, monthly, etc.)
+        - suggested day(s) (if applicable)
+        - estimated hours
+        - priority
+        - tags
+        - why this recurring task is important for this project type
+
+        Return a JSON array of objects with this structure:
+        [
+          {
+            "title": "...",
+            "description": "...",
+            "frequency": "weekly",
+            "daysOfWeek": [1],
+            "estimatedHours": 1,
+            "priority": "Medium",
+            "tags": ["meeting", "recurring"],
+            "reasoning": "..."
+          }
+        ]
+        Only return the valid JSON array, nothing else.
+        `;
+
+        // Call AI to get recommendations
+        const aiResponse = await generateResult(prompt);
+        let recommendations = [];
+        try {
+            recommendations = JSON.parse(aiResponse);
+        } catch (e) {
+            // Try to extract JSON array from text
+            const match = aiResponse.match(/\[.*\]/s);
+            if (match) {
+                recommendations = JSON.parse(match[0]);
+            } else {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to parse AI response',
+                    error: e.message
+                });
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            recommendations
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate recurring task recommendations',
+            error: error.message
+        });
+    }
+};
+
+// Generate AI-powered health insights for project tasks
+export const generateTaskHealthInsights = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { tasks } = req.body; // Optionally allow passing tasks, or fetch from DB
+        const userId = req.user._id;
+
+        if (!projectId) {
+            return res.status(400).json({ success: false, message: 'Project ID is required.' });
+        }
+
+        // Fetch project and tasks if not provided
+        let project = await Project.findById(projectId).select('title description deadline projectType');
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found.' });
+        }
+        let projectTasks = tasks;
+        if (!projectTasks) {
+            projectTasks = await Task.find({ project: projectId })
+                .select('title description status priority dueDate estimatedHours assignedTo tags dependencies');
+        }
+
+        // Prepare prompt for AI
+        const prompt = `
+        You are an expert project manager AI. Analyze the following project and its tasks, and provide health insights:
+        - Identify at-risk, delayed, or blocked tasks
+        - Suggest improvements or focus areas
+        - Summarize overall project health
+        - Highlight tasks with missing deadlines, unclear priorities, or no assignees
+        
+        Project: ${project.title} (${project.projectType})\n${project.description}\nDeadline: ${project.deadline ? new Date(project.deadline).toLocaleDateString() : 'Not set'}
+        Tasks: ${JSON.stringify(projectTasks, null, 2)}
+
+        Return a JSON object with:
+        {
+          "summary": "Overall project health summary.",
+          "atRiskTasks": [ { "title": "...", "reason": "..." } ],
+          "delayedTasks": [ { "title": "...", "dueDate": "..." } ],
+          "blockedTasks": [ { "title": "...", "blockedBy": ["Task A"] } ],
+          "recommendations": [ "..." ]
+        }
+        Only return the valid JSON object, nothing else.
+        `;
+
+        const aiResponse = await generateResult(prompt);
+        let insights = {};
+        try {
+            insights = JSON.parse(aiResponse);
+        } catch (e) {
+            // Try to extract JSON object from text
+            const match = aiResponse.match(/\{[\s\S]*\}/);
+            if (match) {
+                insights = JSON.parse(match[0]);
+            } else {
+                return res.status(500).json({ success: false, message: 'Failed to parse AI response', error: e.message });
+            }
+        }
+
+        res.status(200).json({ success: true, insights });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to generate task health insights', error: error.message });
     }
 };
