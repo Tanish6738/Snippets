@@ -388,7 +388,7 @@ export const getProjectDashboard = async (req, res) => {
         // Check if user has access to this project
         const isMember = project.members.some(m => m.user._id.equals(userId)) || 
                        project.createdBy._id.equals(userId);
-                       
+                        
         if (!isMember) {
             return res.status(403).json({ 
                 success: false, 
@@ -423,6 +423,27 @@ export const getProjectDashboard = async (req, res) => {
         taskStatusSummary.forEach(item => {
             taskStatusCounts[item._id] = item.count;
         });
+
+        // Fetch all tasks for AI health insights
+        let aiHealthInsights = null;
+        try {
+            const allTasks = await Task.find({ project: id })
+                .select('title description status priority dueDate estimatedHours assignedTo tags dependencies');
+            // Import the AI health insights logic directly
+            const { generateTaskHealthInsights } = await import('./Ai.controller.js');
+            // Simulate req/res for internal call
+            const fakeReq = { params: { projectId: id }, body: { tasks: allTasks }, user: req.user };
+            let aiResult = {};
+            await new Promise((resolve) => {
+                generateTaskHealthInsights(fakeReq, {
+                    status: (code) => ({ json: (data) => { aiResult = { code, ...data }; resolve(); } }),
+                    json: (data) => { aiResult = { code: 200, ...data }; resolve(); }
+                });
+            });
+            aiHealthInsights = aiResult.success ? aiResult.insights : null;
+        } catch (err) {
+            aiHealthInsights = null;
+        }
         
         res.status(200).json({
             success: true,
@@ -441,7 +462,8 @@ export const getProjectDashboard = async (req, res) => {
                 upcomingTasks,
                 recentActivity,
                 taskStatusSummary: taskStatusCounts,
-                memberCount: project.members.length
+                memberCount: project.members.length,
+                aiHealthInsights // New: AI-powered health insights
             }
         });
     } catch (error) {

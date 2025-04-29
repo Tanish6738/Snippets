@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { getProjectDashboard as fetchProjectDashboard } from '../../services/projectService';
 import ProjectDashboardWidgets from '../../components/Project/ProjectDashboardWidgets';
 import ProjectHealthInsights from '../../components/Project/ProjectHealthInsights';
-import aiTaskService from '../../services/aiTaskService';
 import { FiBarChart2, FiActivity } from 'react-icons/fi';
 
 const ProjectDashboard = () => {
@@ -11,36 +10,15 @@ const ProjectDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [aiInsights, setAiInsights] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     fetchProjectDashboard(projectId)
-      .then(setDashboard)
+      .then(data => {
+        setDashboard(data);
+      })
       .catch(setError)
       .finally(() => setLoading(false));
-  }, [projectId]);
-
-  useEffect(() => {
-    setAiLoading(true);
-    fetchProjectDashboard(projectId)
-      .then(dashboardData => {
-        const tasks = dashboardData?.project?.rootTasks || dashboardData?.project?.tasks || [];
-        if (!tasks.length) {
-          setAiInsights('No tasks found. Add tasks to get AI health insights.');
-          setAiLoading(false);
-          return;
-        }
-        return aiTaskService.getProjectHealth(projectId, { tasks })
-          .then(res => setAiInsights(res.data?.insights || res.data || res))
-          .catch(() => setAiInsights(null))
-          .finally(() => setAiLoading(false));
-      })
-      .catch(() => {
-        setAiInsights(null);
-        setAiLoading(false);
-      });
   }, [projectId]);
 
   if (loading) return (
@@ -76,7 +54,7 @@ const ProjectDashboard = () => {
         </div>
         <div className="mt-10 p-8 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/40 shadow-xl">
           <h3 className="font-bold mb-5 flex items-center gap-3 text-white text-xl"><FiActivity className="text-indigo-400" /> AI Health Insights</h3>
-          {aiLoading ? <div className="text-slate-400 animate-pulse">Loading AI insights...</div> : <ProjectHealthInsights insights={aiInsights} />}
+          <ProjectHealthInsights insights={dashboard.dashboard.aiHealthInsights} />
         </div>
       </div>
     </div>

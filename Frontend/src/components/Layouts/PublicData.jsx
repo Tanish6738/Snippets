@@ -454,6 +454,9 @@ const PublicData = () => {
               <SortControls
                 sortBy={sortBy}
                 onSortChange={setSortBy}
+                language={language}
+                onLanguageChange={setLanguage}
+                languages={languages}
                 options={[
                   { value: 'newest', label: 'Newest' },
                   { value: 'popular', label: 'Most Popular' },

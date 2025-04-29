@@ -10,9 +10,92 @@ const getStatusIcon = (status) => {
   return <FiInfo className="text-slate-400" />;
 };
 
+const Section = ({ title, icon, children, color }) => (
+  <div className={`mb-8 rounded-xl shadow-lg bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/40 p-6`}>  
+    <div className={`flex items-center gap-2 mb-3 text-lg font-bold ${color || 'text-indigo-300'}`}>
+      {icon && <span className="text-2xl">{icon}</span>}
+      {title}
+    </div>
+    <div>{children}</div>
+  </div>
+);
+
+const List = ({ items, renderItem, emptyText }) => (
+  <ul className="list-none pl-0 space-y-2">
+    {items && items.length > 0
+      ? items.map(renderItem)
+      : <li className="text-slate-400 italic">{emptyText}</li>}
+  </ul>
+);
+
 const ProjectHealthInsights = ({ insights }) => {
   if (!insights) return <div className="text-slate-400">No AI health insights available.</div>;
   if (typeof insights === 'string') return <div className="text-slate-300">{insights}</div>;
+
+  if (typeof insights === 'object' && insights.summary) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="col-span-1">
+          <Section title="Summary" icon={<FiInfo />} color="text-blue-300">
+            <div className="text-slate-100 text-base leading-relaxed">{insights.summary}</div>
+          </Section>
+          <Section title="Recommendations" icon={<FiTrendingUp />} color="text-green-300">
+            <List
+              items={insights.recommendations}
+              emptyText="No recommendations."
+              renderItem={(rec, idx) => (
+                <li key={idx} className="bg-slate-700/60 rounded px-3 py-2 text-slate-100 shadow-sm border-l-4 border-green-400">
+                  {rec}
+                </li>
+              )}
+            />
+          </Section>
+        </div>
+        <div className="col-span-1 flex flex-col gap-8">
+          <Section title="At-Risk Tasks" icon={<FiAlertCircle />} color="text-yellow-300">
+            <List
+              items={insights.atRiskTasks}
+              emptyText="No at-risk tasks."
+              renderItem={(task, idx) => (
+                <li key={idx} className="flex items-start gap-2 bg-yellow-900/30 rounded px-3 py-2 text-yellow-200 border-l-4 border-yellow-400">
+                  <span className="font-semibold">{task.title}</span>
+                  <span className="text-xs text-yellow-100">{task.reason}</span>
+                </li>
+              )}
+            />
+          </Section>
+          <Section title="Delayed Tasks" icon={<FiAlertCircle />} color="text-red-300">
+            <List
+              items={insights.delayedTasks}
+              emptyText="No delayed tasks."
+              renderItem={(task, idx) => (
+                <li key={idx} className="flex items-start gap-2 bg-red-900/30 rounded px-3 py-2 text-red-200 border-l-4 border-red-400">
+                  <span className="font-semibold">{task.title}</span>
+                  {task.dueDate && <span className="text-xs text-red-100">(Due: {task.dueDate})</span>}
+                </li>
+              )}
+            />
+          </Section>
+          <Section title="Blocked Tasks" icon={<FiAlertCircle />} color="text-orange-300">
+            <List
+              items={insights.blockedTasks}
+              emptyText="No blocked tasks."
+              renderItem={(task, idx) => (
+                <li key={idx} className="flex items-start gap-2 bg-orange-900/30 rounded px-3 py-2 text-orange-200 border-l-4 border-orange-400">
+                  <span className="font-semibold">{task.title}</span>
+                  {task.blockedBy && task.blockedBy.length > 0 && (
+                    <span className="text-xs text-orange-100">(Blocked by: {task.blockedBy.join(', ')})</span>
+                  )}
+                </li>
+              )}
+            />
+          </Section>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for other object/array formats
   if (Array.isArray(insights)) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
