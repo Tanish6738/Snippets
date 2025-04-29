@@ -201,12 +201,24 @@ export const getTasksByProject = async (req, res) => {
         })
         .populate({
             path: 'subtasks',
-            populate: {
-                path: 'subtasks',
-                populate: {
-                    path: 'subtasks'
-                }
-            }
+            populate: [
+                {
+                    path: 'subtasks',
+                    populate: [
+                        {
+                            path: 'subtasks',
+                            populate: [
+                                { path: 'assignedTo', select: 'username email avatar' },
+                                { path: 'createdBy', select: 'username email avatar' }
+                            ]
+                        },
+                        { path: 'assignedTo', select: 'username email avatar' },
+                        { path: 'createdBy', select: 'username email avatar' }
+                    ]
+                },
+                { path: 'assignedTo', select: 'username email avatar' },
+                { path: 'createdBy', select: 'username email avatar' }
+            ]
         })
         .populate('assignedTo', 'username email avatar')
         .populate('createdBy', 'username email avatar');
@@ -1622,5 +1634,68 @@ export const calculateProjectTasksHealth = async (req, res) => {
             message: 'Failed to calculate task health',
             error: error.message
         });
+    }
+};
+
+// Create a subtask for a given parent task
+export const createSubtask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const userId = req.user._id;
+        const { title, description, priority, dueDate, assignedTo, tags } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ success: false, message: 'Invalid parent task ID' });
+        }
+
+        const parentTask = await Task.findById(taskId);
+        if (!parentTask) {
+            return res.status(404).json({ success: false, message: 'Parent task not found' });
+        }
+
+        const project = await Project.findById(parentTask.project);
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
+
+        // Check if user has permission to create subtasks
+        if (!project.hasPermission(userId, 'Contributor')) {
+            return res.status(403).json({ success: false, message: 'You do not have permission to create subtasks in this project' });
+        }
+
+        // Validate assigned users if provided
+        let assignedUsers = [];
+        if (!assignedTo || assignedTo.length === 0) {
+            const adminMember = project.members.find(m => m.role === 'Admin');
+            assignedUsers = [adminMember ? adminMember.user : project.createdBy];
+        } else {
+            const validUserIds = project.members.map(m => m.user.toString());
+            validUserIds.push(project.createdBy.toString());
+            assignedUsers = assignedTo.filter(id => mongoose.Types.ObjectId.isValid(id) && validUserIds.includes(id));
+            if (assignedUsers.length === 0) assignedUsers = [project.createdBy];
+        }
+
+        // Create the subtask
+        const subtask = new Task({
+            title,
+            description,
+            project: parentTask.project,
+            parentTask: parentTask._id,
+            priority,
+            dueDate: dueDate ? new Date(dueDate) : undefined,
+            assignedTo: assignedUsers,
+            createdBy: userId,
+            tags: tags || [],
+            level: parentTask.level + 1
+        });
+        await subtask.save();
+        await parentTask.addSubtask(subtask._id);
+
+        // Add activity
+        await project.addActivity('subtask_created', `Subtask "${title}" was created under "${parentTask.title}"`, userId);
+
+        res.status(201).json({ success: true, message: 'Subtask created successfully', subtask });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to create subtask', error: error.message });
     }
 };

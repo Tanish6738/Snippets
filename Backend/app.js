@@ -101,7 +101,7 @@ app.use('/api/run-code', runCodeRouter); // Add this line with the other route d
 app.use('/api/scraper', scrapeRouter);  // Add scraper routes
 app.use('/api/pdf', pdfRouter);         // Add PDF routes
 app.use('/api/projects', projectRouter);
-app.use('/api/tasks', taskRouter);
+app.use('/api', taskRouter); // <-- changed from '/api/tasks' to '/api'
 app.use('/api', timeTrackingRouter);    // Add time tracking routes
 
 // Base route

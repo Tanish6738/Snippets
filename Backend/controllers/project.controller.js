@@ -207,10 +207,24 @@ export const getProjectById = async (req, res) => {
         })
         .populate({
             path: 'subtasks',
-            populate: {
-                path: 'subtasks',
-                populate: 'subtasks' // Support up to 3 levels of nesting in the response
-            }
+            populate: [
+                {
+                    path: 'subtasks',
+                    populate: [
+                        {
+                            path: 'subtasks',
+                            populate: [
+                                { path: 'assignedTo', select: 'username email avatar' },
+                                { path: 'createdBy', select: 'username email avatar' }
+                            ]
+                        },
+                        { path: 'assignedTo', select: 'username email avatar' },
+                        { path: 'createdBy', select: 'username email avatar' }
+                    ]
+                },
+                { path: 'assignedTo', select: 'username email avatar' },
+                { path: 'createdBy', select: 'username email avatar' }
+            ]
         })
         .populate('assignedTo', 'username email avatar')
         .populate('createdBy', 'username email avatar');

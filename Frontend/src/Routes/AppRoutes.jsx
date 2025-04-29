@@ -28,6 +28,7 @@ import TaskCreate from '../pages/Tasks/TaskCreate';
 import TaskEdit from '../pages/Tasks/TaskEdit';
 import RecurringTaskList from '../pages/Tasks/RecurringTaskList';
 import AiTaskGenerator from '../pages/Projects/AiTaskGenerator';
+import ProjectTasks from '../pages/Projects/ProjectTasks';
 
 
 const AppRoutes = () => {
@@ -124,6 +125,10 @@ const AppRoutes = () => {
           <Route 
             path="/projects/ai-tasks" 
             element={isAuthenticated ? <AiTaskGenerator /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId/tasks" 
+            element={isAuthenticated ? <ProjectTasks /> : <Navigate to="/login" />}
           />
           {/* Catch-all route */}
           <Route path="*" element={<Navigate to="/" />} />

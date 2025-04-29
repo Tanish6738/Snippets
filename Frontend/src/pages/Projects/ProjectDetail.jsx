@@ -5,6 +5,8 @@ import TaskList from '../../components/Task/TaskList';
 import ProjectMembers from '../../components/Project/ProjectMembers';
 import { FiEdit2, FiBarChart2, FiUsers, FiList, FiChevronLeft } from 'react-icons/fi';
 import { useAuth } from '../../Context/UserContext';
+import TaskForm from '../../components/Task/TaskForm';
+import taskService from '../../services/taskService';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -12,6 +14,24 @@ const ProjectDetail = () => {
   const handleMemberAdded = () => setRefresh(r => r + 1);
   const { project, loading, error } = useProject(projectId, refresh);
   const { user } = useAuth();
+  const [editingTask, setEditingTask] = useState(null);
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleEditTask = (task) => setEditingTask(task);
+  const handleEditSubmit = async (data) => {
+    setEditLoading(true);
+    setEditError('');
+    try {
+      await taskService.updateTask(editingTask._id, data);
+      setEditingTask(null);
+      setRefresh(r => r + 1);
+    } catch (err) {
+      setEditError(err.message || 'Failed to update task');
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
@@ -68,9 +88,17 @@ const ProjectDetail = () => {
         </div>
         <div className="p-6 rounded-xl bg-slate-800/60 border border-slate-700/30 shadow">
           <h3 className="font-semibold mb-3 flex items-center gap-2 text-white"><FiList /> Tasks</h3>
-          <TaskList tasks={tasks} />
+          {editingTask && (
+            <div className="mb-4 bg-slate-100 p-4 rounded">
+              <TaskForm initialValues={editingTask} onSubmit={handleEditSubmit} />
+              {editError && <div className="text-red-600 text-xs mt-1">{editError}</div>}
+              <button className="text-xs text-gray-500 mt-2" onClick={() => setEditingTask(null)}>Cancel</button>
+            </div>
+          )}
+          <TaskList tasks={tasks} onEditTask={handleEditTask} onAddSubtask={() => setRefresh(r => r + 1)} projectId={project._id} />
           <div className="flex gap-4 mt-4">
             <Link to={`/projects/${project._id}/tasks/new`} className="inline-block text-indigo-400 hover:text-indigo-300 font-medium">+ Add Task</Link>
+            <Link to={`/projects/${project._id}/tasks`} className="inline-block text-indigo-400 hover:text-indigo-300 font-medium">View All Tasks</Link>
             <Link to={`/projects/${project._id}/edit`} className="inline-block text-slate-400 hover:text-indigo-400 font-medium">Edit Project</Link>
           </div>
         </div>

@@ -1,94 +1,74 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const TaskSchema = new mongoose.Schema({
-    title: { 
-        type: String, 
+    title: {
+        type: String,
         required: true,
-        trim: true 
+        trim: true
     },
-    description: { 
-        type: String, 
-        default: '' 
-    },
-    project: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Project',
-        required: true 
-    },
-    parentTask: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Task',
-        default: null 
-    },
-    subtasks: [{ 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Task' 
-    }],
-    // Task dependencies - tasks that must be completed before this task can start
-    dependencies: [{
-        task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
-        type: { 
-            type: String, 
-            enum: ['finish-to-start', 'start-to-start', 'finish-to-finish', 'start-to-finish'],
-            default: 'finish-to-start'
-        },
-        // Delay between dependency completion and this task (in days)
-        delay: { type: Number, default: 0 }
-    }],
-    // Blocked status reason when task is blocked
-    blockedReason: {
+    description: {
         type: String,
         default: ''
     },
-    status: { 
-        type: String, 
-        enum: ['To Do', 'In Progress', 'Under Review', 'Completed', 'Blocked'],
+    project: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
+        required: true
+    },
+    parentTask: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task',
+        default: null
+    },
+    subtasks: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task'
+    }],
+    status: {
+        type: String,
+        enum: ['To Do', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
         default: 'To Do'
     },
-    priority: { 
-        type: String, 
+    priority: {
+        type: String,
         enum: ['Low', 'Medium', 'High', 'Urgent'],
         default: 'Medium'
     },
-    // Calculated priority score (0-100) based on urgency, importance, and dependencies
-    priorityScore: {
-        type: Number,
-        default: 0
+    dueDate: {
+        type: Date
     },
-    dueDate: { 
-        type: Date 
+    estimatedHours: {
+        type: Number
     },
-    startDate: { 
-        type: Date 
+    actualHours: {
+        type: Number
     },
-    estimatedHours: { 
-        type: Number 
-    },
-    actualHours: { 
-        type: Number 
-    },
-    // Time tracking entries
-    timeEntries: [{
-        startTime: { type: Date },
-        endTime: { type: Date },
-        duration: { type: Number }, // in minutes
-        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        notes: { type: String }
+    assignedTo: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }],
-    assignedTo: [{ 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User' 
-    }],
-    createdBy: { 
-        type: mongoose.Schema.Types.ObjectId, 
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true 
+        required: true
     },
-    comments: [{
-        text: { type: String },
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        createdAt: { type: Date, default: Date.now },
-        mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    tags: [{
+        type: String
+    }],
+    dependencies: [{
+        task: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Task'
+        },
+        type: {
+            type: String,
+            enum: ['finish-to-start', 'start-to-start', 'finish-to-finish', 'start-to-finish'],
+            default: 'finish-to-start'
+        },
+        delay: {
+            type: Number,
+            default: 0
+        }
     }],
     attachments: [{
         name: { type: String },
@@ -97,466 +77,454 @@ const TaskSchema = new mongoose.Schema({
         uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         uploadedAt: { type: Date, default: Date.now }
     }],
-    level: { 
-        type: Number, 
-        default: 0 
-    },
-    aiGenerated: { 
-        type: Boolean, 
-        default: false 
-    },
-    tags: [{ 
-        type: String 
+    comments: [{
+        text: { type: String },
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        createdAt: { type: Date, default: Date.now },
+        mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
     }],
-    // Task health status calculated automatically
-    health: {
-        status: { 
-            type: String, 
-            enum: ['on-track', 'at-risk', 'delayed', 'ahead'],
-            default: 'on-track'
-        },
-        lastAssessed: { type: Date, default: Date.now }
-    },
-    // Version history of task changes
-    history: [{
-        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        timestamp: { type: Date, default: Date.now },
-        changes: [{ 
-            field: { type: String },
-            oldValue: { type: mongoose.Schema.Types.Mixed },
-            newValue: { type: mongoose.Schema.Types.Mixed }
-        }]
+    checklist: [{
+        title: { type: String },
+        completed: { type: Boolean, default: false },
+        completedAt: { type: Date },
+        completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     }],
-    // For recurring tasks
+    level: {
+        type: Number,
+        default: 0
+    },
     recurrence: {
         isRecurring: { type: Boolean, default: false },
-        frequency: { 
-            type: String, 
-            enum: ['daily', 'weekly', 'monthly', 'yearly', 'custom'] 
-        },
-        interval: { type: Number, default: 1 }, // every X days/weeks/etc
-        daysOfWeek: [{ type: Number }], // 0 = Sunday, 1 = Monday, etc
+        parentRecurringTaskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
+        frequency: { type: String, enum: ['daily', 'weekly', 'monthly', 'custom'] },
+        interval: { type: Number },
+        daysOfWeek: [{ type: Number, min: 0, max: 6 }], // 0 = Sunday, 6 = Saturday
         endDate: { type: Date },
-        occurrences: { type: Number },
-        parentRecurringTaskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' }
+        occurrences: { type: Number }
     },
-    // External calendar integration
-    externalCalendarIds: [{
-        provider: { type: String, enum: ['google', 'outlook', 'apple'] },
-        externalId: { type: String }
-    }]
+    aiGenerated: {
+        type: Boolean,
+        default: false
+    },
+    health: {
+        status: { type: String, enum: ['on-track', 'at-risk', 'delayed', 'ahead'], default: 'on-track' },
+        lastCalculatedAt: { type: Date },
+        factors: {
+            daysUntilDue: { type: Number },
+            blockedByDependencies: { type: Boolean, default: false },
+            progressRate: { type: Number }, // percentage
+            risksIdentified: { type: Number, default: 0 }
+        }
+    }
 }, { timestamps: true });
 
-// Method to add subtask
+// Method to add a subtask to this task
 TaskSchema.methods.addSubtask = async function(subtaskId) {
     if (!this.subtasks.includes(subtaskId)) {
         this.subtasks.push(subtaskId);
-        await this.save();
-        
-        // Update the subtask parent reference
-        const Task = mongoose.model('Task');
-        await Task.findByIdAndUpdate(subtaskId, {
-            parentTask: this._id,
-            project: this.project,
-            level: this.level + 1
-        });
     }
+    await this.save();
     return this;
 };
 
-// Method to remove subtask
+// Method to remove a subtask from this task
 TaskSchema.methods.removeSubtask = async function(subtaskId) {
     this.subtasks = this.subtasks.filter(id => !id.equals(subtaskId));
     await this.save();
     return this;
 };
 
-// Method to update parent task status based on subtasks completion
-TaskSchema.methods.updateParentStatus = async function() {
-    // Only proceed if this task has a parent
-    if (!this.parentTask) return this;
-    
-    const Task = mongoose.model('Task');
-    const parent = await Task.findById(this.parentTask);
-    
-    if (parent) {
-        // Get all subtasks for the parent
-        const subtasks = await Task.find({ _id: { $in: parent.subtasks } });
-        
-        // Check if all subtasks are completed
-        const allCompleted = subtasks.every(task => task.status === 'Completed');
-        
-        if (allCompleted && subtasks.length > 0) {
-            parent.status = 'Completed';
-            await parent.save();
-            
-            // Recursively update grandparent status
-            await parent.updateParentStatus();
-        }
-    }
-    
-    return this;
-};
-
-// Pre-save hook to update project progress when task status changes
-TaskSchema.pre('save', async function(next) {
-    if (this.isModified('status')) {
-        const wasCompleted = this._modifiedPaths && 
-            this._modifiedPaths().includes('status') && 
-            this._previousState && 
-            this._previousState.status === 'Completed';
-        
-        const isCompleted = this.status === 'Completed';
-        
-        // If task completion status changed, update parent task
-        if (wasCompleted !== isCompleted) {
-            // Update parent task status after save
-            this._updateParentAfterSave = true;
-        }
-    }
-    next();
-});
-
-// Post-save hook to update parent task and project
-TaskSchema.post('save', async function() {
-    if (this._updateParentAfterSave) {
-        await this.updateParentStatus();
-        
-        // Update project progress
-        const Project = mongoose.model('Project');
-        const project = await Project.findById(this.project);
-        if (project) {
-            await project.updateProgress();
-        }
-        
-        this._updateParentAfterSave = false;
-    }
-});
-
-// Add comment method
+// Method to add a comment to the task
 TaskSchema.methods.addComment = async function(text, userId, mentions = []) {
     this.comments.push({
         text,
-        createdBy: userId,
-        createdAt: new Date(),
-        mentions
+        user: userId,
+        mentions,
+        createdAt: new Date()
     });
     
     await this.save();
-    return this;
+    
+    // Get the added comment
+    return this.comments[this.comments.length - 1];
 };
 
-// Add dependency method
-TaskSchema.methods.addDependency = async function(dependentTaskId, type = 'finish-to-start', delay = 0) {
-    if (!this.dependencies.some(d => d.task.equals(dependentTaskId))) {
+// Method to add a dependency
+TaskSchema.methods.addDependency = async function(taskId, type = 'finish-to-start', delay = 0) {
+    // Check if dependency already exists
+    const existingDependency = this.dependencies.find(d => d.task.equals(taskId));
+    
+    if (existingDependency) {
+        // Update existing dependency
+        existingDependency.type = type;
+        existingDependency.delay = delay;
+    } else {
+        // Add new dependency
         this.dependencies.push({
-            task: dependentTaskId,
+            task: taskId,
             type,
             delay
         });
-        await this.save();
-        
-        // Check if this task should be blocked based on dependencies
-        await this.updateBlockedStatus();
-    }
-    return this;
-};
-
-// Remove dependency method
-TaskSchema.methods.removeDependency = async function(dependentTaskId) {
-    this.dependencies = this.dependencies.filter(d => !d.task.equals(dependentTaskId));
-    await this.save();
-    
-    // Check if this task can be unblocked
-    await this.updateBlockedStatus();
-    
-    return this;
-};
-
-// Update task blocked status based on dependencies
-TaskSchema.methods.updateBlockedStatus = async function() {
-    if (this.dependencies.length === 0) {
-        if (this.status === 'Blocked' && this.blockedReason === 'Waiting for dependencies') {
-            this.status = 'To Do';
-            this.blockedReason = '';
-            await this.save();
-        }
-        return this;
-    }
-    
-    const Task = mongoose.model('Task');
-    const incompleteDependencies = [];
-    
-    for (const dependency of this.dependencies) {
-        if (dependency.type === 'finish-to-start' || dependency.type === 'finish-to-finish') {
-            const depTask = await Task.findById(dependency.task);
-            if (depTask && depTask.status !== 'Completed') {
-                incompleteDependencies.push(depTask.title);
-            }
-        }
-    }
-    
-    if (incompleteDependencies.length > 0 && this.status !== 'Completed') {
-        this.status = 'Blocked';
-        this.blockedReason = 'Waiting for dependencies';
-        await this.save();
-    } else if (this.status === 'Blocked' && this.blockedReason === 'Waiting for dependencies') {
-        this.status = 'To Do';
-        this.blockedReason = '';
-        await this.save();
-    }
-    
-    return this;
-};
-
-// Start time tracking
-TaskSchema.methods.startTimeTracking = async function(userId) {
-    // Check if there's already an active time tracking for this user
-    const activeEntry = this.timeEntries.find(
-        entry => entry.user.equals(userId) && !entry.endTime
-    );
-    
-    if (activeEntry) {
-        throw new Error('There is already an active time tracking session for this user');
-    }
-    
-    this.timeEntries.push({
-        startTime: new Date(),
-        user: userId
-    });
-    
-    // If task is in To Do, move it to In Progress
-    if (this.status === 'To Do') {
-        this.status = 'In Progress';
     }
     
     await this.save();
-    return this.timeEntries[this.timeEntries.length - 1];
+    return this;
 };
 
-// Stop time tracking
-TaskSchema.methods.stopTimeTracking = async function(userId, notes = '') {
-    // Find the active time tracking entry for this user
-    const entryIndex = this.timeEntries.findIndex(
-        entry => entry.user.equals(userId) && !entry.endTime
-    );
-    
-    if (entryIndex === -1) {
-        throw new Error('No active time tracking session found for this user');
-    }
-    
-    const entry = this.timeEntries[entryIndex];
-    const endTime = new Date();
-    
-    // Calculate duration in minutes
-    const duration = Math.round((endTime - entry.startTime) / (1000 * 60));
-    
-    // Update the entry
-    this.timeEntries[entryIndex].endTime = endTime;
-    this.timeEntries[entryIndex].duration = duration;
-    this.timeEntries[entryIndex].notes = notes;
-    
-    // Update actual hours
-    const hoursSpent = duration / 60;
-    this.actualHours = (this.actualHours || 0) + hoursSpent;
-    
+// Method to remove a dependency
+TaskSchema.methods.removeDependency = async function(taskId) {
+    this.dependencies = this.dependencies.filter(d => !d.task.equals(taskId));
     await this.save();
-    return this.timeEntries[entryIndex];
+    return this;
 };
 
-// Calculate task health
+// Method to calculate task health
 TaskSchema.methods.calculateHealth = async function() {
-    // Don't calculate health for completed tasks
-    if (this.status === 'Completed') {
-        this.health = {
-            status: 'on-track',
-            lastAssessed: new Date()
-        };
-        await this.save();
-        return this;
-    }
-    
+    // Implementation of health calculation logic
+    const now = new Date();
     let healthStatus = 'on-track';
-    
-    // Check if task has a due date and is overdue
-    if (this.dueDate && new Date() > this.dueDate) {
-        healthStatus = 'delayed';
-    } 
-    // Check if due date is approaching (within 24 hours)
-    else if (this.dueDate && 
-             new Date() > new Date(this.dueDate.getTime() - 24 * 60 * 60 * 1000) && 
-             this.status !== 'Completed') {
-        healthStatus = 'at-risk';
-    }
-    // Check if estimated hours vs actual hours indicates risk
-    else if (this.estimatedHours && 
-             this.actualHours && 
-             this.actualHours > this.estimatedHours * 0.8 && 
-             this.status !== 'Completed') {
-        healthStatus = 'at-risk';
-    }
-    // Check if ahead of schedule
-    else if (this.estimatedHours && 
-             this.actualHours && 
-             this.actualHours < this.estimatedHours * 0.5 && 
-             this.status === 'In Progress') {
-        healthStatus = 'ahead';
-    }
-    
-    this.health = {
-        status: healthStatus,
-        lastAssessed: new Date()
+    const factors = {
+        daysUntilDue: 0,
+        blockedByDependencies: false,
+        progressRate: 0,
+        risksIdentified: 0
     };
     
-    await this.save();
-    return this;
-};
-
-// Clone a task (without history and time entries)
-TaskSchema.statics.cloneTask = async function(taskId, userId, options = {}) {
-    const Task = this;
-    const sourceTask = await Task.findById(taskId);
-    
-    if (!sourceTask) {
-        throw new Error('Source task not found');
-    }
-    
-    // Create clone with basic properties
-    const cloneData = {
-        title: options.title || `Copy of ${sourceTask.title}`,
-        description: sourceTask.description,
-        project: sourceTask.project,
-        status: 'To Do', // Always start as To Do
-        priority: sourceTask.priority,
-        priorityScore: sourceTask.priorityScore,
-        dueDate: options.adjustDates && sourceTask.dueDate ? 
-            new Date(sourceTask.dueDate.getTime() + options.dateOffset || 0) : 
-            sourceTask.dueDate,
-        startDate: options.adjustDates && sourceTask.startDate ? 
-            new Date(sourceTask.startDate.getTime() + options.dateOffset || 0) : 
-            sourceTask.startDate,
-        estimatedHours: sourceTask.estimatedHours,
-        assignedTo: options.includeAssignees ? sourceTask.assignedTo : [],
-        createdBy: userId,
-        tags: sourceTask.tags,
-        level: sourceTask.level
-    };
-    
-    // Create the new task
-    const clonedTask = new Task(cloneData);
-    await clonedTask.save();
-    
-    // Clone attachments if requested
-    if (options.includeAttachments && sourceTask.attachments.length > 0) {
-        clonedTask.attachments = sourceTask.attachments;
-        await clonedTask.save();
-    }
-    
-    // Clone recurrence settings if requested
-    if (options.includeRecurrence && sourceTask.recurrence && sourceTask.recurrence.isRecurring) {
-        clonedTask.recurrence = {
-            ...sourceTask.recurrence,
-            parentRecurringTaskId: sourceTask._id
-        };
-        await clonedTask.save();
-    }
-    
-    // Clone subtasks if requested
-    if (options.includeSubtasks && sourceTask.subtasks.length > 0) {
-        for (const subtaskId of sourceTask.subtasks) {
-            const clonedSubtask = await Task.cloneTask(subtaskId, userId, {
-                ...options,
-                title: null // Use default naming for subtasks
-            });
-            
-            // Add as subtask to the cloned parent
-            await clonedTask.addSubtask(clonedSubtask._id);
+    // Calculate days until due date
+    if (this.dueDate) {
+        const dueDate = new Date(this.dueDate);
+        const timeDiff = dueDate.getTime() - now.getTime();
+        const daysUntilDue = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        factors.daysUntilDue = daysUntilDue;
+        
+        // If less than 2 days and task isn't in progress or completed, flag as at risk
+        if (daysUntilDue <= 2 && !['In Progress', 'Completed'].includes(this.status)) {
+            healthStatus = 'at-risk';
+        }
+        
+        // If due date has passed and task isn't completed, flag as delayed
+        if (daysUntilDue < 0 && this.status !== 'Completed') {
+            healthStatus = 'delayed';
         }
     }
     
-    return clonedTask;
-};
-
-// Create recurring task instances
-TaskSchema.statics.createRecurringInstances = async function(upToDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
-    const Task = this;
-    
-    // Find all recurring task templates that should have instances created
-    const recurringTasks = await Task.find({
-        'recurrence.isRecurring': true,
-        'recurrence.parentRecurringTaskId': null, // Only original templates
-    });
-    
-    for (const template of recurringTasks) {
-        // Get the last created instance or use the template's creation date
-        const instances = await Task.find({
-            'recurrence.parentRecurringTaskId': template._id
-        }).sort({ createdAt: -1 }).limit(1);
+    // Check dependencies
+    if (this.dependencies.length > 0) {
+        const Task = mongoose.model('Task');
         
-        let lastDate = instances.length > 0 ? 
-            instances[0].createdAt : 
-            template.createdAt;
-        
-        // Calculate next occurrence dates up to the specified date
-        const nextDates = [];
-        let currentDate = new Date(lastDate);
-        
-        while (currentDate < upToDate) {
-            switch (template.recurrence.frequency) {
-                case 'daily':
-                    currentDate = new Date(currentDate.setDate(
-                        currentDate.getDate() + template.recurrence.interval
-                    ));
-                    break;
-                case 'weekly':
-                    currentDate = new Date(currentDate.setDate(
-                        currentDate.getDate() + (7 * template.recurrence.interval)
-                    ));
-                    break;
-                case 'monthly':
-                    currentDate = new Date(currentDate.setMonth(
-                        currentDate.getMonth() + template.recurrence.interval
-                    ));
-                    break;
-                case 'yearly':
-                    currentDate = new Date(currentDate.setFullYear(
-                        currentDate.getFullYear() + template.recurrence.interval
-                    ));
-                    break;
-            }
+        for (const dep of this.dependencies) {
+            const dependencyTask = await Task.findById(dep.task);
             
-            if (currentDate <= upToDate) {
-                nextDates.push(new Date(currentDate));
-            }
-            
-            // Check if we've reached the end date or max occurrences
-            if (template.recurrence.endDate && currentDate > new Date(template.recurrence.endDate)) {
+            if (dependencyTask && dependencyTask.status !== 'Completed') {
+                factors.blockedByDependencies = true;
+                
+                // If dependency is blocking and dependency isn't completed, task is at risk
+                if (dep.type === 'finish-to-start' && healthStatus === 'on-track') {
+                    healthStatus = 'at-risk';
+                }
+                
                 break;
             }
         }
+    }
+    
+    // Calculate progress based on checklist items if they exist
+    if (this.checklist && this.checklist.length > 0) {
+        const completedItems = this.checklist.filter(item => item.completed).length;
+        factors.progressRate = Math.round((completedItems / this.checklist.length) * 100);
+    }
+    
+    // If task was completed early, mark as ahead
+    if (this.status === 'Completed' && this.dueDate) {
+        const completedDate = this.updatedAt;
+        const dueDate = new Date(this.dueDate);
         
-        // Create instances for each date
-        for (const date of nextDates) {
-            // Clone the template
-            const instance = await Task.cloneTask(template._id, template.createdBy, {
-                title: template.title,
-                adjustDates: true,
-                dateOffset: date - lastDate, // Adjust all dates by this offset
-                includeSubtasks: true,
-                includeAttachments: true
-            });
-            
-            // Mark as a recurring instance
-            instance.recurrence = {
-                isRecurring: false,
-                parentRecurringTaskId: template._id
-            };
-            
-            await instance.save();
+        if (completedDate < dueDate) {
+            healthStatus = 'ahead';
         }
+    }
+    
+    // Update the health status and factors
+    this.health = {
+        status: healthStatus,
+        lastCalculatedAt: now,
+        factors
+    };
+    
+    await this.save();
+    return this.health;
+};
+
+// Static method to clone a task
+TaskSchema.statics.cloneTask = async function(taskId, userId, options = {}) {
+    try {
+        const Task = this;
+        const sourceTask = await Task.findById(taskId);
+        
+        if (!sourceTask) {
+            throw new Error('Source task not found');
+        }
+        
+        // Create a new task with properties from the source task
+        const clonedTask = new Task({
+            title: options.title || `Copy of ${sourceTask.title}`,
+            description: sourceTask.description,
+            project: sourceTask.project,
+            parentTask: sourceTask.parentTask, // Keep same parent
+            status: 'To Do', // Always start as To Do
+            priority: sourceTask.priority,
+            createdBy: userId,
+            tags: sourceTask.tags
+        });
+        
+        // Handle date adjustments if requested
+        if (sourceTask.dueDate && (options.adjustDates !== false)) {
+            const dateOffset = options.dateOffset || 0; // Days to offset
+            const newDueDate = new Date(sourceTask.dueDate);
+            newDueDate.setDate(newDueDate.getDate() + dateOffset);
+            clonedTask.dueDate = newDueDate;
+        }
+        
+        // Handle estimated hours
+        if (sourceTask.estimatedHours) {
+            clonedTask.estimatedHours = sourceTask.estimatedHours;
+        }
+        
+        // Include assignees if requested
+        if (options.includeAssignees && sourceTask.assignedTo && sourceTask.assignedTo.length > 0) {
+            clonedTask.assignedTo = [...sourceTask.assignedTo];
+        }
+        
+        // Save the cloned task
+        await clonedTask.save();
+        
+        // If requested, clone attachments (references to same files)
+        if (options.includeAttachments && sourceTask.attachments && sourceTask.attachments.length > 0) {
+            clonedTask.attachments = sourceTask.attachments.map(att => ({
+                name: att.name,
+                fileUrl: att.fileUrl,
+                fileType: att.fileType,
+                uploadedBy: userId,
+                uploadedAt: new Date()
+            }));
+            
+            await clonedTask.save();
+        }
+        
+        // If requested and source has subtasks, clone subtasks recursively
+        if (options.includeSubtasks && sourceTask.subtasks && sourceTask.subtasks.length > 0) {
+            // Fetch subtasks
+            const subtasks = await Task.find({ _id: { $in: sourceTask.subtasks } });
+            
+            // Clone each subtask
+            for (const subtask of subtasks) {
+                const clonedSubtask = await Task.cloneTask(subtask._id, userId, {
+                    ...options,
+                    title: subtask.title, // Keep original title for subtasks
+                });
+                
+                // Set the parent to the new cloned task
+                clonedSubtask.parentTask = clonedTask._id;
+                await clonedSubtask.save();
+                
+                // Add to subtasks of cloned task
+                clonedTask.subtasks.push(clonedSubtask._id);
+            }
+            
+            await clonedTask.save();
+        }
+        
+        // If this task is a top-level task, add it to the project
+        if (!clonedTask.parentTask) {
+            const Project = mongoose.model('Project');
+            const project = await Project.findById(clonedTask.project);
+            
+            if (project) {
+                project.tasks.push(clonedTask._id);
+                await project.save();
+            }
+        } else {
+            // If it's a subtask, add it to the parent's subtasks
+            const parentTask = await Task.findById(clonedTask.parentTask);
+            if (parentTask) {
+                await parentTask.addSubtask(clonedSubtask._id);
+            }
+        }
+        
+        return clonedTask;
+    } catch (error) {
+        console.error('Error cloning task:', error);
+        throw error;
     }
 };
 
-const Task = mongoose.models.Task || mongoose.model("Task", TaskSchema);
+// Static method to create recurring task instances
+TaskSchema.statics.createRecurringInstances = async function(upToDate) {
+    try {
+        const Task = this;
+        const Project = mongoose.model('Project');
+        
+        // Find all recurring task templates
+        const recurringTasks = await Task.find({
+            'recurrence.isRecurring': true,
+            $or: [
+                { 'recurrence.endDate': { $gte: new Date() } },
+                { 'recurrence.endDate': null }
+            ]
+        });
+        
+        const results = {
+            processed: recurringTasks.length,
+            created: 0,
+            errors: 0
+        };
+        
+        for (const taskTemplate of recurringTasks) {
+            try {
+                // Determine dates to generate instances for
+                const dates = calculateRecurringDates(
+                    taskTemplate.recurrence,
+                    upToDate
+                );
+                
+                // For each date, check if we already have an instance,
+                // if not, create one
+                for (const date of dates) {
+                    // Check if instance already exists for this date
+                    const existingInstance = await Task.findOne({
+                        'recurrence.parentRecurringTaskId': taskTemplate._id,
+                        dueDate: {
+                            $gte: new Date(date.setHours(0, 0, 0, 0)),
+                            $lt: new Date(date.setHours(23, 59, 59, 999))
+                        }
+                    });
+                    
+                    if (!existingInstance) {
+                        // Create a new instance
+                        const instance = new Task({
+                            title: taskTemplate.title,
+                            description: taskTemplate.description,
+                            project: taskTemplate.project,
+                            parentTask: taskTemplate.parentTask,
+                            status: 'To Do',
+                            priority: taskTemplate.priority,
+                            dueDate: date,
+                            estimatedHours: taskTemplate.estimatedHours,
+                            assignedTo: taskTemplate.assignedTo,
+                            createdBy: taskTemplate.createdBy,
+                            tags: taskTemplate.tags,
+                            recurrence: {
+                                isRecurring: false,
+                                parentRecurringTaskId: taskTemplate._id
+                            }
+                        });
+                        
+                        await instance.save();
+                        
+                        // Add to parent task if this is a subtask
+                        if (instance.parentTask) {
+                            const parentTask = await Task.findById(instance.parentTask);
+                            if (parentTask) {
+                                await parentTask.addSubtask(instance._id);
+                            }
+                        } else {
+                            // Add to project if top-level task
+                            const project = await Project.findById(instance.project);
+                            if (project) {
+                                project.tasks.push(instance._id);
+                                await project.save();
+                            }
+                        }
+                        
+                        results.created++;
+                    }
+                }
+            } catch (err) {
+                console.error(`Error processing recurring task ${taskTemplate._id}:`, err);
+                results.errors++;
+            }
+        }
+        
+        return results;
+    } catch (error) {
+        console.error('Error creating recurring instances:', error);
+        throw error;
+    }
+};
+
+// Helper function to calculate recurring dates
+function calculateRecurringDates(recurrence, upToDate) {
+    const dates = [];
+    const now = new Date();
+    const endDate = recurrence.endDate ? new Date(recurrence.endDate) : upToDate;
+    
+    let currentDate = new Date();
+    
+    switch (recurrence.frequency) {
+        case 'daily':
+            while (currentDate <= endDate) {
+                if (currentDate >= now) {
+                    dates.push(new Date(currentDate));
+                }
+                currentDate.setDate(currentDate.getDate() + (recurrence.interval || 1));
+            }
+            break;
+            
+        case 'weekly':
+            // If specific days of week are set, use those
+            if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+                    
+                    if (recurrence.daysOfWeek.includes(dayOfWeek) && currentDate >= now) {
+                        dates.push(new Date(currentDate));
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    
+                    // If we've gone through a full week, apply the interval
+                    if (dayOfWeek === 6) { // If Saturday (end of week)
+                        currentDate.setDate(
+                            currentDate.getDate() + (7 * ((recurrence.interval || 1) - 1))
+                        );
+                    }
+                }
+            } else {
+                // Simple weekly recurrence
+                while (currentDate <= endDate) {
+                    if (currentDate >= now) {
+                        dates.push(new Date(currentDate));
+                    }
+                    currentDate.setDate(currentDate.getDate() + (7 * (recurrence.interval || 1)));
+                }
+            }
+            break;
+            
+        case 'monthly':
+            while (currentDate <= endDate) {
+                if (currentDate >= now) {
+                    dates.push(new Date(currentDate));
+                }
+                
+                // Add months based on interval
+                currentDate.setMonth(currentDate.getMonth() + (recurrence.interval || 1));
+            }
+            break;
+            
+        case 'custom':
+            // For custom recurrence, we'd need a more complex implementation
+            // based on specific requirements
+            break;
+    }
+    
+    // Limit by occurrences if specified
+    if (recurrence.occurrences && dates.length > recurrence.occurrences) {
+        return dates.slice(0, recurrence.occurrences);
+    }
+    
+    return dates;
+}
+
+const Task = mongoose.models.Task || mongoose.model('Task', TaskSchema);
 
 export default Task;

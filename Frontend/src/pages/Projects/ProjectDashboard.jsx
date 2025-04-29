@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchProjectDashboard } from '../../services/projectService';
+import { getProjectDashboard as fetchProjectDashboard } from '../../services/projectService';
 import ProjectDashboardWidgets from '../../components/Project/ProjectDashboardWidgets';
 import ProjectHealthInsights from '../../components/Project/ProjectHealthInsights';
 import aiTaskService from '../../services/aiTaskService';
