@@ -18,6 +18,7 @@ import scrapeRouter from './Routes/scraper.routes.js';
 import pdfRouter from './Routes/pdf.routes.js';   
 import projectRouter from './Routes/project.routes.js';
 import taskRouter from './Routes/task.routes.js';
+import timeTrackingRouter from './Routes/time-tracking.routes.js';
 
 dotenv.config();
 
@@ -101,6 +102,7 @@ app.use('/api/scraper', scrapeRouter);  // Add scraper routes
 app.use('/api/pdf', pdfRouter);         // Add PDF routes
 app.use('/api/projects', projectRouter);
 app.use('/api/tasks', taskRouter);
+app.use('/api', timeTrackingRouter);    // Add time tracking routes
 
 // Base route
 app.get('/', (req, res) => {
@@ -126,7 +128,10 @@ app.get('/api/docs', (req, res) => {
             blogInteractions: '/api/v1/blog-interactions',
             public: '/api/public', // Add public endpoints
             scraper: '/api/scraper',     // Add scraper documentation
-            pdf: '/api/pdf'              // Add PDF documentation
+            pdf: '/api/pdf',              // Add PDF documentation
+            projects: '/api/projects',
+            tasks: '/api/tasks',
+            timeTracking: '/api/tasks/:taskId/time' // Add time tracking documentation
         },
         documentation: 'https://github.com/yourusername/snippets/wiki'
     });

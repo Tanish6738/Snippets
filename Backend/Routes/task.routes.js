@@ -12,9 +12,6 @@ import {
     saveGeneratedTasks,
     addTaskDependency,
     removeTaskDependency,
-    startTimeTracking,
-    stopTimeTracking,
-    getTimeEntries,
     createRecurringTask,
     generateRecurringInstances,
     cloneTask,
@@ -40,11 +37,6 @@ router.post('/:taskId/comments', auth, addComment);
 // Task dependencies
 router.post('/:taskId/dependencies/:dependencyId', auth, addTaskDependency);
 router.delete('/:taskId/dependencies/:dependencyId', auth, removeTaskDependency);
-
-// Time tracking
-router.post('/:taskId/time/start', auth, startTimeTracking);
-router.post('/:taskId/time/stop', auth, stopTimeTracking);
-router.get('/:taskId/time', auth, getTimeEntries);
 
 // Task health
 router.post('/:taskId/health', auth, calculateTaskHealth);

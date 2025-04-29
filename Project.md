@@ -19,6 +19,12 @@ This document provides an overview of the exclusive features in our advanced pro
 5. [API Testing Guide with Postman](#api-testing-guide-with-postman)
    - [Initial Setup](#initial-setup)
    - [Sequential Testing Workflow](#sequential-testing-workflow)
+6. [Time Tracking Module Documentation](#time-tracking-module-documentation)
+   - [Overview](#time-tracking-overview)
+   - [API Endpoints](#time-tracking-api-endpoints)
+   - [Data Model](#time-tracking-data-model)
+   - [Integration with Tasks](#integration-with-tasks)
+   - [Testing Guide](#time-tracking-testing-guide)
 
 ## System Overview
 
@@ -70,6 +76,10 @@ The integrated time tracking system allows team members to record time spent on 
 POST /api/tasks/{taskId}/time/start
 POST /api/tasks/{taskId}/time/stop
 GET /api/tasks/{taskId}/time
+PATCH /api/tasks/{taskId}/time/{timeEntryId}
+DELETE /api/tasks/{taskId}/time/{timeEntryId}
+GET /api/projects/{projectId}/time/report
+GET /api/users/{userId}/time/report
 ```
 
 ### Task Health Analysis
@@ -296,6 +306,7 @@ This guide provides step-by-step instructions for testing the complete project a
      - `task_id`: (Leave empty)
      - `dependency_id`: (Leave empty)
      - `member_id`: (Leave empty)
+     - `time_entry_id`: (Leave empty)
 
 4. **Import the Collection**
    - Alternatively, you can build the collection manually following the steps below
@@ -638,6 +649,13 @@ if (response.success && response.task && response.task._id) {
 
 2. Save request as "Start Time Tracking"
 3. Send request and verify time tracking has started
+4. Add script to "Tests" tab:
+```javascript
+const response = pm.response.json();
+if (response.success && response.timeEntry && response.timeEntry._id) {
+    console.log("Time entry started: " + response.timeEntry._id);
+}
+```
 
 ##### Request 18: Stop Time Tracking
 
@@ -655,6 +673,14 @@ if (response.success && response.task && response.task._id) {
 
 3. Save request as "Stop Time Tracking"
 4. Send request and verify time entry is recorded
+5. Add script to "Tests" tab:
+```javascript
+const response = pm.response.json();
+if (response.success && response.timeEntry && response.timeEntry._id) {
+    pm.environment.set("time_entry_id", response.timeEntry._id);
+    console.log("Time entry ID saved: " + response.timeEntry._id);
+}
+```
 
 ##### Request 19: Get Time Entries
 
@@ -666,7 +692,56 @@ if (response.success && response.task && response.task._id) {
 2. Save request as "Get Time Entries"
 3. Send request and verify time entries are returned
 
-##### Request 20: Complete Dependency Task
+##### Request 20: Update Time Entry
+
+1. Create new request:
+   - Method: `PATCH`
+   - URL: `{{base_url}}/tasks/{{dependency_id}}/time/{{time_entry_id}}`
+   - Authorization: Bearer Token (use `{{token}}`)
+
+2. Add request body (raw JSON):
+```json
+{
+  "notes": "Updated notes for time entry - refined database schema",
+  "startTime": "2025-05-08T09:00:00.000Z",
+  "endTime": "2025-05-08T11:30:00.000Z"
+}
+```
+
+3. Save request as "Update Time Entry"
+4. Send request and verify time entry is updated
+
+##### Request 21: Get Project Time Report
+
+1. Create new request:
+   - Method: `GET`
+   - URL: `{{base_url}}/projects/{{project_id}}/time/report`
+   - Authorization: Bearer Token (use `{{token}}`)
+
+2. Save request as "Get Project Time Report"  
+3. Send request and verify project time report data is returned
+
+##### Request 22: Get User Time Report
+
+1. Create new request:
+   - Method: `GET`
+   - URL: `{{base_url}}/users/{{user_id}}/time/report`
+   - Authorization: Bearer Token (use `{{token}}`)
+
+2. Save request as "Get User Time Report"
+3. Send request and verify user time report data is returned
+
+##### Request 23: Delete Time Entry
+
+1. Create new request:
+   - Method: `DELETE`
+   - URL: `{{base_url}}/tasks/{{dependency_id}}/time/{{time_entry_id}}`
+   - Authorization: Bearer Token (use `{{token}}`)
+
+2. Save request as "Delete Time Entry"
+3. Send request and verify time entry is deleted
+
+##### Request 24: Complete Dependency Task
 
 1. Create new request:
    - Method: `PATCH`
@@ -683,7 +758,7 @@ if (response.success && response.task && response.task._id) {
 3. Save request as "Complete Task"
 4. Send request and verify task status is updated to "Completed"
 
-##### Request 21: Check Main Task is Unblocked
+##### Request 25: Check Main Task is Unblocked
 
 1. Create new request (or reuse "Get Task Details"):
    - Method: `GET`
@@ -695,7 +770,7 @@ if (response.success && response.task && response.task._id) {
 
 #### SECTION 8: Task Health Analysis
 
-##### Request 22: Calculate Task Health
+##### Request 26: Calculate Task Health
 
 1. Create new request:
    - Method: `POST`
@@ -705,7 +780,7 @@ if (response.success && response.task && response.task._id) {
 2. Save request as "Calculate Task Health"
 3. Send request and verify health status is calculated
 
-##### Request 23: Calculate Project-Wide Health
+##### Request 27: Calculate Project-Wide Health
 
 1. Create new request:
    - Method: `POST`
@@ -717,7 +792,7 @@ if (response.success && response.task && response.task._id) {
 
 #### SECTION 9: Advanced Features
 
-##### Request 24: Create Recurring Task
+##### Request 28: Create Recurring Task
 
 1. Create new request:
    - Method: `POST`
@@ -745,7 +820,7 @@ if (response.success && response.task && response.task._id) {
 3. Save request as "Create Recurring Task"
 4. Send request and verify recurring task is created
 
-##### Request 25: Clone Task
+##### Request 29: Clone Task
 
 1. Create new request:
    - Method: `POST`
@@ -767,7 +842,7 @@ if (response.success && response.task && response.task._id) {
 3. Save request as "Clone Task"
 4. Send request and verify task is cloned
 
-##### Request 26: Generate Tasks with AI
+##### Request 30: Generate Tasks with AI
 
 1. Create new request:
    - Method: `POST`
@@ -793,7 +868,7 @@ if (response.success && response.tasks) {
 4. Save request as "Generate AI Tasks"
 5. Send request and verify AI task suggestions are returned
 
-##### Request 27: Save AI-Generated Tasks
+##### Request 31: Save AI-Generated Tasks
 
 1. Create new request:
    - Method: `POST`
@@ -812,7 +887,7 @@ if (response.success && response.tasks) {
 
 #### SECTION 10: Project Dashboard & Reports
 
-##### Request 28: Get Project Dashboard
+##### Request 32: Get Project Dashboard
 
 1. Create new request:
    - Method: `GET`
@@ -824,7 +899,7 @@ if (response.success && response.tasks) {
 
 #### SECTION 11: Cleanup (Optional)
 
-##### Request 29: Remove Task Dependency
+##### Request 33: Remove Task Dependency
 
 1. Create new request:
    - Method: `DELETE`
@@ -834,7 +909,7 @@ if (response.success && response.tasks) {
 2. Save request as "Remove Task Dependency"
 3. Send request and verify dependency is removed
 
-##### Request 30: Remove Project Member
+##### Request 34: Remove Project Member
 
 1. Create new request:
    - Method: `DELETE`
@@ -844,7 +919,7 @@ if (response.success && response.tasks) {
 2. Save request as "Remove Project Member"
 3. Send request and verify member is removed
 
-##### Request 31: Delete Task
+##### Request 35: Delete Task
 
 1. Create new request:
    - Method: `DELETE`
@@ -854,7 +929,7 @@ if (response.success && response.tasks) {
 2. Save request as "Delete Task"
 3. Send request and verify task is deleted
 
-##### Request 32: Delete Project
+##### Request 36: Delete Project
 
 1. Create new request:
    - Method: `DELETE`
@@ -881,3 +956,134 @@ You can use Postman's Collection Runner to automate the entire testing sequence:
 3. **400 Bad Request errors**: Check request body format and required fields
 4. **Time tracking issues**: Make sure you're not already tracking time on another task
 5. **Dependency issues**: Ensure both tasks exist and are in the same project
+
+## Time Tracking Module Documentation
+
+### Time Tracking Overview
+
+The dedicated time tracking module is a core component of our project management system that enables precise tracking of time spent on tasks. The system has been designed with a separate architecture to improve maintainability, scalability, and to provide comprehensive time reporting functionality.
+
+#### Key Features
+
+- **Task-level time tracking**: Start and stop timers for specific tasks
+- **Multiple time entries**: Record multiple time sessions for each task
+- **Notes and tags**: Add detailed descriptions and categorization to time entries
+- **Automatic calculations**: Duration calculated automatically in milliseconds, minutes, and hours
+- **Project-level reporting**: Generate time reports for entire projects
+- **User-level reporting**: Track time spent by specific users across projects
+- **Filtering and analytics**: Filter reports by date ranges, users, or projects
+- **Automatic task updates**: Task actual hours and status are updated automatically when time tracking is used
+
+### Time Tracking API Endpoints
+
+The time tracking module exposes the following RESTful API endpoints:
+
+#### Task-Specific Time Tracking
+
+- **GET `/api/tasks/{taskId}/time`**: Get all time entries for a specific task
+- **POST `/api/tasks/{taskId}/time/start`**: Start time tracking for a task
+- **POST `/api/tasks/{taskId}/time/stop`**: Stop time tracking for a task
+- **PATCH `/api/tasks/{taskId}/time/{timeEntryId}`**: Update a specific time entry
+- **DELETE `/api/tasks/{taskId}/time/{timeEntryId}`**: Delete a specific time entry
+
+#### Project Time Reports
+
+- **GET `/api/projects/{projectId}/time/report`**: Generate a time report for an entire project
+- Query parameters:
+  - `startDate`: Filter entries from this date (ISO format)
+  - `endDate`: Filter entries until this date (ISO format)
+  - `userId`: Filter entries for a specific user
+
+#### User Time Reports
+
+- **GET `/api/users/{userId}/time/report`**: Generate a time report for a specific user across all projects
+- Query parameters:
+  - `startDate`: Filter entries from this date (ISO format)
+  - `endDate`: Filter entries until this date (ISO format)
+  - `projectId`: Filter entries for a specific project
+
+### Time Tracking Data Model
+
+The TimeEntry model includes the following fields:
+
+```javascript
+{
+  taskId: ObjectId,       // Reference to the associated task
+  userId: ObjectId,       // User who tracked the time
+  projectId: ObjectId,    // Project the task belongs to
+  startTime: Date,        // When tracking started
+  endTime: Date,          // When tracking ended (null for active tracking)
+  durationMs: Number,     // Duration in milliseconds
+  notes: String,          // Optional notes about the work done
+  tags: [String]          // Optional tags for categorization
+}
+```
+
+#### Virtual Properties
+
+- `durationMinutes`: Calculated duration in minutes
+- `durationHours`: Calculated duration in hours (with decimal precision)
+
+### Integration with Tasks
+
+The time tracking system is integrated with the task management system, enabling these automatic behaviors:
+
+1. When a time tracking session is started:
+   - Task status is automatically changed to "In Progress" if it was in "To Do"
+   - Only one active time tracking session is allowed per user across all tasks
+
+2. When a time tracking session is stopped:
+   - Task's actual hours are updated with the tracked time
+   - Task health is recalculated based on the new actual hours
+   - Activity is logged in the project timeline with duration information
+
+3. When a time entry is updated:
+   - Task's actual hours are adjusted to reflect the changes
+   - Task health is recalculated
+
+4. When a time entry is deleted:
+   - Task's actual hours are reduced accordingly
+   - Task health is recalculated
+
+### Time Tracking Testing Guide
+
+To thoroughly test the time tracking module, follow these steps in order:
+
+1. **Start Time Tracking**
+   - POST `/api/tasks/{taskId}/time/start`
+   - Verify the response includes a timeEntry object with startTime
+   - Verify the task status is updated to "In Progress"
+
+2. **Try Starting Another Tracking Session (Should Fail)**
+   - POST `/api/tasks/{anotherTaskId}/time/start`
+   - Verify you receive a 400 error indicating an active session exists
+
+3. **Stop Time Tracking**
+   - POST `/api/tasks/{taskId}/time/stop`
+   - Include notes in the request body
+   - Verify the response includes the completed timeEntry with endTime and duration
+
+4. **Get Time Entries for Task**
+   - GET `/api/tasks/{taskId}/time`
+   - Verify the response includes the time entry you just created
+   - Check that the totalTime calculations are correct
+
+5. **Update Time Entry**
+   - PATCH `/api/tasks/{taskId}/time/{timeEntryId}`
+   - Modify the startTime, endTime, or notes
+   - Verify the changes are applied and duration is recalculated
+
+6. **Get Project Time Report**
+   - GET `/api/projects/{projectId}/time/report`
+   - Verify report includes summaries by user and task
+   - Try filtering with query parameters
+
+7. **Get User Time Report**
+   - GET `/api/users/{userId}/time/report`
+   - Verify report includes summaries by project and day
+   - Try filtering with query parameters
+
+8. **Delete Time Entry**
+   - DELETE `/api/tasks/{taskId}/time/{timeEntryId}`
+   - Verify entry is removed
+   - Check that task actual hours are adjusted accordingly
