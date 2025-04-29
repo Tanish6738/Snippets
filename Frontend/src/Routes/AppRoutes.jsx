@@ -18,6 +18,17 @@ import Scrapper from '../components/Layouts/Scrapper';
 import Pdf from '../components/Layouts/Pdf';
 import Snippets from '../components/Modals/SnippetModals/Snippets';
 import Directories from '../components/Modals/DirectoryModals/Directories';
+import ProjectList from '../pages/Projects/ProjectList';
+import ProjectDetail from '../pages/Projects/ProjectDetail';
+import ProjectDashboard from '../pages/Projects/ProjectDashboard';
+import ProjectCreate from '../pages/Projects/ProjectCreate';
+import ProjectEdit from '../pages/Projects/ProjectEdit';
+import TaskDetail from '../pages/Tasks/TaskDetail';
+import TaskCreate from '../pages/Tasks/TaskCreate';
+import TaskEdit from '../pages/Tasks/TaskEdit';
+import RecurringTaskList from '../pages/Tasks/RecurringTaskList';
+import AiTaskGenerator from '../pages/Projects/AiTaskGenerator';
+
 
 const AppRoutes = () => {
   const { currentUser, isAuthenticated } = useAuth();
@@ -54,7 +65,42 @@ const AppRoutes = () => {
               <Navigate to="/login" />
             } 
           />
-
+          <Route 
+            path="/projects" 
+            element={isAuthenticated ? <ProjectList /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/new" 
+            element={isAuthenticated ? <ProjectCreate /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId" 
+            element={isAuthenticated ? <ProjectDetail /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId/edit" 
+            element={isAuthenticated ? <ProjectEdit /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId/dashboard" 
+            element={isAuthenticated ? <ProjectDashboard /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/tasks/:taskId" 
+            element={isAuthenticated ? <TaskDetail /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/tasks/:taskId/edit" 
+            element={isAuthenticated ? <TaskEdit /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId/tasks/new" 
+            element={isAuthenticated ? <TaskCreate /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/:projectId/recurring-tasks" 
+            element={isAuthenticated ? <RecurringTaskList /> : <Navigate to="/login" />}
+          />
           <Route 
             path="/run-code" 
             element={ <CodeRunner /> } 
@@ -74,6 +120,10 @@ const AppRoutes = () => {
           <Route
             path="/my-directories"
             element={isAuthenticated ? <Directories /> : <Navigate to="/login" />}
+          />
+          <Route 
+            path="/projects/ai-tasks" 
+            element={isAuthenticated ? <AiTaskGenerator /> : <Navigate to="/login" />}
           />
           {/* Catch-all route */}
           <Route path="*" element={<Navigate to="/" />} />
