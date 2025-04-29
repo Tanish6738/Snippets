@@ -572,7 +572,7 @@ if (response.success && response.task && response.task._id) {
   "userIds": ["{{member_id}}"]
 }
 ```
-
+ 
 3. Save request as "Assign Task"
 4. Send request and verify task is assigned
 
