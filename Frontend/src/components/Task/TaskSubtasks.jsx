@@ -109,23 +109,21 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
       {subtasks && subtasks.length > 0 ? (
         <div className="space-y-3 mb-4">
           {subtasks.map((subtask) => (
-            <div key={subtask._id} className="border rounded-md p-4 bg-white">
+            <div key={subtask._id} className="border rounded-xl p-4 bg-gradient-to-br from-white to-slate-100 shadow-sm hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-center mb-2">
-                <Link to={`/tasks/${subtask._id}`} className="text-lg font-medium hover:text-blue-600">
+                <Link to={`/tasks/${subtask._id}`} className="text-lg font-semibold text-slate-800 hover:text-indigo-600 transition-colors">
                   {subtask.title}
                 </Link>
                 <span 
-                  className={`px-3 py-1 text-xs rounded text-white ${getStatusColor(subtask.status)}`}
+                  className={`px-3 py-1 text-xs rounded-full font-semibold shadow-sm ${getStatusColor(subtask.status)}`}
                 >
                   {subtask.status}
                 </span>
               </div>
-              
               {/* Subtask details */}
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+              <p className="text-gray-500 text-sm mb-3 line-clamp-2">
                 {subtask.description || 'No description'}
               </p>
-              
               <div className="flex justify-between items-center">
                 {/* Assignees */}
                 <div className="flex -space-x-2">
@@ -134,42 +132,41 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                       {subtask.assignedTo.slice(0, 3).map((user) => (
                         <div 
                           key={user._id} 
-                          className="w-7 h-7 rounded-full bg-gray-300 border border-white overflow-hidden"
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-400 border-2 border-white overflow-hidden shadow"
                           title={user.username}
                         >
                           {user.avatar ? (
                             <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="flex items-center justify-center h-full text-xs">
+                            <div className="flex items-center justify-center h-full text-xs font-bold text-slate-700">
                               {user.username?.charAt(0).toUpperCase() || '?'}
                             </div>
                           )}
                         </div>
                       ))}
                       {subtask.assignedTo.length > 3 && (
-                        <div className="w-7 h-7 rounded-full bg-gray-200 border border-white flex items-center justify-center text-xs">
+                        <div className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white flex items-center justify-center text-xs font-semibold text-slate-700 shadow">
                           +{subtask.assignedTo.length - 3}
                         </div>
                       )}
                     </>
                   ) : (
-                    <span className="text-xs text-gray-500">Unassigned</span>
+                    <span className="text-xs text-gray-400 italic">Unassigned</span>
                   )}
                 </div>
-                
                 {/* Status actions for admins */}
                 {isAdmin && (
                   <div className="flex space-x-2">
                     <button 
                       onClick={() => handleStatusChange(subtask._id, 'In Progress')}
-                      className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                      className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
                       disabled={subtask.status === 'In Progress' || loading}
                     >
                       Start
                     </button>
                     <button 
                       onClick={() => handleStatusChange(subtask._id, 'Completed')}
-                      className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                      className="px-3 py-1 text-xs bg-green-500 text-white rounded-lg shadow hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 transition"
                       disabled={subtask.status === 'Completed' || loading}
                     >
                       Complete
@@ -177,15 +174,14 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                   </div>
                 )}
               </div>
-              
               {/* If this subtask has subtasks, recursively render them */}
               {subtask.subtasks && subtask.subtasks.length > 0 && (
-                <div className="mt-3 pl-4 border-l">
-                  <div className="text-sm text-gray-500 mb-2">Sub-subtasks:</div>
+                <div className="mt-3 pl-4 border-l-2 border-slate-200">
+                  <div className="text-sm text-slate-400 mb-2 font-medium">Sub-subtasks:</div>
                   {subtask.subtasks.map(subSubtask => (
                     <div key={subSubtask._id} className="flex items-center mb-1">
                       <div className={`w-2 h-2 rounded-full ${getStatusColor(subSubtask.status)} mr-2`}></div>
-                      <Link to={`/tasks/${subSubtask._id}`} className="text-sm hover:text-blue-600">
+                      <Link to={`/tasks/${subSubtask._id}`} className="text-sm hover:text-indigo-600 transition-colors">
                         {subSubtask.title}
                       </Link>
                     </div>
@@ -196,55 +192,52 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 mb-4">No subtasks yet</p>
+        <p className="text-slate-400 mb-4 italic">No subtasks yet</p>
       )}
 
       {/* Error message */}
       {error && (
-        <div className="text-red-500 mb-3">{error}</div>
+        <div className="text-red-600 mb-3 font-medium bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>
       )}
 
       {/* Create subtask form */}
       {isAdmin && !isCreating ? (
         <button
           onClick={() => setIsCreating(true)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-600 font-semibold transition"
         >
-          Add Subtask
+          + Add Subtask
         </button>
       ) : isCreating ? (
-        <form onSubmit={handleSubmit} className="border rounded-md p-4 bg-gray-50">
-          <h3 className="text-lg font-medium mb-3">Create New Subtask</h3>
-          
+        <form onSubmit={handleSubmit} className="border rounded-xl p-5 bg-gradient-to-br from-slate-50 to-white shadow-md mt-4">
+          <h3 className="text-lg font-semibold mb-4 text-slate-800">Create New Subtask</h3>
           <div className="mb-4">
-            <label className="block text-gray-700 mb-1">Title</label>
+            <label className="block text-slate-700 mb-1 font-medium">Title</label>
             <input
               type="text"
               name="title"
               value={newSubtask.title}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
               required
             />
           </div>
-          
           <div className="mb-4">
-            <label className="block text-gray-700 mb-1">Description</label>
+            <label className="block text-slate-700 mb-1 font-medium">Description</label>
             <textarea
               name="description"
               value={newSubtask.description}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded h-24"
+              className="w-full p-2 border border-slate-300 rounded-lg h-24 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
             />
           </div>
-          
           <div className="mb-4">
-            <label className="block text-gray-700 mb-1">Priority</label>
+            <label className="block text-slate-700 mb-1 font-medium">Priority</label>
             <select
               name="priority"
               value={newSubtask.priority}
               onChange={handleInputChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
             >
               <option value="Low">Low</option>
               <option value="Medium">Medium</option>
@@ -252,23 +245,21 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
               <option value="Urgent">Urgent</option>
             </select>
           </div>
-          
           {/* Assignees section */}
           <div className="mb-4">
-            <label className="block text-gray-700 mb-1">Assign To</label>
-            
+            <label className="block text-slate-700 mb-1 font-medium">Assign To</label>
             {/* Selected assignees */}
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {newSubtask.assignedTo.length > 0 ? (
                 newSubtask.assignedTo.map(userId => {
                   const memberData = projectMembers.find(m => m.user._id === userId);
                   return memberData ? (
-                    <div key={userId} className="bg-blue-100 rounded-full px-3 py-1 text-sm flex items-center">
+                    <div key={userId} className="bg-indigo-100 rounded-full px-3 py-1 text-sm flex items-center font-medium text-indigo-700 shadow">
                       {memberData.user.username}
                       <button 
                         type="button" 
                         onClick={() => toggleAssignee(userId)}
-                        className="ml-2 text-xs text-red-500"
+                        className="ml-2 text-xs text-red-500 hover:text-red-700"
                       >
                         ✕
                       </button>
@@ -276,42 +267,39 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                   ) : null;
                 })
               ) : (
-                <div className="text-gray-500 text-sm">No users assigned</div>
+                <div className="text-slate-400 text-sm italic">No users assigned</div>
               )}
             </div>
-            
             {/* Assignee selector */}
             <div className="relative">
               <button 
                 type="button"
                 onClick={() => setShowAssignees(!showAssignees)}
-                className="w-full p-2 border rounded text-left flex justify-between items-center"
+                className="w-full p-2 border border-slate-300 rounded-lg text-left flex justify-between items-center bg-white hover:bg-slate-50 transition font-medium"
               >
                 <span>Select team members</span>
                 <span>{showAssignees ? '▲' : '▼'}</span>
               </button>
-              
               {showAssignees && (
-                <div className="absolute z-10 w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto">
-                  <div className="p-2 border-b">
+                <div className="absolute z-10 w-full bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto mt-1">
+                  <div className="p-2 border-b border-slate-100">
                     <input
                       type="text"
                       placeholder="Search members..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full p-2 border rounded"
+                      className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition"
                     />
                   </div>
-                  
                   {filteredMembers.length === 0 ? (
-                    <div className="p-3 text-gray-500">No members found</div>
+                    <div className="p-3 text-slate-400">No members found</div>
                   ) : (
                     filteredMembers.map((member) => (
                       <div
                         key={member.user._id}
                         onClick={() => toggleAssignee(member.user._id)}
-                        className={`p-3 hover:bg-gray-100 cursor-pointer flex justify-between items-center ${
-                          newSubtask.assignedTo.includes(member.user._id) ? 'bg-blue-50' : ''
+                        className={`p-3 hover:bg-indigo-50 cursor-pointer flex justify-between items-center transition ${
+                          newSubtask.assignedTo.includes(member.user._id) ? 'bg-indigo-100' : ''
                         }`}
                       >
                         <div className="flex items-center">
@@ -324,11 +312,11 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                           )}
                           <div>
                             {member.user.username}
-                            <span className="ml-2 text-xs text-gray-500">{member.role}</span>
+                            <span className="ml-2 text-xs text-slate-400">{member.role}</span>
                           </div>
                         </div>
                         {newSubtask.assignedTo.includes(member.user._id) && (
-                          <div className="text-blue-600">✓</div>
+                          <div className="text-indigo-600 font-bold">✓</div>
                         )}
                       </div>
                     ))
@@ -337,19 +325,18 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
               )}
             </div>
           </div>
-          
           <div className="flex justify-end space-x-2">
             <button
               type="button"
               onClick={() => setIsCreating(false)}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow hover:from-indigo-600 hover:to-blue-600 font-semibold transition"
               disabled={loading}
             >
               {loading ? 'Creating...' : 'Create Subtask'}
