@@ -144,17 +144,53 @@ const AiTaskGenerator = () => {
       
       // If creating a new project, create it first
       if (mode === 'new') {
-        const newProject = await projectService.createProject({
+        console.log('Creating new project:', { title: projectTitle, description: projectDescription, projectType });
+        
+        const newProjectResponse = await projectService.createProject({
           title: projectTitle,
           description: projectDescription,
           projectType
         });
         
-        projectId = newProject.data.project._id;
+        console.log('Project created response:', newProjectResponse);
+        
+        // The response might have the project directly or nested in a 'data' or 'project' field
+        // Try all possible paths to find the project ID
+        if (newProjectResponse && newProjectResponse.project && newProjectResponse.project._id) {
+          projectId = newProjectResponse.project._id;
+        } else if (newProjectResponse && newProjectResponse.project) {
+          projectId = newProjectResponse.project;
+        } else if (newProjectResponse && newProjectResponse._id) {
+          projectId = newProjectResponse._id;
+        } else if (newProjectResponse && newProjectResponse.data && newProjectResponse.data.project && newProjectResponse.data.project._id) {
+          projectId = newProjectResponse.data.project._id;
+        } else {
+          // If we still can't find the ID, log the entire response for debugging
+          console.error('Project creation response structure:', JSON.stringify(newProjectResponse));
+          throw new Error('Failed to get project ID from creation response');
+        }
+        
+        console.log('New project ID:', projectId);
+        
+        // Update selectedProject state with the newly created project
+        setSelectedProject({
+          _id: projectId,
+          title: projectTitle,
+          description: projectDescription,
+          projectType
+        });
       }
       
+      // Verify project ID exists before saving tasks
+      if (!projectId) {
+        throw new Error('No project ID available to save tasks');
+      }
+      
+      console.log('Saving tasks to project:', projectId, generatedTasks);
+      
       // Save the generated tasks
-      await aiTaskService.saveGeneratedTasks(projectId, generatedTasks);
+      const saveResponse = await aiTaskService.saveGeneratedTasks(projectId, generatedTasks);
+      console.log('Tasks saved response:', saveResponse);
       
       setSuccess(mode === 'new' 
         ? 'Project and tasks created successfully!' 
@@ -163,7 +199,8 @@ const AiTaskGenerator = () => {
       setShowConfirmDialog(true);
       setLoading(false);
     } catch (err) {
-      setError('Failed to save tasks. Please try again.');
+      console.error('Error in handleSaveTasks:', err);
+      setError(`Failed to save tasks: ${err.message || 'Unknown error'}`);
       setLoading(false);
     }
   };
@@ -943,7 +980,7 @@ const AiTaskGenerator = () => {
               background: 'rgba(34,197,94,0.15)', 
               backdropFilter: 'blur(12px)',
               border: '1px solid rgba(34,197,94,0.3)',
-              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.05), 0 8px 16px -2px rgba(34,197,94,0.18)',
+              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.025), 0 8px 16px -2px rgba(34,197,94,0.18)',
               display: 'flex',
               alignItems: 'center',
               gap: 2,

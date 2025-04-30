@@ -28,7 +28,7 @@ export default {
    */
   saveGeneratedTasks: async (projectId, tasks) => {
     try {
-      // Use correct backend endpoint
+      // Fixed endpoint to match the backend route structure
       return await axios.post(`/api/projects/${projectId}/save-generated-tasks`, { tasks });
     } catch (error) {
       console.error('Error saving generated tasks:', error);
