@@ -30,7 +30,8 @@ app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = [
             'https://snippets-frontend-pearl.vercel.app',
-             process.env.CLOUD_FLARED,
+            'https://snippets-two-navy.vercel.app',  // Add the backend URL to allowed origins
+            process.env.CLOUD_FLARED,
             'http://localhost:3000',
             'http://localhost:5173'
         ];

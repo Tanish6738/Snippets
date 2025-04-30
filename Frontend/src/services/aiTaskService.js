@@ -59,7 +59,8 @@ export default {
    */
   getRecurringTaskRecommendations: async (projectId, data) => {
     try {
-      return await axios.post(`/ai/tasks/recurring/${projectId}`, data);
+      // Added missing '/api' prefix
+      return await axios.post(`/api/ai/tasks/recurring/${projectId}`, data);
     } catch (error) {
       console.error('Error getting recurring task recommendations:', error);
       throw error.response?.data || error;
@@ -73,7 +74,8 @@ export default {
    */
   getTaskPriorityRecommendations: async (projectId) => {
     try {
-      return await axios.post(`/ai/tasks/priorities/${projectId}`);
+      // Added missing '/api' prefix
+      return await axios.post(`/api/ai/tasks/priorities/${projectId}`);
     } catch (error) {
       console.error('Error getting task priority recommendations:', error);
       throw error.response?.data || error;
@@ -87,7 +89,8 @@ export default {
    */
   getDeadlineRecommendations: async (projectId) => {
     try {
-      return await axios.post(`/ai/tasks/deadlines/${projectId}`);
+      // Added missing '/api' prefix
+      return await axios.post(`/api/ai/tasks/deadlines/${projectId}`);
     } catch (error) {
       console.error('Error getting deadline recommendations:', error);
       throw error.response?.data || error;
