@@ -55,7 +55,7 @@ const Navbar = () => {
       items: [
         { to: "/projects", label: "All Projects", icon: FiTrello },
         { to: "/projects/new", label: "Create Project", icon: FiPlus },
-        { to: "/projects/ai-tasks", label: "AI Task Generator", icon: FiZap },
+        { to: "/projects/ai-tasks", label: "Project Generator", icon: FiZap },
       ],
     },
   };
