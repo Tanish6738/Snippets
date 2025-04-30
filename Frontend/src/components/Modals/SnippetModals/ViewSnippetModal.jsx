@@ -104,12 +104,20 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
     if (snippet?.content) {
       try {
         setIsExplaining(true);
-        const response = await axios.post('/api/ai/explain-code', {
+        const response = await axios.post('/api/ai/explanation', {
           code: snippet.content,
           language: snippet.programmingLanguage
         });
         
-        setExplanationData(response.data.explanation);
+        // Use the updated API response format with separate summary and content fields
+        setExplanationData({
+          summary: response.data.explanation.summary || response.data.explanation.content,
+          details: {
+            title: response.data.explanation.title,
+            content: response.data.explanation.content,
+            tags: response.data.explanation.tags || []
+          }
+        });
         setIsExplaining(false);
       } catch (error) {
         console.error('Failed to explain code:', error);
@@ -356,41 +364,76 @@ const ViewSnippetModal = ({ isOpen, onClose, snippetId, onEdit = null }) => {
                           AI Explanation
                         </h3>
                         
-                        <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300">
-                          <h4 className="text-sm font-medium text-slate-200 mb-2">Summary</h4>
-                          <p className="text-sm">{explanationData.summary}</p>
+                        {/* Improved Summary Section with better styling and font colors */}
+                        <div className="px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-100">
+                          <h4 className="text-sm font-medium text-white mb-2">Summary</h4>
+                          <div className="text-sm prose prose-slate prose-invert max-w-none">
+                            {/* Using dangerouslySetInnerHTML to render markdown, but only from our trusted source */}
+                            <div dangerouslySetInnerHTML={{ 
+                              __html: explanationData.summary
+                                .replace(/\*\*([^*]+)\*\*/g, '<span class="font-semibold text-white">$1</span>') // Bold text - brighter white
+                                .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-200">$1</em>') // Italics - slightly brighter
+                                .replace(/`([^`]+)`/g, '<code class="bg-slate-700/70 text-teal-200 px-1 py-0.5 rounded">$1</code>') // Code - teal for better visibility
+                                .replace(/\n\n/g, '</p><p class="text-slate-100">') // Paragraphs with better color
+                                .replace(/\n\*/g, '</p><ul class="list-disc pl-4 my-2 text-slate-100"><li>') // List starts
+                                .replace(/\n  \*/g, '</li><li>') // List items
+                                .replace(/\n\d+\./g, '</p><ol class="list-decimal pl-4 my-2 text-slate-100"><li>') // Ordered list
+                                .replace(/<\/li>(?!<li>)/g, '</li></ul><p class="text-slate-100">') // End of list
+                                .split('\n')
+                                .join('<br />') // Line breaks
+                            }} />
+                          </div>
                         </div>
 
                         <div className="space-y-3">
-                          <h4 className="text-sm font-medium text-slate-200">Detailed Explanation</h4>
+                          <h4 className="text-sm font-medium text-white">Detailed Explanation</h4>
                           
                           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-                            <div className="space-y-3">
-                              <div>
-                                <h4 className="text-xs font-medium text-slate-400 mb-1">Title</h4>
-                                <p className="text-sm text-slate-300">{explanationData.details.title}</p>
-                              </div>
-
-                              <div>
-                                <h4 className="text-xs font-medium text-slate-400 mb-1">Analysis</h4>
-                                <pre className="whitespace-pre-wrap text-sm text-slate-300 font-mono">
-                                  {explanationData.details.content}
-                                </pre>
-                              </div>
-
-                              <div>
-                                <h4 className="text-xs font-medium text-slate-400 mb-1">Tags</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {explanationData.details.tags.map((tag, index) => (
-                                    <span 
-                                      key={index}
-                                      className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700/50 text-xs"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
+                            <div className="space-y-4">
+                              {explanationData.details && explanationData.details.title && (
+                                <div>
+                                  <h4 className="text-lg font-medium text-white mb-2">{explanationData.details.title}</h4>
                                 </div>
-                              </div>
+                              )}
+
+                              {explanationData.details && explanationData.details.content && (
+                                <div className="space-y-3">
+                                  <div className="prose prose-sm prose-slate prose-invert max-w-none">
+                                    {/* Format the content with proper markdown styling and enhanced text colors */}
+                                    <div dangerouslySetInnerHTML={{ 
+                                      __html: explanationData.details.content
+                                        .replace(/\*\*([^*]+)\*\*/g, '<span class="font-semibold text-white">$1</span>') // Bold text - brighter white
+                                        .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-200">$1</em>') // Italics - slightly brighter
+                                        .replace(/`([^`]+)`/g, '<code class="bg-slate-700/70 text-teal-200 px-1 py-0.5 rounded">$1</code>') // Code - teal for better visibility
+                                        .replace(/```(\w*)\n([\s\S]*?)\n```/g, '<pre class="bg-slate-800 border border-slate-700/50 p-2 rounded-lg my-3 overflow-x-auto"><code class="language-$1 text-teal-200">$2</code></pre>') // Code blocks with teal text
+                                        .replace(/\n\n/g, '</p><p class="text-slate-100">') // Paragraphs with better color
+                                        .replace(/\n\* /g, '</p><ul class="list-disc pl-5 my-2 text-slate-100"><li>') // List starts
+                                        .replace(/\n  \* /g, '</li><li>') // Nested list items
+                                        .replace(/\n\d+\. /g, '</p><ol class="list-decimal pl-5 my-2 text-slate-100"><li>') // Ordered list
+                                        .replace(/\n    \* /g, '</li><ul class="list-disc pl-5 my-1 text-slate-100"><li>') // Nested lists
+                                        .replace(/<\/li>(?!<li>)/g, '</li></ul><p class="text-slate-100">') // End of list
+                                        .split('\n')
+                                        .join('<br />') // Line breaks
+                                    }} />
+                                  </div>
+                                </div>
+                              )}
+
+                              {explanationData.details && explanationData.details.tags && explanationData.details.tags.length > 0 && (
+                                <div>
+                                  <h4 className="text-xs font-medium text-white mb-2">Tags</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {explanationData.details.tags.map((tag, index) => (
+                                      <span 
+                                        key={index}
+                                        className="px-2.5 py-1 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 text-teal-200 border border-slate-600/60 text-xs"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

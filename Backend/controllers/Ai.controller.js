@@ -25,15 +25,16 @@ export const generateExplanation = async (req, res) => {
             You are a code expert. Please provide a detailed explanation of the following code snippet written in ${language || 'the appropriate programming language'}.
             
             Include:
-            1. A summary of what the code does
-            2. Explanation of key functions and logic
+            1. A concise summary of what the code does (1-3 sentences)
+            2. Detailed explanation of key functions and logic
             3. Any potential issues or optimizations
             4. Suggested tags that would be relevant for this code
             
             Format your response as a JSON object with the following structure:
             {
                 "title": "Brief title describing this code",
-                "content": "Your detailed explanation",
+                "summary": "Your concise summary (1-3 sentences)",
+                "content": "Your detailed explanation including key functions, logic, issues, optimizations, etc.",
                 "tags": ["tag1", "tag2", "tag3"]
             }
             

@@ -37,7 +37,7 @@ const DocumentationModal = ({ isOpen, onClose, snippet }) => {
     setDocumentation(null);
 
     try {
-      const { data } = await axios.post('/api/ai/generate-documentation', {
+      const { data } = await axios.post('/api/ai/documentation', {
         code: snippet.content,
         language: snippet.programmingLanguage,
         style: docStyle,
