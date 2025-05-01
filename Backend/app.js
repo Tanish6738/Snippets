@@ -24,14 +24,13 @@ dotenv.config();
 
 // Initialize express
 const app = express();
-
+ 
 // Update CORS configuration
 app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = [
             'https://snippets-frontend-pearl.vercel.app',
-            'https://snippets-two-navy.vercel.app',  // Add the backend URL to allowed origins
-            process.env.CLOUD_FLARED,
+             process.env.CLOUD_FLARED,
             'http://localhost:3000',
             'http://localhost:5173'
         ];

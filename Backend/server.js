@@ -17,12 +17,7 @@ const server = http.createServer(app);
 // Update Socket.IO initialization with CORS config
 const io = new Server(server, {
     cors: {
-        origin: [
-            "http://localhost:5173", 
-            "http://127.0.0.1:5173", 
-            "https://snippets-frontend-pearl.vercel.app",
-            "https://snippets-two-navy.vercel.app" // Add the backend URL
-        ],
+        origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://snippets-frontend-pearl.vercel.app"],
         methods: ["GET", "POST"],
         allowedHeaders: ["Authorization", "Content-Type"],
         credentials: true
