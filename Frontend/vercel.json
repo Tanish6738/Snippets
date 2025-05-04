@@ -1,13 +1,13 @@
 {
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://snippets-two-navy.vercel.app/api/$1"
+            "source": "/api/:match",
+            "destination": "https://snippets-two-navy.vercel.app/api/:match"
         }
     ],
     "headers": [
         {
-            "source": "/api/(.*)",
+            "source": "/api/:match",
             "headers": [
                 { "key": "Access-Control-Allow-Credentials", "value": "true" },
                 { "key": "Access-Control-Allow-Origin", "value": "https://snippets-frontend-pearl.vercel.app" },
