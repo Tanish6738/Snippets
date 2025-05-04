@@ -153,7 +153,7 @@ const TaskListItem = ({ task, onEdit, onAddSubtask, projectMembers = [], isAdmin
             <span className="text-xs text-slate-400 mr-1">Assignees:</span>
             <div className="flex -space-x-2">
               {task.assignedTo.map((user, index) => {
-                const username = user.username || 'User';
+                const username = user?.username || 'User';
                 const avatarColor = getAvatarColor(username);
                 return (
                   <div 
@@ -259,7 +259,7 @@ const TaskListItem = ({ task, onEdit, onAddSubtask, projectMembers = [], isAdmin
                 <div className="space-y-2">
                   {projectMembers.map(member => {
                     const user = member.user;
-                    const username = user.username || 'User';
+                    const username = user?.username || 'User';
                     const avatarColor = getAvatarColor(username);
                     return (
                       <label 

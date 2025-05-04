@@ -45,7 +45,7 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
   // Filter members for mention dropdown
   const filteredMembers = mentionQuery 
     ? projectMembers.filter(member => {
-        const username = (member.user || member).username || '';
+        const username = (member.user || member)?.username || '';
         return username.toLowerCase().includes(mentionQuery.toLowerCase());
       })
     : projectMembers;
@@ -257,7 +257,7 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
             <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-md shadow-lg">
               {filteredMembers.map(member => {
                 const user = member.user || member;
-                const username = user.username || 'User';
+                const username = user?.username || 'User';
                 const avatarColor = getAvatarColor(username);
                 const userId = user._id;
                 
@@ -268,7 +268,7 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
                     onClick={() => handleSelectMention(userId, username)}
                   >
                     <div className={`${avatarColor} w-6 h-6 rounded-full flex items-center justify-center text-white text-xs`}>
-                      {user.avatar ? (
+                      {user?.avatar ? (
                         <img src={user.avatar} alt={username} className="rounded-full w-full h-full object-cover" />
                       ) : (
                         getInitials(username)
@@ -290,7 +290,7 @@ const TaskForm = ({ initialValues = {}, onSubmit, projectMembers = [] }) => {
               if (!member) return null;
               
               const user = member.user || member;
-              const username = user.username || 'User';
+              const username = user?.username || 'User';
               
               return (
                 <span key={userId} className="inline-flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">

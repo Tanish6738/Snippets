@@ -55,11 +55,11 @@ const TaskAssignment = ({ taskId, currentAssignees, projectMembers, onAssign, is
               {user.avatar && (
                 <img 
                   src={user.avatar} 
-                  alt={user.username || 'User'} 
+                  alt={user?.username || 'User'} 
                   className="w-6 h-6 rounded-full mr-2"
                 />
               )}
-              <span>{user.username || 'Unknown user'}</span>
+              <span>{user?.username || 'Unknown user'}</span>
               {isAdmin && (
                 <button 
                   onClick={() => toggleUserSelection(typeof user === 'object' ? user._id : user)}
@@ -116,12 +116,12 @@ const TaskAssignment = ({ taskId, currentAssignees, projectMembers, onAssign, is
                       {member.user.avatar && (
                         <img
                           src={member.user.avatar}
-                          alt={member.user.username}
+                          alt={member.user?.username || 'User'}
                           className="w-8 h-8 rounded-full mr-3"
                         />
                       )}
                       <div>
-                        <div>{member.user.username}</div>
+                        <div>{member.user?.username || 'User'}</div>
                         <div className="text-xs text-gray-500">{member.role}</div>
                       </div>
                     </div>

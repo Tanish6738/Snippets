@@ -133,13 +133,13 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                         <div 
                           key={user._id} 
                           className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-400 border-2 border-white overflow-hidden shadow"
-                          title={user.username}
+                          title={user?.username || 'User'}
                         >
                           {user.avatar ? (
-                            <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+                            <img src={user.avatar} alt={user?.username || 'User'} className="w-full h-full object-cover" />
                           ) : (
                             <div className="flex items-center justify-center h-full text-xs font-bold text-slate-700">
-                              {user.username?.charAt(0).toUpperCase() || '?'}
+                              {user?.username?.charAt(0).toUpperCase() || '?'}
                             </div>
                           )}
                         </div>
@@ -255,7 +255,7 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                   const memberData = projectMembers.find(m => m.user._id === userId);
                   return memberData ? (
                     <div key={userId} className="bg-indigo-100 rounded-full px-3 py-1 text-sm flex items-center font-medium text-indigo-700 shadow">
-                      {memberData.user.username}
+                      {memberData.user?.username || 'User'}
                       <button 
                         type="button" 
                         onClick={() => toggleAssignee(userId)}
@@ -306,12 +306,12 @@ const TaskSubtasks = ({ taskId, subtasks, projectMembers, isAdmin }) => {
                           {member.user.avatar && (
                             <img
                               src={member.user.avatar}
-                              alt={member.user.username}
+                              alt={member.user?.username || 'User'}
                               className="w-6 h-6 rounded-full mr-2"
                             />
                           )}
                           <div>
-                            {member.user.username}
+                            {member.user?.username || 'User'}
                             <span className="ml-2 text-xs text-slate-400">{member.role}</span>
                           </div>
                         </div>

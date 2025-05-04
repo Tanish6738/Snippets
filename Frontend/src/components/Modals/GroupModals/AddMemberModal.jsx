@@ -53,7 +53,7 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded, currentMember
   const debouncedSearch = useCallback((query) => {
     console.log('Performing search with query:', query);
     const filtered = users.filter(user =>
-      user.username.toLowerCase().includes(query.toLowerCase()) ||
+      user?.username?.toLowerCase().includes(query.toLowerCase()) ||
       user.email.toLowerCase().includes(query.toLowerCase())
     );
     console.log('Search results:', filtered);
@@ -293,7 +293,7 @@ const AddMemberModal = ({ isOpen, onClose, groupId, onMemberAdded, currentMember
                       />
                       <div className="ml-4">
                         <div className="text-indigo-200 font-medium">
-                          {user.username}
+                          {user?.username || 'User'}
                         </div>
                         <div className="text-indigo-400 text-sm">
                           {user.email}

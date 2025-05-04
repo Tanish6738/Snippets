@@ -61,7 +61,7 @@ const TaskComments = ({
 
   // Filter members for mention suggestions
   const filteredMembers = projectMembers
-    .filter(m => m.user.username?.toLowerCase().includes(mentionQuery.toLowerCase()))
+    .filter(m => m.user?.username?.toLowerCase().includes(mentionQuery.toLowerCase()))
     .map(m => m.user);
 
   const getInitials = (name) => {

@@ -302,7 +302,7 @@ const Home = () => {
 
                   <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-slate-300 via-slate-200 to-slate-100 bg-clip-text text-transparent">
                     {isAuthenticated
-                      ? `Welcome back, ${user.username}`
+                      ? `Welcome back, ${user?.username || 'User'}`
                       : "Your Code Universe"}
                   </h1>
 
