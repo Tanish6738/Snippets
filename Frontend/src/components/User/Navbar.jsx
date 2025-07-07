@@ -42,6 +42,14 @@ const Navbar = () => {
         { to: "/scrape", label: "Web Scrapper", icon: FiActivity },
       ],
     },
+    eco: {
+      label: "CodeArc Ecosystem",
+      items: [
+        { to: "https://securo-app-v0.vercel.app/", label: "Securo", icon: FiLayers },
+        { to: "https://dev-store-v1.vercel.app/", label: "Dev Store", icon: FiCode },
+        { to: "https://pdf-merger-green.vercel.app/", label: "PDF Merger", icon: FiActivity },
+      ],
+    },
     media: {
       label: "Media",
       items: [
@@ -212,8 +220,8 @@ const Navbar = () => {
         className={`fixed top-0 left-0 right-0 z-50 ${colors.background} 
                   ${colors.border} border-b shadow-2xl shadow-black/5 font-['Plus_Jakarta_Sans',sans-serif]`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex w-full items-center justify-between h-20">
             {/* Logo */}
             <div className="flex items-center gap-6">
               <button
