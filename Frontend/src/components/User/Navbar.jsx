@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiMenu,
   FiX,
+  FiBookOpen,
   FiHome,
   FiCode,
   FiActivity,
@@ -48,6 +49,7 @@ const Navbar = () => {
         { to: "https://securo-app-v0.vercel.app/", label: "Securo", icon: FiLayers },
         { to: "https://dev-store-v1.vercel.app/", label: "Dev Store", icon: FiCode },
         { to: "https://pdf-merger-green.vercel.app/", label: "PDF Merger", icon: FiActivity },
+        { to: "https://workshop-app-v1-roan.vercel.app/", label: "WorkShop", icon: FiBookOpen },
       ],
     },
     media: {
