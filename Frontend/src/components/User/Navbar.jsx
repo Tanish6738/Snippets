@@ -11,6 +11,7 @@ import {
   FiActivity,
   FiUser,
   FiLogOut,
+  FiCrosshair ,
   FiSettings,
   FiFolder,
   FiLayers,
@@ -48,7 +49,7 @@ const Navbar = () => {
       items: [
         { to: "https://securo-app-v0.vercel.app/", label: "Securo", icon: FiLayers },
         { to: "https://dev-store-v1.vercel.app/", label: "Dev Store", icon: FiCode },
-        { to: "https://pdf-merger-green.vercel.app/", label: "PDF Merger", icon: FiActivity },
+        { to: "https://focus-learning-v0.vercel.app/", label: "Focus Learning", icon: FiCrosshair  },
         { to: "https://workshop-app-v1-roan.vercel.app/", label: "WorkShop", icon: FiBookOpen },
       ],
     },
@@ -57,7 +58,7 @@ const Navbar = () => {
       items: [
         { to: "/blog", label: "Blog", icon: FiStar },
         { to: "/blog/create", label: "Create Blog", icon: FiPlus },
-        { to: "/create-pdf", label: "Create Pdf", icon: FiFolder },
+        { to: "https://pdf-merger-green.vercel.app/", label: "PDF Merger", icon: FiActivity },
       ],
     },
     projects: {
